@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ProcessTemplate {
+  id            Int            @id @default(autoincrement())
+  name          String
+  version       Int            @default(1)
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  cases         Case[]
+  stepTemplates StepTemplate[]
+
+  @@map("process_templates")
+}
+
+model StepTemplate {
+  id                    Int             @id @default(autoincrement())
+  processId             Int             @map("process_id")
+  seq                   Int
+  name                  String
+  basis                 String
+  offsetDays            Int             @default(0) @map("offset_days")
+  requiredArtifactsJson Json            @default("[]") @map("required_artifacts_json")
+  dependsOnJson         Json            @default("[]") @map("depends_on_json")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+  stepInstances         StepInstance[]
+  process               ProcessTemplate @relation(fields: [processId], references: [id])
+
+  @@index([processId, seq], map: "idx_step_templates_process_seq")
+  @@map("step_templates")
+}
+
+model Case {
+  id            Int             @id @default(autoincrement())
+  processId     Int             @map("process_id")
+  title         String
+  goalDateUtc   DateTime        @map("goal_date_utc")
+  status        String          @default("open")
+  createdBy     Int?            @map("created_by")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  createdByUser User?           @relation(fields: [createdBy], references: [id])
+  process       ProcessTemplate @relation(fields: [processId], references: [id])
+  stepInstances StepInstance[]
+
+  @@index([processId, status], map: "idx_cases_process_status")
+  @@map("cases")
+}
+
+model StepInstance {
+  id         Int           @id @default(autoincrement())
+  caseId     Int           @map("case_id")
+  templateId Int?          @map("template_id")
+  name       String
+  dueDateUtc DateTime?     @map("due_date_utc")
+  assigneeId Int?          @map("assignee_id")
+  status     String        @default("todo")
+  locked     Boolean       @default(false)
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  artifacts  Artifact[]
+  comments   Comment[]
+  assignee   User?         @relation(fields: [assigneeId], references: [id])
+  case       Case          @relation(fields: [caseId], references: [id])
+  template   StepTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([caseId, dueDateUtc], map: "idx_step_instances_case_due")
+  @@map("step_instances")
+}
+
+model Artifact {
+  id        Int          @id @default(autoincrement())
+  stepId    Int          @map("step_id")
+  kind      String
+  fileName  String       @map("file_name")
+  fileSize  Int          @map("file_size")
+  mimeType  String       @map("mime_type")
+  s3Key     String       @map("s3_key")
+  required  Boolean      @default(false)
+  uploadedBy Int?        @map("uploaded_by")
+  uploadedAt DateTime?   @map("uploaded_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  step      StepInstance @relation(fields: [stepId], references: [id])
+  uploader  User?        @relation(fields: [uploadedBy], references: [id])
+
+  @@map("artifacts")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String?        @unique
+  role          String         @default("member")
+  timezone      String         @default("Asia/Tokyo")
+  auditLogs     AuditLog[]
+  createdCases  Case[]
+  assignedSteps StepInstance[]
+  uploadedArtifacts Artifact[]
+  comments      Comment[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Holiday {
+  countryCode String   @map("country_code")
+  date        DateTime @db.Date
+  name        String?
+
+  @@id([countryCode, date])
+  @@map("holidays")
+}
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  actorId      Int?     @map("actor_id")
+  resourceType String   @map("resource_type")
+  resourceId   Int      @map("resource_id")
+  action       String
+  diffJson     Json?    @map("diff_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+  actor        User?    @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  stepId    Int      @map("step_id")
+  parentId  Int?     @map("parent_id")
+  userId    Int      @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  step      StepInstance @relation(fields: [stepId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+  parent    Comment?     @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[]    @relation("CommentReplies")
+
+  @@index([stepId, createdAt])
+  @@map("comments")
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  type       String   @db.VarChar(50)
+  title      String   @db.VarChar(255)
+  message    String   @db.Text
+  data       Json?
+  isRead     Boolean  @default(false) @map("is_read")
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}

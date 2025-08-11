@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: process-todo-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-process_todo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - process-todo-network
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: process-todo-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - process-todo-network
+    restart: always
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: process-todo-api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-process_todo}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      TZ: Asia/Tokyo
+    ports:
+      - '3001:3001'
+    depends_on:
+      - db
+      - redis
+    networks:
+      - process-todo-network
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  process-todo-network:
+    driver: bridge

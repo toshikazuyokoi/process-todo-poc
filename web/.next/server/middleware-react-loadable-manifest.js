@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST="{\"app/gantt/page.tsx -> gantt-task-react\":{\"id\":\"app/gantt/page.tsx -> gantt-task-react\",\"files\":[]}}"

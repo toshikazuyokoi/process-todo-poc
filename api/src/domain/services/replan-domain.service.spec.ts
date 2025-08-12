@@ -61,7 +61,7 @@ describe('ReplanDomainService', () => {
           'goal',
           0,
           [],
-          [8],
+          [],
           new Date(),
           new Date(),
         ),

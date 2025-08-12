@@ -10,10 +10,10 @@ test.describe('Case Management', () => {
     await expect(page).toHaveURL('/cases/new')
     
     // 案件情報を入力
-    await page.fill('input[label="案件名"]', 'E2Eテスト案件')
+    await page.fill('input[name="title"]', 'E2Eテスト案件')
     
     // テンプレートを選択（最初の有効なテンプレートを選択）
-    const templateSelect = page.locator('select[label="プロセステンプレート"]')
+    const templateSelect = page.locator('select[name="process-template"]')
     const options = await templateSelect.locator('option').all()
     if (options.length > 1) {
       await templateSelect.selectOption({ index: 1 })

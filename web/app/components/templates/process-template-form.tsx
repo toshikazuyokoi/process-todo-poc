@@ -188,6 +188,7 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="テンプレート名"
+            name="テンプレート名"
             value={template.name}
             onChange={(e) => setTemplate({ ...template, name: e.target.value })}
             error={errors.name}
@@ -196,6 +197,7 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
           
           <Input
             label="バージョン"
+            name="バージョン"
             type="number"
             value={template.version}
             onChange={(e) => setTemplate({ ...template, version: parseInt(e.target.value) })}
@@ -220,7 +222,7 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
       {/* ステップテンプレート */}
       <div className="bg-white rounded-lg shadow p-6">
         {errors.steps && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" role="alert">
             {errors.steps}
           </div>
         )}

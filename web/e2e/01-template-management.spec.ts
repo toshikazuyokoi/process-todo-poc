@@ -10,20 +10,20 @@ test.describe('Template Management', () => {
     await expect(page).toHaveURL('/templates/new')
     
     // テンプレート基本情報を入力
-    await page.fill('input[label="テンプレート名"]', 'E2Eテストテンプレート')
-    await page.fill('input[label="バージョン"]', '1')
+    await page.fill('input[name="テンプレート名"]', 'E2Eテストテンプレート')
+    await page.fill('input[name="バージョン"]', '1')
     
     // ステップを追加
     await page.click('text=ステップ追加')
-    await page.fill('input[value="ステップ 1"]', '要件定義')
-    await page.selectOption('select[label="基準"]', 'goal')
-    await page.fill('input[label="所要日数"]', '-10')
+    await page.locator('.border').first().locator('input[name*="ステップ"]').fill('要件定義')
+    await page.locator('.border').first().locator('select[name="基準"]').selectOption('goal')
+    await page.locator('.border').first().locator('input[name="所要日数"]').fill('-10')
     
     // 2つ目のステップを追加
     await page.click('text=ステップ追加')
-    await page.fill('input[value="ステップ 2"]', '設計')
-    await page.selectOption('text=前工程基準', 'prev')
-    await page.fill('input[type="number"][value="1"]', '3')
+    await page.locator('.border').last().locator('input[name*="ステップ"]').fill('設計')
+    await page.locator('.border').last().locator('select[name="基準"]').selectOption('prev')
+    await page.locator('.border').last().locator('input[name="所要日数"]').fill('3')
     
     // 保存
     await page.click('button:has-text("保存")')

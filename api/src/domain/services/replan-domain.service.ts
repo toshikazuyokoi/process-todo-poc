@@ -277,6 +277,19 @@ export class ReplanDomainService {
     // Step 1: 初期化とデータ準備
     const stepTemplates = processTemplate.getStepTemplates();
     const stepSchedules = new Map<number, Date>();
+    
+    // Validate dependencies exist
+    const templateIds = new Set(stepTemplates.map(t => t.getId()).filter(id => id !== undefined) as number[]);
+    for (const template of stepTemplates) {
+      for (const depId of template.getDependsOn()) {
+        if (!templateIds.has(depId)) {
+          const error = `Dependency ${depId} not found for template ${template.getId()}:${template.getName()}`;
+          this.logger.error(error);
+          this.logger.error(`Available template IDs: ${Array.from(templateIds).join(', ')}`);
+          throw new Error(error);
+        }
+      }
+    }
     const lockedSchedules = new Map<number, Date>();
     const templateMap = new Map<number, StepTemplate>();
     

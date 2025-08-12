@@ -213,7 +213,7 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
           </h1>
         </div>
         
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} data-testid="save-button">
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />

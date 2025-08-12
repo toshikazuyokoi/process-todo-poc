@@ -1,8 +1,1 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
-  "/gantt/page": "app/gantt/page.js",
-  "/cases/[id]/page": "app/cases/[id]/page.js",
-  "/templates/page": "app/templates/page.js",
-  "/cases/[id]/edit/page": "app/cases/[id]/edit/page.js"
-}
+{}

@@ -1,0 +1,67 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - link "Process Todo":
+    - /url: /
+  - navigation:
+    - link "ホーム":
+      - /url: /
+    - link "案件":
+      - /url: /cases
+    - link "ガントチャート":
+      - /url: /gantt
+    - link "テンプレート":
+      - /url: /templates
+    - link "検索":
+      - /url: /search
+  - button
+  - text: ユーザー1
+- heading "プロセス指向ToDoアプリ" [level=1]
+- paragraph: プロセステンプレートを使って案件のスケジュールを管理
+- heading "クイックアクション" [level=2]
+- button "新規案件作成"
+- button "新規テンプレート作成"
+- button "ガントチャート表示"
+- heading "サマリー" [level=2]
+- paragraph: "3"
+- paragraph: アクティブな案件
+- paragraph: "3"
+- paragraph: 利用可能なテンプレート
+- heading "進行中の案件" [level=2]
+- link "すべて見る":
+  - /url: /cases
+  - button "すべて見る"
+- link "株式会社ABC商事 - システム導入案件 134日超過 0%":
+  - /url: /cases/47
+  - heading "株式会社ABC商事 - システム導入案件" [level=3]
+  - text: 134日超過 0%
+- link "エンジニア採用 - シニアポジション 104日超過 0%":
+  - /url: /cases/48
+  - heading "エンジニア採用 - シニアポジション" [level=3]
+  - text: 104日超過 0%
+- link "新入社員オンボーディング - 山田さん 192日超過 0%":
+  - /url: /cases/49
+  - heading "新入社員オンボーディング - 山田さん" [level=3]
+  - text: 192日超過 0%
+- heading "プロセステンプレート" [level=2]
+- link "すべて見る":
+  - /url: /templates
+  - button "すべて見る"
+- heading "営業案件プロセス" [level=3]
+- paragraph: "バージョン: 1"
+- paragraph: "ステップ数: 9"
+- button "案件作成"
+- button "詳細"
+- heading "採用プロセス" [level=3]
+- paragraph: "バージョン: 1"
+- paragraph: "ステップ数: 9"
+- button "案件作成"
+- button "詳細"
+- heading "オンボーディングプロセス" [level=3]
+- paragraph: "バージョン: 1"
+- paragraph: "ステップ数: 7"
+- button "案件作成"
+- button "詳細"
+- alert
+```

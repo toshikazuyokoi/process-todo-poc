@@ -1,0 +1,217 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: process_todo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: api/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./api
+      run: npm ci
+    
+    - name: Setup environment variables
+      working-directory: ./api
+      run: |
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/process_todo_test" >> .env
+        echo "JWT_SECRET=test-secret-key" >> .env
+        echo "NODE_ENV=test" >> .env
+    
+    - name: Run Prisma migrations
+      working-directory: ./api
+      run: npx prisma migrate deploy
+    
+    - name: Generate Prisma client
+      working-directory: ./api
+      run: npx prisma generate
+    
+    - name: Run backend tests
+      working-directory: ./api
+      run: npm test
+    
+    - name: Run backend test coverage
+      working-directory: ./api
+      run: npm run test:cov
+      continue-on-error: true
+    
+    - name: Upload backend coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-coverage
+        path: api/coverage/
+      if: always()
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./web
+      run: npm ci
+    
+    - name: Run linter
+      working-directory: ./web
+      run: npm run lint
+      continue-on-error: true
+    
+    - name: Build frontend
+      working-directory: ./web
+      run: npm run build
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:3005/api
+    
+    - name: Run frontend tests
+      working-directory: ./web
+      run: npm test -- --passWithNoTests
+      continue-on-error: true
+
+  lint-and-format:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          api/node_modules
+          web/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    
+    - name: Install backend dependencies
+      working-directory: ./api
+      run: npm ci
+    
+    - name: Install frontend dependencies
+      working-directory: ./web
+      run: npm ci
+    
+    - name: Run backend linter
+      working-directory: ./api
+      run: npm run lint
+      continue-on-error: true
+    
+    - name: Run frontend linter
+      working-directory: ./web
+      run: npm run lint
+      continue-on-error: true
+    
+    - name: Check backend formatting
+      working-directory: ./api
+      run: npm run format
+      continue-on-error: true
+    
+    - name: Check frontend formatting
+      working-directory: ./web
+      run: npm run format:check || true
+      continue-on-error: true
+
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build API Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./api
+        push: false
+        tags: process-todo-api:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build Web Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./web
+        push: false
+        tags: process-todo-web:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+      continue-on-error: true
+    
+    - name: Upload Trivy results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+      if: always()
+    
+    - name: Run npm audit for backend
+      working-directory: ./api
+      run: npm audit --audit-level=high
+      continue-on-error: true
+    
+    - name: Run npm audit for frontend
+      working-directory: ./web
+      run: npm audit --audit-level=high
+      continue-on-error: true

@@ -10,18 +10,23 @@ test.describe('Navigation and UI', () => {
     await expect(page.locator('text=クイックアクション')).toBeVisible()
     await expect(page.locator('text=サマリー')).toBeVisible()
     
-    // テンプレート作成ページへの遷移
-    await page.click('button:has-text("新規テンプレート作成")')
-    await expect(page).toHaveURL('/templates/new')
+    // テンプレート作成ページへの遷移（クライアントサイドナビゲーション待機）
+    await page.waitForLoadState('networkidle')
+    await Promise.all([
+      page.waitForURL('/templates/new'),
+      page.click('button:has-text("新規テンプレート作成")')
+    ])
     await expect(page.locator('h1')).toContainText('新規テンプレート作成')
     
     // 戻るボタンでホームに戻る
     await page.click('button:has-text("戻る")')
-    await page.waitForTimeout(500)
+    await page.waitForURL('/')
     
-    // 案件作成ページへの遷移
-    await page.click('button:has-text("新規案件作成")')
-    await expect(page).toHaveURL('/cases/new')
+    // 案件作成ページへの遷移（クライアントサイドナビゲーション待機）
+    await Promise.all([
+      page.waitForURL('/cases/new'),
+      page.click('button:has-text("新規案件作成")')
+    ])
     await expect(page.locator('h1')).toContainText('新規案件作成')
   })
 
@@ -29,7 +34,7 @@ test.describe('Navigation and UI', () => {
     await page.goto('/')
     
     // サマリーセクションの確認
-    const summarySection = page.locator('div:has-text("サマリー")')
+    const summarySection = page.locator('h2:has-text("サマリー")').locator('..')
     await expect(summarySection).toBeVisible()
     
     // アクティブな案件数の表示
@@ -51,8 +56,8 @@ test.describe('Navigation and UI', () => {
     await page.click('button:has-text("保存")')
     
     // エラーメッセージの確認
-    await expect(page.locator('text=テンプレート名は必須です')).toBeVisible()
-    await expect(page.locator('text=少なくとも1つのステップが必要です')).toBeVisible()
+    await expect(page.locator('[role="alert"]:has-text("テンプレート名は必須です")')).toBeVisible()
+    await expect(page.locator('[role="alert"]:has-text("少なくとも1つのステップが必要です")')).toBeVisible()
     
     // 案件作成ページ
     await page.goto('/cases/new')
@@ -61,8 +66,8 @@ test.describe('Navigation and UI', () => {
     await page.click('button:has-text("保存")')
     
     // エラーメッセージの確認
-    await expect(page.locator('text=案件名は必須です')).toBeVisible()
-    await expect(page.locator('text=プロセステンプレートを選択してください')).toBeVisible()
+    await expect(page.locator('[role="alert"]:has-text("案件名は必須です")')).toBeVisible()
+    await expect(page.locator('[role="alert"]:has-text("プロセステンプレートを選択してください")' )).toBeVisible()
   })
 
   test('should display progress bars correctly', async ({ page }) => {

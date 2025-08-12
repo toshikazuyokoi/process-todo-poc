@@ -235,6 +235,7 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="案件名"
+            name="title"
             value={caseData.title || ''}
             onChange={(e) => setCaseData({ ...caseData, title: e.target.value })}
             error={errors.title}
@@ -243,6 +244,7 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
           
           <Select
             label="プロセステンプレート"
+            name="process-template"
             value={caseData.processId?.toString() || ''}
             onChange={(e) => setCaseData({ ...caseData, processId: parseInt(e.target.value) })}
             error={errors.processId}

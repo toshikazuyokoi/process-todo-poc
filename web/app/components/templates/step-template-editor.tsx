@@ -138,12 +138,14 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     label={`ステップ ${step.seq}: 名前`}
+                    name={`ステップ-${step.seq}-名前`}
                     value={step.name}
                     onChange={(e) => handleUpdateStep(index, 'name', e.target.value)}
                   />
                   
                   <Select
                     label="基準"
+                    name="基準"
                     value={step.basis}
                     onChange={(e) => handleUpdateStep(index, 'basis', e.target.value)}
                     options={[
@@ -154,6 +156,7 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                   
                   <Input
                     label="所要日数"
+                    name="所要日数"
                     type="number"
                     value={step.offsetDays}
                     onChange={(e) => handleUpdateStep(index, 'offsetDays', parseInt(e.target.value))}

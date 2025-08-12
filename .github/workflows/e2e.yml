@@ -1,0 +1,289 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop, 'feat/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎日午前2時（JST 11時）に実行
+    - cron: '0 17 * * *'
+
+env:
+  NODE_VERSION: '20'
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: process_todo_test
+
+jobs:
+  e2e-tests:
+    name: E2E Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        shard: [1, 2, 3]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # Backend setup
+      - name: Install backend dependencies
+        working-directory: ./api
+        run: npm ci
+
+      - name: Setup backend environment
+        working-directory: ./api
+        run: |
+          cat > .env <<EOF
+          DATABASE_URL=postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+          JWT_SECRET=test-secret-key
+          NODE_ENV=test
+          PORT=3005
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          EOF
+
+      - name: Setup database
+        working-directory: ./api
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+          npx prisma db seed
+
+      - name: Build backend
+        working-directory: ./api
+        run: npm run build
+
+      - name: Start backend server
+        working-directory: ./api
+        run: |
+          npm run start:prod &
+          sleep 10
+          curl -f http://localhost:3005/api || exit 1
+
+      # Frontend setup
+      - name: Install frontend dependencies
+        working-directory: ./web
+        run: npm ci
+
+      - name: Setup frontend environment
+        working-directory: ./web
+        run: |
+          cat > .env.local <<EOF
+          NEXT_PUBLIC_API_URL=http://localhost:3005/api
+          EOF
+
+      - name: Build frontend
+        working-directory: ./web
+        run: npm run build
+
+      - name: Start frontend server
+        working-directory: ./web
+        run: |
+          npm run start &
+          sleep 10
+          curl -f http://localhost:3000 || exit 1
+
+      # Playwright setup
+      - name: Get Playwright version
+        working-directory: ./web
+        id: playwright-version
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}-${{ matrix.browser }}
+
+      - name: Install Playwright browsers
+        working-directory: ./web
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Install Playwright system dependencies
+        working-directory: ./web
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps ${{ matrix.browser }}
+
+      # Run E2E tests
+      - name: Run E2E tests
+        working-directory: ./web
+        run: |
+          npx playwright test \
+            --browser=${{ matrix.browser }} \
+            --shard=${{ matrix.shard }}/3 \
+            --reporter=html \
+            --retries=2
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
+          API_BASE_URL: http://localhost:3005/api
+
+      # Upload test results
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
+          path: web/playwright-report/
+          retention-days: 30
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-videos-${{ matrix.browser }}-${{ matrix.shard }}
+          path: web/test-results/*/video.webm
+          retention-days: 7
+
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots-${{ matrix.browser }}-${{ matrix.shard }}
+          path: web/test-results/**/*.png
+          retention-days: 7
+
+  # テスト結果の集約
+  merge-reports:
+    name: Merge Test Reports
+    if: always()
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: all-reports/
+
+      - name: Merge reports
+        working-directory: ./web
+        run: |
+          npm ci
+          npx playwright merge-reports --reporter=html ../all-reports
+
+      - name: Upload merged report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-merged-report
+          path: web/playwright-report/
+          retention-days: 30
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'web/playwright-report/index.html';
+            
+            if (fs.existsSync(reportPath)) {
+              const comment = `## 🎭 E2E Test Results
+              
+              Tests have completed. [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              
+              ### Test Summary
+              - ✅ All browsers tested (Chromium, Firefox, WebKit)
+              - 📊 Full test report available as artifact
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  # パフォーマンステスト
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [e2e-tests]
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            http://localhost:3000
+            http://localhost:3000/templates
+            http://localhost:3000/cases
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+          retention-days: 30

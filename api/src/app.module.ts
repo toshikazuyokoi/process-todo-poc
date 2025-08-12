@@ -14,6 +14,7 @@ import { CommentModule } from './interfaces/controllers/comment/comment.module';
 import { NotificationModule } from './interfaces/controllers/notification/notification.module';
 import { GanttModule } from './interfaces/controllers/gantt/gantt.module';
 import { SearchModule } from './interfaces/controllers/search/search.module';
+import { CustomLoggerService } from './common/services/logger.service';
 
 @Module({
   imports: [
@@ -35,6 +36,13 @@ import { SearchModule } from './interfaces/controllers/search/search.module';
     SearchModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: 'LoggerService',
+      useClass: CustomLoggerService,
+    },
+  ],
+  exports: ['LoggerService'],
 })
 export class AppModule {}

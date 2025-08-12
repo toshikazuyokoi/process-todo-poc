@@ -5,10 +5,14 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { join } from 'path';
 import * as fs from 'fs';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { CustomLoggerService } from './common/services/logger.service';
 
 async function bootstrap() {
+  const logger = new CustomLoggerService();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger,
   });
 
   // Enable CORS - allow all localhost ports for development
@@ -38,6 +42,12 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Global interceptors
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
@@ -46,6 +56,12 @@ async function bootstrap() {
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        const messages = errors.map(error => 
+          Object.values(error.constraints || {}).join(', ')
+        );
+        return new Error(messages.join('; '));
       },
     }),
   );

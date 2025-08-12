@@ -1,7 +1,8 @@
-import { Controller, Get, Put, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StepInstanceRepository } from '@infrastructure/repositories/step-instance.repository';
 import { StepStatus } from '@domain/values/step-status';
+import { BulkUpdateStepsDto } from '@application/dto/step/bulk-update-steps.dto';
 
 @ApiTags('Steps')
 @Controller('steps')
@@ -74,6 +75,39 @@ export class StepController {
     step.unlock();
     const updated = await this.stepInstanceRepository.update(step);
     return this.toResponseDto(updated);
+  }
+
+  @Patch('bulk')
+  @ApiOperation({ summary: 'Bulk update multiple steps' })
+  @ApiResponse({ status: 200, description: 'Steps updated successfully' })
+  async bulkUpdate(@Body() dto: BulkUpdateStepsDto): Promise<{ updated: number }> {
+    let updated = 0;
+    
+    for (const stepId of dto.stepIds) {
+      const step = await this.stepInstanceRepository.findById(stepId);
+      if (!step) {
+        continue;
+      }
+
+      if (dto.status) {
+        step.updateStatus(dto.status as StepStatus);
+      }
+      if (dto.assigneeId !== undefined) {
+        step.assignTo(dto.assigneeId);
+      }
+      if (dto.locked !== undefined) {
+        if (dto.locked) {
+          step.lock();
+        } else {
+          step.unlock();
+        }
+      }
+
+      await this.stepInstanceRepository.update(step);
+      updated++;
+    }
+
+    return { updated };
   }
 
   private toResponseDto(step: any) {

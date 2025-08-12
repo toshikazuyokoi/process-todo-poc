@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateCaseDto } from '@application/dto/case/create-case.dto';
 import { UpdateCaseDto } from '@application/dto/case/update-case.dto';
@@ -9,6 +9,8 @@ import { CreateCaseUseCase } from '@application/usecases/case/create-case.usecas
 import { PreviewReplanUseCase } from '@application/usecases/replan/preview-replan.usecase';
 import { ApplyReplanUseCase } from '@application/usecases/replan/apply-replan.usecase';
 import { CaseRepository } from '@infrastructure/repositories/case.repository';
+import { BulkUpdateCasesDto } from '@application/dto/case/bulk-update-cases.dto';
+import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto';
 
 @ApiTags('Cases')
 @Controller('cases')
@@ -97,6 +99,61 @@ export class CaseController {
     @Body() dto: ReplanRequestDto,
   ): Promise<CaseResponseDto> {
     return this.applyReplanUseCase.execute(+id, dto);
+  }
+
+  @Patch('bulk')
+  @ApiOperation({ summary: 'Bulk update multiple cases' })
+  @ApiResponse({ status: 200, description: 'Cases updated successfully' })
+  async bulkUpdate(@Body() dto: BulkUpdateCasesDto): Promise<{ updated: number }> {
+    let updated = 0;
+    
+    for (const caseId of dto.caseIds) {
+      const caseEntity = await this.caseRepository.findWithStepInstances(caseId);
+      if (!caseEntity) {
+        continue;
+      }
+
+      if (dto.status) {
+        caseEntity.updateStatus(dto.status as any);
+      }
+      if (dto.assigneeId !== undefined) {
+        // Update assignee for all step instances
+        const stepInstances = caseEntity.getStepInstances();
+        for (const step of stepInstances) {
+          if (dto.assigneeId) {
+            step.assignTo(dto.assigneeId);
+          }
+        }
+      }
+      if (dto.priority !== undefined) {
+        // カスタムフィールドとして優先度を設定（将来的に実装）
+        // caseEntity.setPriority(dto.priority);
+      }
+
+      await this.caseRepository.update(caseEntity);
+      updated++;
+    }
+
+    return { updated };
+  }
+
+  @Delete('bulk')
+  @ApiOperation({ summary: 'Bulk delete multiple cases' })
+  @ApiResponse({ status: 200, description: 'Cases deleted successfully' })
+  async bulkDelete(@Body() dto: BulkDeleteCasesDto): Promise<{ deleted: number }> {
+    let deleted = 0;
+    
+    for (const caseId of dto.caseIds) {
+      try {
+        await this.caseRepository.delete(caseId);
+        deleted++;
+      } catch (error) {
+        // Skip if case doesn't exist or can't be deleted
+        console.error(`Failed to delete case ${caseId}:`, error);
+      }
+    }
+
+    return { deleted };
   }
 
   private toResponseDto(caseEntity: any): CaseResponseDto {

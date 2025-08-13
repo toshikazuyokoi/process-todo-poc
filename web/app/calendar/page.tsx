@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarView } from '@/app/components/calendar/calendar-view';
+import { DraggableCalendar } from '@/app/components/calendar/draggable-calendar';
 import { apiClient } from '@/app/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/app/components/ui/button';
@@ -140,33 +140,33 @@ export default function CalendarPage() {
     }
   };
 
-  const handleEventDrop = async (event: CalendarEvent, oldDate: Date, newDate: Date) => {
-    console.log('Event dropped:', { event, oldDate, newDate });
+  const handleEventUpdate = async (event: CalendarEvent, newStart: Date) => {
+    console.log('Event updated:', { event, newStart });
     
     try {
       if (event.extendedProps?.type === 'case' && event.extendedProps.caseId) {
         // ケースの期限を更新
         await apiClient.put(`/cases/${event.extendedProps.caseId}`, {
-          goalDateUtc: event.start,
+          goalDateUtc: newStart.toISOString(),
         });
       } else if (event.extendedProps?.type === 'step' && event.extendedProps.stepId) {
         // ステップの期限を更新
         await apiClient.put(`/steps/${event.extendedProps.stepId}`, {
-          dueDateUtc: event.start,
+          dueDateUtc: newStart.toISOString(),
         });
       }
       
       // イベントを再読み込み
-      loadEvents();
+      await loadEvents();
     } catch (error) {
       console.error('Failed to update event:', error);
       // エラー時は元に戻す
-      loadEvents();
+      await loadEvents();
     }
   };
 
-  const handleDateSelect = (start: Date, end: Date) => {
-    console.log('Date selected:', { start, end });
+  const handleDateClick = (date: Date) => {
+    console.log('Date clicked:', date);
     // 新規ケース作成モーダルを開く（後で実装）
   };
 
@@ -212,12 +212,12 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <CalendarView
+      <DraggableCalendar
         events={events}
+        viewMode="month"
+        onEventUpdate={handleEventUpdate}
         onEventClick={handleEventClick}
-        onEventDrop={handleEventDrop}
-        onDateSelect={handleDateSelect}
-        initialView="dayGridMonth"
+        onDateClick={handleDateClick}
         height="calc(100vh - 250px)"
       />
     </div>

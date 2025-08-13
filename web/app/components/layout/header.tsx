@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from '@/app/components/notifications/notification-bell'
 import { Button } from '@/app/components/ui/button'
-import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns } from 'lucide-react'
+import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard } from 'lucide-react'
 
 export function Header() {
   const router = useRouter()
@@ -50,6 +50,13 @@ export function Header() {
               >
                 <Columns className="w-4 h-4" />
                 カンバン
+              </Link>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                ダッシュボード
               </Link>
               <Link
                 href="/gantt"

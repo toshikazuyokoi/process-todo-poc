@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { DraggableKanbanBoard } from '@/app/components/kanban/draggable-kanban-board';
+import { KanbanBoardWithWip } from '@/app/components/kanban/kanban-board-with-wip';
 import { StepInstance, User } from '@/app/types';
 import { apiClient } from '@/app/lib/api-client';
 import { toast } from '@/app/components/ui/toast';
@@ -82,7 +82,7 @@ export default function KanbanPage() {
   return (
     <div className="h-screen flex flex-col">
       <div className="flex-1 overflow-hidden">
-        <DraggableKanbanBoard
+        <KanbanBoardWithWip
           stepInstances={stepInstances}
           users={users}
           onStatusChange={handleStatusChange}

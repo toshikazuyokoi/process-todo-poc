@@ -1,0 +1,45 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - link "Process Todo":
+    - /url: /
+  - navigation:
+    - link "ホーム":
+      - /url: /
+    - link "案件":
+      - /url: /cases
+    - link "ガントチャート":
+      - /url: /gantt
+    - link "テンプレート":
+      - /url: /templates
+    - link "検索":
+      - /url: /search
+  - button
+  - text: ユーザー1
+- heading "案件一覧" [level=1]
+- button "新規案件作成"
+- paragraph: すべての案件を検索・管理
+- textbox "案件名で検索..."
+- combobox:
+  - option "すべてのステータス" [selected]
+  - option "下書き"
+  - option "進行中"
+  - option "完了"
+  - option "キャンセル"
+- button "検索"
+- text: 3件の案件が見つかりました
+- 'link "株式会社ABC商事 - システム導入案件 open 134日超過 (2025/03/31) 田中太郎 作成: 2025/08/11"':
+  - /url: /cases/47
+  - heading "株式会社ABC商事 - システム導入案件" [level=3]
+  - text: "open 134日超過 (2025/03/31) 田中太郎 作成: 2025/08/11"
+- 'link "エンジニア採用 - シニアポジション open 104日超過 (2025/04/30) 鈴木花子 作成: 2025/08/11"':
+  - /url: /cases/48
+  - heading "エンジニア採用 - シニアポジション" [level=3]
+  - text: "open 104日超過 (2025/04/30) 鈴木花子 作成: 2025/08/11"
+- 'link "新入社員オンボーディング - 山田さん open 192日超過 (2025/02/01) 管理者 作成: 2025/08/11"':
+  - /url: /cases/49
+  - heading "新入社員オンボーディング - 山田さん" [level=3]
+  - text: "open 192日超過 (2025/02/01) 管理者 作成: 2025/08/11"
+- alert
+```

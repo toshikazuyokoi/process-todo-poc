@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './gateways/realtime.module';
 import { ProcessTemplateRepository } from './repositories/process-template.repository';
 import { CaseRepository } from './repositories/case.repository';
 import { StepInstanceRepository } from './repositories/step-instance.repository';
@@ -73,8 +74,8 @@ const domainServices = [
 ];
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, RealtimeModule],
   providers: [...repositories, ...domainServices],
-  exports: [...repositories, BusinessDayService, ReplanDomainService],
+  exports: [...repositories, BusinessDayService, ReplanDomainService, RealtimeModule],
 })
 export class InfrastructureModule {}

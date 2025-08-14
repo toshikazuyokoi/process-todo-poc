@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from '@/app/components/notifications/notification-bell'
 import { Button } from '@/app/components/ui/button'
-import { Home, FileText, BarChart3, Users, Settings, Search } from 'lucide-react'
+import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard } from 'lucide-react'
 
 export function Header() {
   const router = useRouter()
   // TODO: Get actual logged-in user ID from auth context
-  // For now, using user ID 13 (管理者) which exists in the database
-  const userId = 13
+  // For now, using user ID 4 (管理者) which exists in the database
+  const userId = 4
   const userName = '管理者'
 
   return (
@@ -36,6 +36,27 @@ export function Header() {
               >
                 <FileText className="w-4 h-4" />
                 案件
+              </Link>
+              <Link
+                href="/calendar"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <CalendarDays className="w-4 h-4" />
+                カレンダー
+              </Link>
+              <Link
+                href="/kanban"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <Columns className="w-4 h-4" />
+                カンバン
+              </Link>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                ダッシュボード
               </Link>
               <Link
                 href="/gantt"

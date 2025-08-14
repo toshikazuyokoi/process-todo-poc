@@ -36,14 +36,12 @@ interface TemplateSearchResult {
   createdByName: string
   createdAt: string
   updatedAt: string
-  _count: {
-    steps: number
-    cases: number
-  }
+  stepTemplates?: any[]
+  cases?: any[]
 }
 
 interface SearchResultsDto {
-  templates: TemplateSearchResult[]
+  items: TemplateSearchResult[]
   total: number
   page: number
   limit: number
@@ -72,7 +70,7 @@ export default function TemplatesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.getTemplates()
+      const response = await api.getProcessTemplates()
       const uniqueCategories = [...new Set(response.data
         .map((t: any) => t.category)
         .filter((c: string | null) => c !== null)
@@ -86,25 +84,40 @@ export default function TemplatesPage() {
   const searchTemplates = async () => {
     setLoading(true)
     try {
-      const params: any = {
-        page: currentPage,
-        limit,
-      }
+      // テンプレート一覧を取得
+      const response = await api.getProcessTemplates()
+      let templates = response.data || []
       
+      // クライアント側でフィルタリング
       if (searchQuery) {
-        params.query = searchQuery
+        templates = templates.filter((t: any) => 
+          t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
       }
       
       if (categoryFilter) {
-        params.category = categoryFilter
+        templates = templates.filter((t: any) => t.category === categoryFilter)
       }
       
       if (activeFilter) {
-        params.isActive = activeFilter === 'active'
+        templates = templates.filter((t: any) => 
+          activeFilter === 'active' ? t.isActive !== false : t.isActive === false
+        )
       }
-
-      const response = await api.searchTemplates(params)
-      setSearchResults(response.data)
+      
+      // ページネーション（クライアント側）
+      const startIndex = (currentPage - 1) * limit
+      const endIndex = startIndex + limit
+      const paginatedTemplates = templates.slice(startIndex, endIndex)
+      
+      setSearchResults({
+        items: paginatedTemplates,
+        total: templates.length,
+        page: currentPage,
+        limit,
+        totalPages: Math.ceil(templates.length / limit),
+      })
     } catch (error) {
       console.error('Failed to search templates:', error)
     } finally {
@@ -227,7 +240,7 @@ export default function TemplatesPage() {
 
         {/* テンプレートグリッド */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {searchResults?.templates.map((template) => (
+          {searchResults?.items?.map((template) => (
             <div key={template.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
@@ -270,11 +283,11 @@ export default function TemplatesPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-1">
                     <FileText className="w-4 h-4" />
-                    <span>{template._count.steps}ステップ</span>
+                    <span>{template.stepTemplates?.length || 0}ステップ</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Copy className="w-4 h-4" />
-                    <span>{template._count.cases}案件</span>
+                    <span>{template.cases?.length || 0}案件</span>
                   </div>
                 </div>
 
@@ -321,7 +334,7 @@ export default function TemplatesPage() {
           ))}
         </div>
 
-        {searchResults?.templates.length === 0 && (
+        {searchResults?.items?.length === 0 && (
           <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
             <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
             <p>該当するテンプレートが見つかりませんでした</p>

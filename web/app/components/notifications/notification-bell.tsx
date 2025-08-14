@@ -12,9 +12,13 @@ interface Notification {
   title: string
   message: string
   isRead: boolean
-  relatedType: string | null
-  relatedId: number | null
+  data?: {
+    relatedType?: string
+    relatedId?: number
+  }
+  readAt?: string | null
   createdAt: string
+  updatedAt: string
 }
 
 interface NotificationBellProps {
@@ -37,9 +41,9 @@ export function NotificationBell({ userId }: NotificationBellProps) {
   const fetchNotifications = async () => {
     try {
       const response = await api.getUserNotifications(userId, false) // Get unread
-      const data = response.data || []
+      const data = response.data?.notifications || []
       setNotifications(data)
-      setUnreadCount(data.length)
+      setUnreadCount(response.data?.unreadCount || 0)
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
     }

@@ -34,16 +34,14 @@ export default function CalendarPage() {
   const loadEvents = async () => {
     setLoading(true);
     try {
-      // ケースとステップのデータを取得
-      const [casesResponse, stepsResponse] = await Promise.all([
-        apiClient.get('/cases'),
-        apiClient.get('/steps'),
-      ]);
+      // ケースデータを取得（ステップは各ケースに含まれる）
+      const casesResponse = await apiClient.get('/cases');
 
       const calendarEvents: CalendarEvent[] = [];
 
-      // ケースをイベントに変換
-      casesResponse.data.forEach((caseItem: any) => {
+      // ケースとそのステップをイベントに変換
+      for (const caseItem of casesResponse.data) {
+        // ケースをイベントに追加
         if (caseItem.goalDateUtc) {
           calendarEvents.push({
             id: `case-${caseItem.id}`,
@@ -56,25 +54,33 @@ export default function CalendarPage() {
             },
           });
         }
-      });
 
-      // ステップをイベントに変換
-      stepsResponse.data.forEach((step: any) => {
-        if (step.dueDateUtc) {
-          calendarEvents.push({
-            id: `step-${step.id}`,
-            title: step.name,
-            start: step.dueDateUtc,
-            extendedProps: {
-              stepId: step.id,
-              caseId: step.caseId,
-              status: step.status,
-              assignee: step.assigneeId,
-              type: 'step',
-            },
+        // 各ケースの詳細を取得してステップを取得
+        try {
+          const caseDetailResponse = await apiClient.get(`/cases/${caseItem.id}`);
+          const steps = caseDetailResponse.data.steps || [];
+          
+          // ステップをイベントに変換
+          steps.forEach((step: any) => {
+            if (step.dueDateUtc) {
+              calendarEvents.push({
+                id: `step-${step.id}`,
+                title: step.name,
+                start: step.dueDateUtc,
+                extendedProps: {
+                  stepId: step.id,
+                  caseId: caseItem.id,
+                  status: step.status,
+                  assignee: step.assigneeId,
+                  type: 'step',
+                },
+              });
+            }
           });
+        } catch (error) {
+          console.error(`Failed to load steps for case ${caseItem.id}:`, error);
         }
-      });
+      }
 
       setEvents(calendarEvents);
     } catch (error) {

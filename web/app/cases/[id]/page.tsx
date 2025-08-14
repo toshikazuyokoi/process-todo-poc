@@ -8,6 +8,7 @@ import { Button } from '@/app/components/ui/button'
 import { StepInstanceList } from '@/app/components/cases/step-instance-list'
 import { ReplanDialog } from '@/app/components/cases/replan-dialog'
 import { ArrowLeft, Edit, Trash2, Calendar, RefreshCw, Loader2, Target } from 'lucide-react'
+import { useRealtimeUpdates } from '@/app/hooks/use-realtime-updates'
 
 export default function CaseDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -16,6 +17,27 @@ export default function CaseDetailPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [showReplan, setShowReplan] = useState(false)
+
+  // リアルタイム更新を設定
+  const { isConnected } = useRealtimeUpdates({
+    caseId,
+    onCaseUpdate: (event) => {
+      console.log('Case updated in real-time:', event)
+      // ケースデータを更新
+      setCaseData(prev => prev ? { ...prev, ...event.data } : null)
+    },
+    onStepUpdate: (event) => {
+      console.log('Step updated in real-time:', event)
+      // ステップデータを更新
+      setCaseData(prev => {
+        if (!prev || !prev.steps) return prev
+        const updatedSteps = prev.steps.map(step =>
+          step.id === event.stepId ? { ...step, ...event.data } : step
+        )
+        return { ...prev, steps: updatedSteps }
+      })
+    },
+  })
 
   useEffect(() => {
     fetchCase()

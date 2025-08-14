@@ -11,6 +11,7 @@ import { ApplyReplanUseCase } from '@application/usecases/replan/apply-replan.us
 import { CaseRepository } from '@infrastructure/repositories/case.repository';
 import { BulkUpdateCasesDto } from '@application/dto/case/bulk-update-cases.dto';
 import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto';
+import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
 
 @ApiTags('Cases')
 @Controller('cases')
@@ -20,6 +21,7 @@ export class CaseController {
     private readonly previewReplanUseCase: PreviewReplanUseCase,
     private readonly applyReplanUseCase: ApplyReplanUseCase,
     private readonly caseRepository: CaseRepository,
+    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   @Post()
@@ -71,7 +73,12 @@ export class CaseController {
     }
 
     const updated = await this.caseRepository.update(caseEntity);
-    return this.toResponseDto(updated);
+    const responseDto = this.toResponseDto(updated);
+    
+    // WebSocket経由でリアルタイム更新を送信
+    this.realtimeGateway.broadcastCaseUpdate(+id, responseDto);
+    
+    return responseDto;
   }
 
   @Delete(':id')

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { KanbanBoardComplete } from '@/app/components/kanban/kanban-board-complete';
 import { StepInstance, User } from '@/app/types';
 import { apiClient } from '@/app/lib/api-client';
-import { toast } from '@/app/components/ui/toast';
 
 export default function KanbanPage() {
   const [stepInstances, setStepInstances] = useState<StepInstance[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -27,17 +27,18 @@ export default function KanbanPage() {
       
       // Extract all step instances from all cases
       const allSteps: StepInstance[] = [];
-      casesResponse.forEach(caseItem => {
+      const cases = casesResponse.data || [];
+      cases.forEach(caseItem => {
         if (caseItem.stepInstances) {
           allSteps.push(...caseItem.stepInstances);
         }
       });
       
       setStepInstances(allSteps);
-      setUsers(usersResponse);
+      setUsers(usersResponse.data || []);
     } catch (error) {
       console.error('Error fetching kanban data:', error);
-      toast.error('Failed to load kanban board data');
+      setError('Failed to load kanban board data');
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +58,10 @@ export default function KanbanPage() {
         )
       );
       
-      toast.success('Status updated successfully');
+      // Status updated successfully
     } catch (error) {
       console.error('Error updating step status:', error);
-      toast.error('Failed to update status');
+      setError('Failed to update status');
       // Refetch to sync with server state
       fetchStepInstances();
     }
@@ -75,6 +76,14 @@ export default function KanbanPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-lg">Loading kanban board...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-red-500">Error: {error}</div>
       </div>
     );
   }

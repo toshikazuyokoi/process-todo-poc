@@ -36,22 +36,25 @@ export default function DashboardPage() {
         apiClient.get<User[]>('/users'),
       ]);
 
-      setCases(casesResponse);
-      setUsers(usersResponse);
+      const casesData = casesResponse.data || [];
+      const usersData = usersResponse.data || [];
+      
+      setCases(casesData);
+      setUsers(usersData);
 
       // Calculate metrics
-      const kpiMetrics = calculator.getKPIMetrics(casesResponse, usersResponse);
+      const kpiMetrics = calculator.getKPIMetrics(casesData, usersData);
       setMetrics(kpiMetrics);
 
       // Calculate resource metrics
       const allStepInstances: StepInstance[] = [];
-      casesResponse.forEach(caseItem => {
+      casesData.forEach(caseItem => {
         if (caseItem.stepInstances) {
           allStepInstances.push(...caseItem.stepInstances);
         }
       });
       
-      const resourceData = calculator.calculateResourceMetrics(allStepInstances, usersResponse);
+      const resourceData = calculator.calculateResourceMetrics(allStepInstances, usersData);
       setResourceMetrics(resourceData);
       
       setLastUpdated(new Date());

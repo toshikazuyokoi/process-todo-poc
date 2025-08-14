@@ -3,11 +3,17 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { StepInstanceRepository } from '@infrastructure/repositories/step-instance.repository';
 import { StepStatus } from '@domain/values/step-status';
 import { BulkUpdateStepsDto } from '@application/dto/step/bulk-update-steps.dto';
+import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
+import { CaseRepository } from '@infrastructure/repositories/case.repository';
 
 @ApiTags('Steps')
 @Controller('steps')
 export class StepController {
-  constructor(private readonly stepInstanceRepository: StepInstanceRepository) {}
+  constructor(
+    private readonly stepInstanceRepository: StepInstanceRepository,
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly caseRepository: CaseRepository,
+  ) {}
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a step instance by ID' })
@@ -32,7 +38,13 @@ export class StepController {
 
     step.updateStatus(dto.status as StepStatus);
     const updated = await this.stepInstanceRepository.update(step);
-    return this.toResponseDto(updated);
+    const responseDto = this.toResponseDto(updated);
+    
+    // WebSocket経由でリアルタイム更新を送信
+    const caseId = step.getCaseId();
+    this.realtimeGateway.broadcastStepUpdate(caseId, +id, responseDto);
+    
+    return responseDto;
   }
 
   @Put(':id/assignee')

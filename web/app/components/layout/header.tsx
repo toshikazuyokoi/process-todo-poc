@@ -9,8 +9,8 @@ import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Colum
 export function Header() {
   const router = useRouter()
   // TODO: Get actual logged-in user ID from auth context
-  // For now, using user ID 13 (管理者) which exists in the database
-  const userId = 13
+  // For now, using user ID 4 (管理者) which exists in the database
+  const userId = 4
   const userName = '管理者'
 
   return (

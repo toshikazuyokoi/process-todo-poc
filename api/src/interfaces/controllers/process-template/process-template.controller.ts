@@ -1,13 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateProcessTemplateDto } from '@application/dto/process-template/create-process-template.dto';
 import { UpdateProcessTemplateDto } from '@application/dto/process-template/update-process-template.dto';
 import { ProcessTemplateResponseDto } from '@application/dto/process-template/process-template-response.dto';
 import { CreateProcessTemplateUseCase } from '@application/usecases/process-template/create-process-template.usecase';
 import { ProcessTemplateRepository } from '@infrastructure/repositories/process-template.repository';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@infrastructure/auth/guards/roles.guard';
+import { PermissionsGuard } from '@infrastructure/auth/guards/permissions.guard';
+import { Roles } from '@infrastructure/auth/decorators/roles.decorator';
+import { RequirePermissions } from '@infrastructure/auth/decorators/permissions.decorator';
 
 @ApiTags('Process Templates')
+@ApiBearerAuth()
 @Controller('process-templates')
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class ProcessTemplateController {
   constructor(
     private readonly createProcessTemplateUseCase: CreateProcessTemplateUseCase,
@@ -17,6 +24,8 @@ export class ProcessTemplateController {
   @Post()
   @ApiOperation({ summary: 'Create a new process template' })
   @ApiResponse({ status: 201, type: ProcessTemplateResponseDto })
+  @Roles('admin', 'editor')
+  @RequirePermissions('templates:create')
   async create(@Body() dto: CreateProcessTemplateDto): Promise<ProcessTemplateResponseDto> {
     return this.createProcessTemplateUseCase.execute(dto);
   }
@@ -24,6 +33,7 @@ export class ProcessTemplateController {
   @Get()
   @ApiOperation({ summary: 'Get all process templates' })
   @ApiResponse({ status: 200, type: [ProcessTemplateResponseDto] })
+  @RequirePermissions('templates:read')
   async findAll(): Promise<ProcessTemplateResponseDto[]> {
     const templates = await this.processTemplateRepository.findAll();
     return templates.map((template) => this.toResponseDto(template));
@@ -32,6 +42,7 @@ export class ProcessTemplateController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a process template by ID' })
   @ApiResponse({ status: 200, type: ProcessTemplateResponseDto })
+  @RequirePermissions('templates:read')
   async findOne(@Param('id') id: string): Promise<ProcessTemplateResponseDto> {
     const template = await this.processTemplateRepository.findWithStepTemplates(+id);
     if (!template) {
@@ -43,6 +54,8 @@ export class ProcessTemplateController {
   @Put(':id')
   @ApiOperation({ summary: 'Update a process template' })
   @ApiResponse({ status: 200, type: ProcessTemplateResponseDto })
+  @Roles('admin', 'editor')
+  @RequirePermissions('templates:update')
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateProcessTemplateDto,
@@ -66,6 +79,8 @@ export class ProcessTemplateController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a process template' })
   @ApiResponse({ status: 204 })
+  @Roles('admin')
+  @RequirePermissions('templates:delete')
   async remove(@Param('id') id: string): Promise<void> {
     await this.processTemplateRepository.delete(+id);
   }

@@ -250,9 +250,9 @@ interface CalendarEvent {
 4. カレンダー専用APIの作成
 
 **実装タスク**
-- [ ] caseDetailResponse.data.steps → stepInstances に修正
-- [ ] 開始日フィールド実装後、start と end を適切に設定
-- [ ] ダミーデータ表示を削除し、適切なエラーメッセージ表示
+- [x] caseDetailResponse.data.steps → stepInstances に修正
+- [x] 開始日フィールド実装後、start と end を適切に設定
+- [x] ダミーデータ表示を削除し、適切なエラーメッセージ表示
 - [ ] GET /api/calendar エンドポイント作成（効率的なデータ取得）
 - [ ] DraggableCalendar コンポーネントの動作確認
 
@@ -320,11 +320,11 @@ PUT /api/steps/{stepId}/status
 3. KanbanBoardComplete コンポーネントの動作確認
 
 **実装タスク**
-- [ ] CaseController の findAll で stepInstances を含めるよう修正
+- [x] CaseController の findAll で stepInstances を含めるよう修正
 - [ ] または GET /api/kanban/board エンドポイント作成
-- [ ] KanbanBoardComplete コンポーネントの動作確認と修正
-- [ ] WebSocket統合でリアルタイム更新
-- [ ] ドラッグ&ドロップ時の楽観的更新
+- [x] KanbanBoardComplete コンポーネントの動作確認と修正
+- [x] WebSocket統合でリアルタイム更新
+- [x] ドラッグ&ドロップ時の楽観的更新
 
 ### 2.5 テンプレート管理
 

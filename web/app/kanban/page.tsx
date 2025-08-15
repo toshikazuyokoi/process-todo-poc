@@ -4,12 +4,28 @@ import { useState, useEffect } from 'react';
 import { KanbanBoardComplete } from '@/app/components/kanban/kanban-board-complete';
 import { StepInstance, User } from '@/app/types';
 import { apiClient } from '@/app/lib/api-client';
+import { useRealtimeUpdates } from '@/app/hooks/use-realtime-updates';
 
 export default function KanbanPage() {
   const [stepInstances, setStepInstances] = useState<StepInstance[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // WebSocket real-time updates
+  useRealtimeUpdates({
+    onStepUpdate: (updatedStep) => {
+      setStepInstances(prev =>
+        prev.map(step =>
+          step.id === updatedStep.id ? { ...step, ...updatedStep } : step
+        )
+      );
+    },
+    onCaseUpdate: () => {
+      // Refetch if case is updated
+      fetchData();
+    },
+  });
 
   useEffect(() => {
     fetchData();
@@ -25,12 +41,18 @@ export default function KanbanPage() {
         apiClient.get<User[]>('/users'),
       ]);
       
-      // Extract all step instances from all cases
+      // Extract all step instances from all cases with case title
       const allSteps: StepInstance[] = [];
       const cases = casesResponse.data || [];
       cases.forEach(caseItem => {
         if (caseItem.stepInstances) {
-          allSteps.push(...caseItem.stepInstances);
+          // Add case title to each step for display
+          const stepsWithCase = caseItem.stepInstances.map((step: any) => ({
+            ...step,
+            caseTitle: caseItem.title,
+            caseId: caseItem.id,
+          }));
+          allSteps.push(...stepsWithCase);
         }
       });
       

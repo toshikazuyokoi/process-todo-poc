@@ -55,18 +55,19 @@ export default function CalendarPage() {
           });
         }
 
-        // 各ケースの詳細を取得してステップを取得
-        try {
-          const caseDetailResponse = await apiClient.get(`/cases/${caseItem.id}`);
-          const steps = caseDetailResponse.data.steps || [];
-          
-          // ステップをイベントに変換
-          steps.forEach((step: any) => {
-            if (step.dueDateUtc) {
+        // ステップインスタンスをイベントに変換
+        if (caseItem.stepInstances && Array.isArray(caseItem.stepInstances)) {
+          caseItem.stepInstances.forEach((step: any) => {
+            // 開始日と終了日を設定
+            const startDate = step.startDateUtc || step.createdAt;
+            const endDate = step.dueDateUtc;
+            
+            if (endDate) {
               calendarEvents.push({
                 id: `step-${step.id}`,
-                title: step.name,
-                start: step.dueDateUtc,
+                title: `${step.name} (${caseItem.title})`,
+                start: startDate,
+                end: endDate,
                 extendedProps: {
                   stepId: step.id,
                   caseId: caseItem.id,
@@ -77,61 +78,14 @@ export default function CalendarPage() {
               });
             }
           });
-        } catch (error) {
-          console.error(`Failed to load steps for case ${caseItem.id}:`, error);
         }
       }
 
       setEvents(calendarEvents);
     } catch (error) {
       console.error('Failed to load calendar events:', error);
-      // ダミーデータを設定（開発用）
-      setEvents([
-        {
-          id: '1',
-          title: 'プロジェクトA 期限',
-          start: '2025-01-20',
-          extendedProps: {
-            caseId: 1,
-            status: 'in_progress',
-            type: 'case',
-          },
-        },
-        {
-          id: '2',
-          title: '設計レビュー',
-          start: '2025-01-15T14:00:00',
-          end: '2025-01-15T16:00:00',
-          extendedProps: {
-            stepId: 1,
-            status: 'pending',
-            type: 'step',
-            assignee: '田中',
-          },
-        },
-        {
-          id: '3',
-          title: '実装完了',
-          start: '2025-01-25',
-          extendedProps: {
-            stepId: 2,
-            status: 'pending',
-            type: 'step',
-            assignee: '佐藤',
-          },
-        },
-        {
-          id: '4',
-          title: 'テスト実施',
-          start: '2025-01-28',
-          extendedProps: {
-            stepId: 3,
-            status: 'pending',
-            type: 'step',
-            assignee: '鈴木',
-          },
-        },
-      ]);
+      // エラー時は空のイベントを表示
+      setEvents([]);
     } finally {
       setLoading(false);
     }

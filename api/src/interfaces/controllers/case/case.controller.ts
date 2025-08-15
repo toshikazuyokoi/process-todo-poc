@@ -35,7 +35,7 @@ export class CaseController {
   @ApiOperation({ summary: 'Get all cases' })
   @ApiResponse({ status: 200, type: [CaseResponseDto] })
   async findAll(): Promise<CaseResponseDto[]> {
-    const cases = await this.caseRepository.findAll();
+    const cases = await this.caseRepository.findAllWithStepInstances();
     return cases.map((c) => this.toResponseDto(c));
   }
 

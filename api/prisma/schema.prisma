@@ -98,16 +98,30 @@ model Artifact {
 model User {
   id            Int            @id @default(autoincrement())
   name          String
-  email         String?        @unique
+  email         String         @unique
+  password      String
   role          String         @default("member")
   timezone      String         @default("Asia/Tokyo")
+  isActive      Boolean        @default(true) @map("is_active")
+  emailVerified Boolean        @default(false) @map("email_verified")
+  emailVerifiedAt DateTime?    @map("email_verified_at")
+  lastLoginAt   DateTime?      @map("last_login_at")
+  failedLoginAttempts Int      @default(0) @map("failed_login_attempts")
+  lockedUntil   DateTime?      @map("locked_until")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  
   auditLogs     AuditLog[]
   createdCases  Case[]
   assignedSteps StepInstance[]
   uploadedArtifacts Artifact[]
   comments      Comment[]
   notifications Notification[]
+  refreshTokens RefreshToken[]
+  userRoles     UserRole[]
+  teamMembers   TeamMember[]
 
+  @@index([email, isActive])
   @@map("users")
 }
 
@@ -167,4 +181,116 @@ model Notification {
 
   @@index([userId, isRead, createdAt])
   @@map("notifications")
+}
+
+// 認証関連のモデル
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+  
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([token, expiresAt])
+  @@map("refresh_tokens")
+}
+
+// RBAC関連のモデル
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  resource    String
+  action      String
+  description String?
+  
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int @map("role_id")
+  permissionId Int @map("permission_id")
+  
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  roleId    Int      @map("role_id")
+  teamId    Int?     @map("team_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+  grantedBy Int?     @map("granted_by")
+  
+  user    User  @relation(fields: [userId], references: [id])
+  role    Role  @relation(fields: [roleId], references: [id])
+  team    Team? @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, roleId, teamId])
+  @@map("user_roles")
+}
+
+// 組織・チーム関連のモデル
+model Organization {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  teams     Team[]
+
+  @@map("organizations")
+}
+
+model Team {
+  id             Int      @id @default(autoincrement())
+  organizationId Int      @map("organization_id")
+  name           String
+  description    String?
+  settings       Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  
+  organization Organization @relation(fields: [organizationId], references: [id])
+  teamMembers  TeamMember[]
+  userRoles    UserRole[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  userId    Int      @map("user_id")
+  teamId    Int      @map("team_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@id([userId, teamId])
+  @@map("team_members")
 }

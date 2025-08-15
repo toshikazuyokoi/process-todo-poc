@@ -37,32 +37,9 @@ export class UserRepository implements IUserRepository {
   }
 
   async save(user: User): Promise<User> {
-    const id = user.getId();
-    
-    if (id) {
-      // Update existing user
-      const data = await this.prisma.user.update({
-        where: { id },
-        data: {
-          name: user.getName(),
-          email: user.getEmail(),
-          role: user.getRole(),
-          timezone: user.getTimezone(),
-        },
-      });
-      return this.toDomain(data);
-    } else {
-      // Create new user
-      const data = await this.prisma.user.create({
-        data: {
-          name: user.getName(),
-          email: user.getEmail(),
-          role: user.getRole(),
-          timezone: user.getTimezone(),
-        },
-      });
-      return this.toDomain(data);
-    }
+    // Note: This method is not currently used for auth users.
+    // Auth user creation is handled by AuthService with password hashing.
+    throw new Error('Use AuthService for creating users with passwords');
   }
 
   async update(user: User): Promise<User> {
@@ -71,11 +48,15 @@ export class UserRepository implements IUserRepository {
       throw new Error('Cannot update user without ID');
     }
 
+    const email = user.getEmail();
+    if (!email) {
+      throw new Error('Email is required for user');
+    }
     const data = await this.prisma.user.update({
       where: { id },
       data: {
         name: user.getName(),
-        email: user.getEmail(),
+        email: email,
         role: user.getRole(),
         timezone: user.getTimezone(),
       },

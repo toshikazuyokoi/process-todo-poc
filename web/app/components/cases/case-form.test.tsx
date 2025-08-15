@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CaseForm } from './case-form';
-import * as api from '../../lib/api-client';
+import { api } from '../../lib/api-client';
 import { useRouter } from 'next/navigation';
 
 // Mock next/navigation
@@ -14,6 +14,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('../../lib/api-client', () => ({
   api: {
     getProcessTemplates: jest.fn(),
+    getProcessTemplate: jest.fn(),
     getCase: jest.fn(),
     createCase: jest.fn(),
     updateCase: jest.fn(),
@@ -46,8 +47,11 @@ describe('CaseForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (api.api.getProcessTemplates as jest.Mock).mockResolvedValue({
+    (api.getProcessTemplates as jest.Mock).mockResolvedValue({
       data: mockTemplates,
+    });
+    (api.getProcessTemplate as jest.Mock).mockResolvedValue({
+      data: mockTemplates[0],
     });
   });
 
@@ -69,7 +73,7 @@ describe('CaseForm', () => {
       render(<CaseForm />);
 
       await waitFor(() => {
-        expect(api.api.getProcessTemplates).toHaveBeenCalled();
+        expect(api.getProcessTemplates).toHaveBeenCalled();
       });
 
       const select = screen.getByLabelText(/プロセステンプレート/);
@@ -105,7 +109,7 @@ describe('CaseForm', () => {
           status: 'OPEN',
         },
       };
-      (api.api.createCase as jest.Mock).mockResolvedValue(mockCreateResponse);
+      (api.createCase as jest.Mock).mockResolvedValue(mockCreateResponse);
 
       render(<CaseForm />);
 
@@ -125,7 +129,7 @@ describe('CaseForm', () => {
       await userEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(api.api.createCase).toHaveBeenCalledWith({
+        expect(api.createCase).toHaveBeenCalledWith({
           title: 'Test Case',
           processId: 1,
           goalDateUtc: expect.any(String),
@@ -179,14 +183,14 @@ describe('CaseForm', () => {
     };
 
     beforeEach(() => {
-      (api.api.getCase as jest.Mock).mockResolvedValue({ data: mockCase });
+      (api.getCase as jest.Mock).mockResolvedValue({ data: mockCase });
     });
 
     it('既存の案件データが読み込まれて表示される', async () => {
       render(<CaseForm caseId={1} />);
 
       await waitFor(() => {
-        expect(api.api.getCase).toHaveBeenCalledWith(1);
+        expect(api.getCase).toHaveBeenCalledWith(1);
       });
 
       await waitFor(() => {
@@ -203,12 +207,12 @@ describe('CaseForm', () => {
           title: 'Updated Case',
         },
       };
-      (api.api.updateCase as jest.Mock).mockResolvedValue(mockUpdateResponse);
+      (api.updateCase as jest.Mock).mockResolvedValue(mockUpdateResponse);
 
       render(<CaseForm caseId={1} />);
 
       await waitFor(() => {
-        expect(api.api.getCase).toHaveBeenCalledWith(1);
+        expect(api.getCase).toHaveBeenCalledWith(1);
       });
 
       const titleInput = await screen.findByLabelText(/案件名/) as HTMLInputElement;
@@ -219,7 +223,7 @@ describe('CaseForm', () => {
       await userEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(api.api.updateCase).toHaveBeenCalledWith(1, expect.objectContaining({
+        expect(api.updateCase).toHaveBeenCalledWith(1, expect.objectContaining({
           title: 'Updated Case',
         }));
         expect(mockRouter.push).toHaveBeenCalledWith('/cases/1');
@@ -232,7 +236,7 @@ describe('CaseForm', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       const alertSpy = jest.spyOn(window, 'alert').mockImplementation();
 
-      (api.api.createCase as jest.Mock).mockRejectedValue(
+      (api.createCase as jest.Mock).mockRejectedValue(
         new Error('Network error')
       );
 
@@ -258,7 +262,7 @@ describe('CaseForm', () => {
     it('テンプレート読み込みエラーが処理される', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
-      (api.api.getProcessTemplates as jest.Mock).mockRejectedValue(
+      (api.getProcessTemplates as jest.Mock).mockRejectedValue(
         new Error('Failed to fetch templates')
       );
 
@@ -287,7 +291,7 @@ describe('CaseForm', () => {
 
     it('保存中は保存ボタンが無効化される', async () => {
       // 保存処理を遅延させる
-      (api.api.createCase as jest.Mock).mockImplementation(
+      (api.createCase as jest.Mock).mockImplementation(
         () => new Promise(resolve => setTimeout(resolve, 1000))
       );
 

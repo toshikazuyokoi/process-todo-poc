@@ -209,21 +209,21 @@ export default function TemplatesPage() {
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-48"
-              >
-                <option value="">すべてのカテゴリ</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </Select>
+                options={[
+                  { value: '', label: 'すべてのカテゴリ' },
+                  ...categories.map(cat => ({ value: cat, label: cat }))
+                ]}
+              />
               <Select
                 value={activeFilter}
                 onChange={(e) => setActiveFilter(e.target.value)}
                 className="w-32"
-              >
-                <option value="">すべて</option>
-                <option value="active">有効</option>
-                <option value="inactive">無効</option>
-              </Select>
+                options={[
+                  { value: '', label: 'すべて' },
+                  { value: 'active', label: '有効' },
+                  { value: 'inactive', label: '無効' }
+                ]}
+              />
               <Button type="submit">
                 <Search className="w-4 h-4 mr-2" />
                 検索

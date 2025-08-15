@@ -140,7 +140,28 @@
 <a name='L75'></a><a href='#L75'>75</a>
 <a name='L76'></a><a href='#L76'>76</a>
 <a name='L77'></a><a href='#L77'>77</a>
-<a name='L78'></a><a href='#L78'>78</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -154,6 +175,27 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -223,13 +265,13 @@ import Link from <span class="cstat-no" title="statement not covered" >'next/lin
 import { useRouter } from <span class="cstat-no" title="statement not covered" >'next/navigation'</span>
 import { NotificationBell } from <span class="cstat-no" title="statement not covered" >'@/app/components/notifications/notification-bell'</span>
 import { Button } from '@/app/components/ui/button'
-import { Home, FileText, BarChart3, Users, Settings, Search } from <span class="cstat-no" title="statement not covered" >'lucide-react'</span>
+import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard } from <span class="cstat-no" title="statement not covered" >'lucide-react'</span>
 &nbsp;
 export function <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >Header() {</span></span>
   const router = <span class="cstat-no" title="statement not covered" >useRouter()</span>
   // TODO: Get actual logged-in user ID from auth context
-  // For now, using user ID 13 (管理者) which exists in the database
-  const userId = <span class="cstat-no" title="statement not covered" >13</span>
+  // For now, using user ID 4 (管理者) which exists in the database
+  const userId = <span class="cstat-no" title="statement not covered" >4</span>
   const userName = <span class="cstat-no" title="statement not covered" >'管理者'</span>
 &nbsp;
   return (
@@ -255,6 +297,27 @@ export function <span class="cstat-no" title="statement not covered" ><span clas
               &gt;
                 &lt;FileText className="w-4 h-4" /&gt;
                 案件
+              &lt;/Link&gt;
+              &lt;Link
+                href="/calendar"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              &gt;
+                &lt;CalendarDays className="w-4 h-4" /&gt;
+                カレンダー
+              &lt;/Link&gt;
+              &lt;Link
+                href="/kanban"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              &gt;
+                &lt;Columns className="w-4 h-4" /&gt;
+                カンバン
+              &lt;/Link&gt;
+              &lt;Link
+                href="/dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              &gt;
+                &lt;LayoutDashboard className="w-4 h-4" /&gt;
+                ダッシュボード
               &lt;/Link&gt;
               &lt;Link
                 href="/gantt"
@@ -301,7 +364,7 @@ export function <span class="cstat-no" title="statement not covered" ><span clas
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-08-12T01:35:41.726Z
+                at 2025-08-14T07:45:31.068Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

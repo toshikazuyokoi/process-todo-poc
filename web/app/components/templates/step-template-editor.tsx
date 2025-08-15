@@ -163,6 +163,51 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                   />
                 </div>
 
+                {/* 必要な成果物 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    必要な成果物
+                  </label>
+                  <div className="space-y-2">
+                    {(step.requiredArtifactsJson || []).map((artifact, artifactIndex) => (
+                      <div key={artifactIndex} className="flex items-center gap-2">
+                        <Input
+                          value={artifact}
+                          onChange={(e) => {
+                            const updatedArtifacts = [...(step.requiredArtifactsJson || [])]
+                            updatedArtifacts[artifactIndex] = e.target.value
+                            handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
+                          }}
+                          placeholder="成果物の種類（例: 設計書、議事録）"
+                        />
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            const updatedArtifacts = (step.requiredArtifactsJson || []).filter((_, i) => i !== artifactIndex)
+                            handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        const updatedArtifacts = [...(step.requiredArtifactsJson || []), '']
+                        handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      成果物を追加
+                    </Button>
+                  </div>
+                </div>
+
                 {/* 依存関係設定 */}
                 {index > 0 && (
                   <div>

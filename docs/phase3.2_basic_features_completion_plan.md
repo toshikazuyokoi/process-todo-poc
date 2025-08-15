@@ -110,8 +110,8 @@ const handleSubmitComment = async () => {
 **実装タスク**
 - [x] AuthContext から現在のユーザーID取得
 - [x] エラーレスポンスの詳細表示
-- [ ] コメント投稿後のWebSocket通知実装
-- [ ] 楽観的更新の実装（即座に表示して、失敗時にロールバック）
+- [x] コメント投稿後のWebSocket通知実装
+- [x] 楽観的更新の実装（即座に表示して、失敗時にロールバック）
 
 ### 2.2 スケジュール計算の問題
 
@@ -253,8 +253,8 @@ interface CalendarEvent {
 - [x] caseDetailResponse.data.steps → stepInstances に修正
 - [x] 開始日フィールド実装後、start と end を適切に設定
 - [x] ダミーデータ表示を削除し、適切なエラーメッセージ表示
-- [ ] GET /api/calendar エンドポイント作成（効率的なデータ取得）
-- [ ] DraggableCalendar コンポーネントの動作確認
+- [x] GET /api/calendar エンドポイント作成（効率的なデータ取得）
+- [x] DraggableCalendar コンポーネントの動作確認
 
 ### 2.4 カンバン画面
 
@@ -321,7 +321,7 @@ PUT /api/steps/{stepId}/status
 
 **実装タスク**
 - [x] CaseController の findAll で stepInstances を含めるよう修正
-- [ ] または GET /api/kanban/board エンドポイント作成
+- [x] または GET /api/kanban/board エンドポイント作成
 - [x] KanbanBoardComplete コンポーネントの動作確認と修正
 - [x] WebSocket統合でリアルタイム更新
 - [x] ドラッグ&ドロップ時の楽観的更新
@@ -374,11 +374,11 @@ const newStep: StepTemplate = {
 ```
 
 **実装タスク**
-- [ ] Frontend の型定義を Backend DTO と一致させる
-- [ ] バリデーションエラーの詳細表示（error.response?.data?.errors）
-- [ ] requiredArtifacts の UI 実装（現在未実装）
-- [ ] 保存前のペイロード確認（console.log）
-- [ ] Backend のバリデーションエラーレスポンス改善
+- [x] Frontend の型定義を Backend DTO と一致させる
+- [x] バリデーションエラーの詳細表示（error.response?.data?.errors）
+- [x] requiredArtifacts の UI 実装（現在未実装）
+- [x] 保存前のペイロード確認（console.log）
+- [x] Backend のバリデーションエラーレスポンス改善
 
 ## 3. 実装優先順位
 

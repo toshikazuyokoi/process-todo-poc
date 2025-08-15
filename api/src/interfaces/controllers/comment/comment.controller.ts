@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateCommentUseCase, CreateCommentDto } from '@application/usecases/comment/create-comment.usecase';
@@ -16,6 +17,8 @@ import { UpdateCommentUseCase, UpdateCommentDto } from '@application/usecases/co
 import { DeleteCommentUseCase } from '@application/usecases/comment/delete-comment.usecase';
 import { GetStepCommentsUseCase } from '@application/usecases/comment/get-step-comments.usecase';
 import { GetCommentUseCase } from '@application/usecases/comment/get-comment.usecase';
+import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
+import { IStepInstanceRepository } from '@domain/repositories/step-instance.repository.interface';
 
 @ApiTags('comments')
 @Controller('comments')
@@ -26,6 +29,9 @@ export class CommentController {
     private readonly deleteCommentUseCase: DeleteCommentUseCase,
     private readonly getStepCommentsUseCase: GetStepCommentsUseCase,
     private readonly getCommentUseCase: GetCommentUseCase,
+    private readonly realtimeGateway: RealtimeGateway,
+    @Inject('IStepInstanceRepository')
+    private readonly stepInstanceRepository: IStepInstanceRepository,
   ) {}
 
   @Post()
@@ -34,7 +40,7 @@ export class CommentController {
   @ApiResponse({ status: 404, description: 'Step or user not found' })
   async createComment(@Body() dto: CreateCommentDto) {
     const comment = await this.createCommentUseCase.execute(dto);
-    return {
+    const responseData = {
       id: comment.getId(),
       stepId: comment.getStepId(),
       parentId: comment.getParentId(),
@@ -43,6 +49,18 @@ export class CommentController {
       createdAt: comment.getCreatedAt(),
       updatedAt: comment.getUpdatedAt(),
     };
+
+    // ステップが属するケースIDを取得してWebSocket通知
+    const step = await this.stepInstanceRepository.findById(dto.stepId);
+    if (step) {
+      this.realtimeGateway.broadcastCommentAdded(
+        step.getCaseId(),
+        dto.stepId,
+        responseData,
+      );
+    }
+
+    return responseData;
   }
 
   @Get('steps/:stepId')

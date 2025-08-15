@@ -4,7 +4,7 @@ import { IStepInstanceRepository } from '@domain/repositories/step-instance.repo
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
 import { StepResponseDto } from '@application/dto/step/step-response.dto';
 import { UnlockStepDto } from '@application/dto/step/unlock-step.dto';
-import { StepInstance } from '@domain/entities/step-instance';
+import { StepResponseMapper } from '@application/services/step-response.mapper';
 
 @Injectable()
 export class UnlockStepUseCase {
@@ -13,6 +13,7 @@ export class UnlockStepUseCase {
     private readonly stepRepository: IStepInstanceRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly stepResponseMapper: StepResponseMapper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -33,11 +34,14 @@ export class UnlockStepUseCase {
     const updatedStep = await this.stepRepository.update(step);
 
     // Emit event for real-time updates
-    this.eventEmitter.emit('step.unlocked', {
-      caseId: step.getCaseId(),
-      stepId: step.getId(),
-      unlockedBy: dto.userId,
-    });
+    const stepId = step.getId();
+    if (stepId) {
+      this.eventEmitter.emit('step.unlocked', {
+        caseId: step.getCaseId(),
+        stepId,
+        unlockedBy: dto.userId,
+      });
+    }
 
     // Get assignee name if assigned
     let assigneeName: string | undefined;
@@ -46,35 +50,6 @@ export class UnlockStepUseCase {
       assigneeName = user?.getName();
     }
 
-    return this.toResponseDto(updatedStep, assigneeName);
-  }
-
-  private toResponseDto(step: StepInstance, assigneeName?: string): StepResponseDto {
-    const now = new Date();
-    const dueDate = step.getDueDate()?.getDate();
-    let isOverdue = false;
-    let daysUntilDue: number | null = null;
-
-    if (dueDate) {
-      isOverdue = dueDate < now && step.getStatus().toString() !== 'done' && step.getStatus().toString() !== 'cancelled';
-      daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    }
-
-    return {
-      id: step.getId()!,
-      caseId: step.getCaseId(),
-      templateId: step.getTemplateId(),
-      name: step.getName(),
-      startDateUtc: step.getStartDate()?.getDate() || null,
-      dueDateUtc: dueDate || null,
-      assigneeId: step.getAssigneeId(),
-      assigneeName,
-      status: step.getStatus().toString(),
-      locked: step.isLocked(),
-      createdAt: step.getCreatedAt(),
-      updatedAt: step.getUpdatedAt(),
-      isOverdue,
-      daysUntilDue,
-    };
+    return this.stepResponseMapper.toResponseDto(updatedStep, assigneeName);
   }
 }

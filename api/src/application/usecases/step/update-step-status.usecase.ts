@@ -4,7 +4,7 @@ import { IStepInstanceRepository } from '@domain/repositories/step-instance.repo
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
 import { StepResponseDto } from '@application/dto/step/step-response.dto';
 import { UpdateStepStatusDto } from '@application/dto/step/update-step-status.dto';
-import { StepInstance } from '@domain/entities/step-instance';
+import { StepResponseMapper } from '@application/services/step-response.mapper';
 import { StepStatus } from '@domain/values/step-status';
 
 @Injectable()
@@ -14,6 +14,7 @@ export class UpdateStepStatusUseCase {
     private readonly stepRepository: IStepInstanceRepository,
     @Inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    private readonly stepResponseMapper: StepResponseMapper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -34,17 +35,20 @@ export class UpdateStepStatusUseCase {
 
     // Update status
     const oldStatus = currentStatus;
-    step.updateStatus(new StepStatus(dto.status));
+    step.updateStatus(dto.status as StepStatus);
     const updatedStep = await this.stepRepository.update(step);
 
     // Emit event for real-time updates
-    this.eventEmitter.emit('step.status.updated', {
-      caseId: step.getCaseId(),
-      stepId: step.getId(),
-      oldStatus,
-      newStatus: dto.status,
-      updatedBy: dto.userId,
-    });
+    const stepId = step.getId();
+    if (stepId) {
+      this.eventEmitter.emit('step.status.updated', {
+        caseId: step.getCaseId(),
+        stepId,
+        oldStatus,
+        newStatus: dto.status,
+        updatedBy: dto.userId,
+      });
+    }
 
     // Get assignee name if assigned
     let assigneeName: string | undefined;
@@ -53,46 +57,18 @@ export class UpdateStepStatusUseCase {
       assigneeName = user?.getName();
     }
 
-    return this.toResponseDto(updatedStep, assigneeName);
+    return this.stepResponseMapper.toResponseDto(updatedStep, assigneeName);
   }
 
   private isValidStatusTransition(from: string, to: string): boolean {
     const validTransitions: Record<string, string[]> = {
-      'not_started': ['in_progress', 'cancelled'],
-      'in_progress': ['done', 'cancelled', 'not_started'],
-      'done': ['in_progress'], // Allow reopening
-      'cancelled': ['not_started'], // Allow reactivating
+      'todo': ['in_progress', 'blocked', 'cancelled'],
+      'in_progress': ['done', 'todo', 'blocked', 'cancelled'],
+      'done': [], // Cannot transition from done
+      'blocked': ['todo', 'in_progress', 'cancelled'],
+      'cancelled': ['todo'], // Allow reactivating
     };
 
     return validTransitions[from]?.includes(to) || false;
-  }
-
-  private toResponseDto(step: StepInstance, assigneeName?: string): StepResponseDto {
-    const now = new Date();
-    const dueDate = step.getDueDate()?.getDate();
-    let isOverdue = false;
-    let daysUntilDue: number | null = null;
-
-    if (dueDate) {
-      isOverdue = dueDate < now && step.getStatus().toString() !== 'done' && step.getStatus().toString() !== 'cancelled';
-      daysUntilDue = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    }
-
-    return {
-      id: step.getId()!,
-      caseId: step.getCaseId(),
-      templateId: step.getTemplateId(),
-      name: step.getName(),
-      startDateUtc: step.getStartDate()?.getDate() || null,
-      dueDateUtc: dueDate || null,
-      assigneeId: step.getAssigneeId(),
-      assigneeName,
-      status: step.getStatus().toString(),
-      locked: step.isLocked(),
-      createdAt: step.getCreatedAt(),
-      updatedAt: step.getUpdatedAt(),
-      isOverdue,
-      daysUntilDue,
-    };
   }
 }

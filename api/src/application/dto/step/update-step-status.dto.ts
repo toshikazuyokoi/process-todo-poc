@@ -2,9 +2,10 @@ import { IsEnum, IsInt, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum StepStatusEnum {
-  NOT_STARTED = 'not_started',
+  TODO = 'todo',
   IN_PROGRESS = 'in_progress',
   DONE = 'done',
+  BLOCKED = 'blocked',
   CANCELLED = 'cancelled',
 }
 

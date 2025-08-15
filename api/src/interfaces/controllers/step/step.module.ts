@@ -7,6 +7,7 @@ import { AssignStepToUserUseCase } from '@application/usecases/step/assign-step-
 import { LockStepUseCase } from '@application/usecases/step/lock-step.usecase';
 import { UnlockStepUseCase } from '@application/usecases/step/unlock-step.usecase';
 import { BulkUpdateStepsUseCase } from '@application/usecases/step/bulk-update-steps.usecase';
+import { StepResponseMapper } from '@application/services/step-response.mapper';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
@@ -22,6 +23,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     LockStepUseCase,
     UnlockStepUseCase,
     BulkUpdateStepsUseCase,
+    StepResponseMapper,
   ],
   exports: [
     GetStepByIdUseCase,

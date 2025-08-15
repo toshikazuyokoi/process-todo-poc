@@ -204,9 +204,11 @@ describe('AuthContext', () => {
 
   describe('Logout', () => {
     it('should logout successfully', async () => {
-      mockedCookies.get = jest.fn()
-        .mockReturnValueOnce('access-token')
-        .mockReturnValueOnce('refresh-token');
+      mockedCookies.get = jest.fn((key: string) => {
+        if (key === 'accessToken') return 'access-token';
+        if (key === 'refreshToken') return 'refresh-token';
+        return null;
+      });
       mockedCookies.remove = jest.fn();
       mockedAxios.post.mockResolvedValue({});
       mockedAxios.get.mockResolvedValue({

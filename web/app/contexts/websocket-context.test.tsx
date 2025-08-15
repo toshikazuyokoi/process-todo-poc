@@ -9,8 +9,13 @@ jest.mock('socket.io-client');
 describe('WebSocketContext', () => {
   let mockSocket: Partial<Socket>;
   let mockIo: jest.MockedFunction<typeof io>;
+  const originalEnv = process.env;
 
   beforeEach(() => {
+    // 環境変数をモック
+    process.env = { ...originalEnv };
+    process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001/api';
+
     // Socketのモック
     mockSocket = {
       id: 'test-socket-id',
@@ -33,6 +38,7 @@ describe('WebSocketContext', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    process.env = originalEnv;
   });
 
   describe('WebSocketProvider', () => {

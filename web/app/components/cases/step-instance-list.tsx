@@ -5,6 +5,7 @@ import { StepInstance } from '@/app/types'
 import { api } from '@/app/lib/api-client'
 import { Button } from '@/app/components/ui/button'
 import { StepComments } from '@/app/components/cases/step-comments'
+import { AssigneeSelector } from '@/app/components/cases/assignee-selector'
 import { CheckCircle, Circle, Clock, XCircle, Lock, Unlock, User, Calendar, Loader2 } from 'lucide-react'
 
 interface StepInstanceListProps {
@@ -157,9 +158,13 @@ export function StepInstanceList({ steps, onUpdate }: StepInstanceListProps) {
                   <span>期限: {formatDate(step.dueDateUtc)}</span>
                 </div>
                 
-                <div className="flex items-center gap-2 text-gray-600">
-                  <User className="w-4 h-4" />
-                  <span>担当: {step.assigneeId ? `ユーザー${step.assigneeId}` : '未割当'}</span>
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-600" />
+                  <AssigneeSelector
+                    stepId={step.id!}
+                    currentAssigneeId={step.assigneeId}
+                    onAssign={onUpdate}
+                  />
                 </div>
                 
                 <div className="text-gray-500 text-xs">

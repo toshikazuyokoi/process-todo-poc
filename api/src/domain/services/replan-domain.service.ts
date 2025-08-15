@@ -7,6 +7,7 @@ import { BusinessDayService } from './business-day.service';
 export interface StepSchedule {
   templateId: number;
   name: string;
+  startDateUtc: Date;
   dueDateUtc: Date;
   dependencies: number[];
 }
@@ -124,6 +125,119 @@ export class ReplanDomainService {
   /**
    * 前工程基準の日付計算（修正版）
    */
+  private async calculatePrevBasedDateV2(
+    template: StepTemplate,
+    calculatedDates: Map<number, { startDate: Date; endDate: Date }>,
+    templateMap: Map<number, StepTemplate>,
+    goalDate: Date,
+    countryCode: string = 'JP'
+  ): Promise<Date> {
+    try {
+      this.logger.debug(`calculatePrevBasedDateV2: template=${template.getId()}:${template.getName()}`);
+      
+      const dependencies = template.getDependsOn();
+      const offsetDays = Math.abs(template.getOffset().getDays());
+      this.logger.debug(`  Dependencies: ${dependencies}, Offset: ${offsetDays}`);
+      
+      let baseDate: Date;
+      
+      if (dependencies.length > 0) {
+        // 明示的な依存関係がある場合
+        const depDates: Date[] = [];
+        
+        for (const depId of dependencies) {
+          const depSchedule = calculatedDates.get(depId);
+          if (!depSchedule) {
+            this.logger.error(`Dependency ${depId} not calculated for template ${template.getId()}:${template.getName()}`);
+            this.logger.error(`Available dates: ${Array.from(calculatedDates.keys())}`);
+            
+            // フォールバック: ゴール日付から逆算
+            this.logger.warn(`Using fallback for dependency ${depId}`);
+            const fallbackDays = Math.max(30, offsetDays * 2); // 最低30日前
+            const fallbackDate = await this.businessDayService.subtractBusinessDays(
+              goalDate,
+              fallbackDays,
+              countryCode
+            );
+            depDates.push(fallbackDate);
+            continue;
+          }
+          
+          // 依存ステップの終了日を使用
+          const depDate = depSchedule.endDate;
+          
+          // 1970年チェック
+          if (depDate.getFullYear() < 2000) {
+            this.logger.error(`Invalid dependency date for ${depId}: ${depDate.toISOString()}`);
+            const fallbackDays = Math.max(30, offsetDays * 2);
+            const fallbackDate = await this.businessDayService.subtractBusinessDays(
+              goalDate,
+              fallbackDays,
+              countryCode
+            );
+            depDates.push(fallbackDate);
+            continue;
+          }
+          
+          this.logger.debug(`  Dependency ${depId} end date: ${depDate.toISOString()}`);
+          depDates.push(depDate);
+        }
+        
+        // 最も遅い依存日付を基準とする
+        baseDate = new Date(Math.max(...depDates.map(d => d.getTime())));
+        this.logger.debug(`  Latest dependency date: ${baseDate.toISOString()}`);
+      } else {
+        // 依存関係がない場合、seq-1を探す
+        const prevSeq = template.getSeq() - 1;
+        let prevDate: Date | null = null;
+        
+        for (const [id, t] of templateMap) {
+          if (t.getSeq() === prevSeq) {
+            const prevSchedule = calculatedDates.get(id);
+            prevDate = prevSchedule ? prevSchedule.endDate : null;
+            break;
+          }
+        }
+        
+        if (!prevDate) {
+          // フォールバック：ゴール日付から逆算
+          this.logger.warn(`No previous step for ${template.getId()}:${template.getName()}, using goal date as fallback`);
+          const fallbackDate = await this.businessDayService.subtractBusinessDays(
+            goalDate,
+            offsetDays,
+            countryCode
+          );
+          this.logger.debug(`  Fallback date: ${fallbackDate.toISOString()}`);
+          return fallbackDate;
+        }
+        
+        baseDate = prevDate;
+        this.logger.debug(`  Previous step date: ${baseDate.toISOString()}`);
+      }
+      
+      // オフセット日数を加算
+      const calculatedDate = await this.businessDayService.addBusinessDays(
+        baseDate,
+        offsetDays,
+        countryCode
+      );
+      this.logger.debug(`  Date after adding offset: ${calculatedDate.toISOString()}`);
+      
+      // 営業日調整
+      const adjustedDate = await this.businessDayService.adjustToBusinessDay(
+        calculatedDate,
+        'backward',
+        countryCode
+      );
+      this.logger.debug(`  Final adjusted date: ${adjustedDate.toISOString()}`);
+      
+      return adjustedDate;
+    } catch (error) {
+      this.logger.error(`Error calculating prev-based date for template ${template.getId()}:${template.getName()}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   private async calculatePrevBasedDate(
     template: StepTemplate,
     calculatedDates: Map<number, Date>,
@@ -238,22 +352,22 @@ export class ReplanDomainService {
    */
   private validateAllDatesCalculated(
     templates: StepTemplate[],
-    calculatedDates: Map<number, Date>
+    calculatedDates: Map<number, { startDate: Date; endDate: Date }>
   ): void {
     for (const template of templates) {
       const id = template.getId()!;
-      const date = calculatedDates.get(id);
+      const schedule = calculatedDates.get(id);
       
-      if (!date) {
+      if (!schedule) {
         throw new Error(
           `Date not calculated for template ${id}:${template.getName()}`
         );
       }
       
       // 1970年チェック
-      if (date.getFullYear() < 2000) {
+      if (schedule.startDate.getFullYear() < 2000 || schedule.endDate.getFullYear() < 2000) {
         throw new Error(
-          `Invalid date calculated for template ${id}:${template.getName()}: ${date.toISOString()}`
+          `Invalid date calculated for template ${id}:${template.getName()}: start=${schedule.startDate.toISOString()}, end=${schedule.endDate.toISOString()}`
         );
       }
     }
@@ -276,7 +390,7 @@ export class ReplanDomainService {
     
     // Step 1: 初期化とデータ準備
     const stepTemplates = processTemplate.getStepTemplates();
-    const stepSchedules = new Map<number, Date>();
+    const stepSchedules = new Map<number, { startDate: Date; endDate: Date }>();
     
     // Validate dependencies exist
     const templateIds = new Set(stepTemplates.map(t => t.getId()).filter(id => id !== undefined) as number[]);
@@ -319,15 +433,30 @@ export class ReplanDomainService {
       if (!template) continue;
       
       if (lockedSchedules.has(templateId)) {
-        stepSchedules.set(templateId, lockedSchedules.get(templateId)!);
+        const lockedDate = lockedSchedules.get(templateId)!;
+        // ロックされた場合は期限日から開始日を逆算
+        const duration = Math.abs(template.getOffset().getDays()) || 1;
+        const startDate = await this.businessDayService.subtractBusinessDays(
+          lockedDate,
+          duration - 1,
+          countryCode
+        );
+        stepSchedules.set(templateId, { startDate, endDate: lockedDate });
         this.logger.debug(`Template ${templateId}:${template.getName()} is locked`);
         continue;
       }
       
       if (template.getBasis().isGoal()) {
-        const date = await this.calculateGoalBasedDate(template, goalDate, countryCode);
-        stepSchedules.set(templateId, date);
-        this.logger.log(`Goal-based ${templateId}:${template.getName()} -> ${date.toISOString()}`);
+        const endDate = await this.calculateGoalBasedDate(template, goalDate, countryCode);
+        // 期限日から開始日を逆算
+        const duration = Math.abs(template.getOffset().getDays()) || 1;
+        const startDate = await this.businessDayService.subtractBusinessDays(
+          endDate,
+          duration - 1,
+          countryCode
+        );
+        stepSchedules.set(templateId, { startDate, endDate });
+        this.logger.log(`Goal-based ${templateId}:${template.getName()} -> start: ${startDate.toISOString()}, end: ${endDate.toISOString()}`);
       }
     }
     
@@ -343,15 +472,53 @@ export class ReplanDomainService {
       }
       
       if (!template.getBasis().isGoal()) {
-        const date = await this.calculatePrevBasedDate(
+        const endDate = await this.calculatePrevBasedDateV2(
           template,
           stepSchedules,
           templateMap,
           goalDate,
           countryCode
         );
-        stepSchedules.set(templateId, date);
-        this.logger.log(`Prev-based ${templateId}:${template.getName()} -> ${date.toISOString()}`);
+        // 期限日から開始日を計算
+        const duration = Math.abs(template.getOffset().getDays()) || 1;
+        let startDate: Date;
+        
+        // 依存関係がある場合は、依存ステップの終了日の翌営業日から開始
+        const dependencies = template.getDependsOn();
+        if (dependencies.length > 0) {
+          const depEndDates: Date[] = [];
+          for (const depId of dependencies) {
+            const depSchedule = stepSchedules.get(depId);
+            if (depSchedule) {
+              depEndDates.push(depSchedule.endDate);
+            }
+          }
+          if (depEndDates.length > 0) {
+            const latestDepEnd = new Date(Math.max(...depEndDates.map(d => d.getTime())));
+            startDate = await this.businessDayService.addBusinessDays(
+              latestDepEnd,
+              1,
+              countryCode
+            );
+          } else {
+            // 依存関係が解決できない場合は期限日から逆算
+            startDate = await this.businessDayService.subtractBusinessDays(
+              endDate,
+              duration - 1,
+              countryCode
+            );
+          }
+        } else {
+          // 依存関係がない場合は期限日から逆算
+          startDate = await this.businessDayService.subtractBusinessDays(
+            endDate,
+            duration - 1,
+            countryCode
+          );
+        }
+        
+        stepSchedules.set(templateId, { startDate, endDate });
+        this.logger.log(`Prev-based ${templateId}:${template.getName()} -> start: ${startDate.toISOString()}, end: ${endDate.toISOString()}`);
       }
     }
     
@@ -362,16 +529,17 @@ export class ReplanDomainService {
     // Step 6: 結果を構築
     const steps: StepSchedule[] = stepTemplates.map((template) => {
       const templateId = template.getId()!;
-      const scheduledDate = stepSchedules.get(templateId);
+      const schedule = stepSchedules.get(templateId);
       
-      if (!scheduledDate) {
+      if (!schedule) {
         throw new Error(`Failed to get scheduled date for ${templateId}`);
       }
       
       return {
         templateId,
         name: template.getName(),
-        dueDateUtc: scheduledDate,
+        startDateUtc: schedule.startDate,
+        dueDateUtc: schedule.endDate,
         dependencies: template.getDependsOn(),
       };
     });
@@ -530,22 +698,33 @@ export class ReplanDomainService {
     }
     console.log('All calculations complete. StepSchedules has', stepSchedules.size, 'entries');
     
-    const steps: StepSchedule[] = stepTemplates.map((template) => {
-      const templateId = template.getId()!;
-      const scheduledDate = stepSchedules.get(templateId);
-      
-      if (!scheduledDate) {
-        console.error(`No scheduled date found for template ${templateId}:${template.getName()}`);
-        throw new Error(`Failed to calculate date for template ${templateId}:${template.getName()}`);
-      }
-      
-      return {
-        templateId,
-        name: template.getName(),
-        dueDateUtc: scheduledDate,
-        dependencies: template.getDependsOn(),
-      };
-    });
+    const steps: StepSchedule[] = await Promise.all(
+      stepTemplates.map(async (template) => {
+        const templateId = template.getId()!;
+        const scheduledDate = stepSchedules.get(templateId);
+        
+        if (!scheduledDate) {
+          console.error(`No scheduled date found for template ${templateId}:${template.getName()}`);
+          throw new Error(`Failed to calculate date for template ${templateId}:${template.getName()}`);
+        }
+        
+        // 開始日を計算（簡易版：期限日から作業日数を引く）
+        const duration = Math.abs(templateMap.get(templateId)?.getOffset().getDays() || 1);
+        const startDate = await this.businessDayService.subtractBusinessDays(
+          scheduledDate,
+          duration - 1,
+          countryCode
+        );
+        
+        return {
+          templateId,
+          name: template.getName(),
+          startDateUtc: startDate,
+          dueDateUtc: scheduledDate,
+          dependencies: template.getDependsOn(),
+        };
+      })
+    );
     
     return {
       goalDate,

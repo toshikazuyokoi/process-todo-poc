@@ -219,6 +219,7 @@ export class CaseRepository implements ICaseRepository {
           step.caseId,
           step.templateId,
           step.name,
+          step.startDateUtc,  // 開始日を追加
           step.dueDateUtc,
           step.assigneeId,
           step.status,

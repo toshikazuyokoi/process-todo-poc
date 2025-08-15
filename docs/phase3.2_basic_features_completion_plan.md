@@ -58,10 +58,10 @@ const AssigneeSelector = ({ stepId, currentAssigneeId, onAssign }) => {
 ```
 
 **実装タスク**
-- [ ] StepInstanceList に AssigneeSelector コンポーネント追加
-- [ ] ユーザー一覧取得処理の実装
-- [ ] 担当者変更時の楽観的更新
-- [ ] WebSocket経由でのリアルタイム更新対応
+- [x] StepInstanceList に AssigneeSelector コンポーネント追加
+- [x] ユーザー一覧取得処理の実装
+- [x] 担当者変更時の楽観的更新
+- [x] WebSocket経由でのリアルタイム更新対応
 
 #### 問題点2: コメント投稿機能の不具合
 
@@ -108,8 +108,8 @@ const handleSubmitComment = async () => {
 3. WebSocket統合（RealtimeGateway経由）
 
 **実装タスク**
-- [ ] AuthContext から現在のユーザーID取得
-- [ ] エラーレスポンスの詳細表示
+- [x] AuthContext から現在のユーザーID取得
+- [x] エラーレスポンスの詳細表示
 - [ ] コメント投稿後のWebSocket通知実装
 - [ ] 楽観的更新の実装（即座に表示して、失敗時にロールバック）
 
@@ -176,12 +176,12 @@ const task: GanttTaskDto = {
 ```
 
 **実装タスク**
-- [ ] step_instances テーブルに start_date_utc カラム追加
-- [ ] StepInstance エンティティに startDate プロパティ追加
-- [ ] ReplanDomainService で開始日も計算するよう修正
-- [ ] CreateCaseUseCase で開始日も保存
-- [ ] GetGanttDataUseCase で開始日を使用
-- [ ] 既存データのマイグレーション（開始日を逆算して設定）
+- [x] step_instances テーブルに start_date_utc カラム追加
+- [x] StepInstance エンティティに startDate プロパティ追加
+- [x] ReplanDomainService で開始日も計算するよう修正
+- [x] CreateCaseUseCase で開始日も保存
+- [x] GetGanttDataUseCase で開始日を使用
+- [x] 既存データのマイグレーション（開始日を逆算して設定）
 
 ### 2.3 カレンダー画面
 

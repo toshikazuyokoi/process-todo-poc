@@ -57,17 +57,19 @@ export class CreateCaseUseCase {
     console.log('Schedule Plan:', schedulePlan.steps.map(s => ({
       id: s.templateId,
       name: s.name,
-      date: s.dueDateUtc,
+      startDate: s.startDateUtc,
+      dueDate: s.dueDateUtc,
     })));
 
     const stepInstances = schedulePlan.steps.map(
       (step) => {
-        console.log(`Creating step instance for ${step.name} with date ${step.dueDateUtc}`);
-        return new StepInstance(
+        console.log(`Creating step instance for ${step.name} with start: ${step.startDateUtc}, due: ${step.dueDateUtc}`);
+        const instance = new StepInstance(
           null,
           savedCase.getId()!,
           step.templateId,
           step.name,
+          step.startDateUtc,
           step.dueDateUtc,
           null,
           StepStatus.TODO,
@@ -75,6 +77,11 @@ export class CreateCaseUseCase {
           new Date(),
           new Date(),
         );
+        console.log(`  Created instance - Has start date? ${instance.getStartDate() !== null}`);
+        if (instance.getStartDate()) {
+          console.log(`  Start date value: ${instance.getStartDate()!.getDate().toISOString()}`);
+        }
+        return instance;
       },
     );
 
@@ -99,6 +106,7 @@ export class CreateCaseUseCase {
         caseId: step.getCaseId(),
         templateId: step.getTemplateId(),
         name: step.getName(),
+        startDateUtc: step.getStartDate()?.getDate() || null,
         dueDateUtc: step.getDueDate()?.getDate() || null,
         assigneeId: step.getAssigneeId(),
         status: step.getStatus().toString(),

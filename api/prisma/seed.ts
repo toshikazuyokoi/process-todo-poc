@@ -14,6 +14,10 @@ async function main() {
   await prisma.stepTemplate.deleteMany();
   await prisma.processTemplate.deleteMany();
   await prisma.holiday.deleteMany();
+  await prisma.teamMember.deleteMany();  // Delete team members before users
+  await prisma.userRole.deleteMany();  // Delete user roles before users
+  await prisma.team.deleteMany();  // Delete teams before users
+  await prisma.refreshToken.deleteMany();  // Delete refresh tokens before users
   await prisma.user.deleteMany();
 
   // Create users
@@ -21,6 +25,7 @@ async function main() {
     data: {
       email: 'admin@example.com',
       name: '管理者',
+      password: '$2b$10$ukP0L7UakyakBmxF99Dwzeev3s70T5rEmADB1GO7Y4kh7fwve0DcO',  // bcrypt hash of 'admin123'
       role: 'ADMIN',
     },
   });
@@ -29,6 +34,7 @@ async function main() {
     data: {
       email: 'tanaka@example.com',
       name: '田中太郎',
+      password: '$2b$10$wEd78NRnyIEpcG55BDrLwOCrBvuRl3xm97u.yPCkbF1nnyT/iFRZi',  // bcrypt hash of 'password123'
       role: 'USER',
     },
   });
@@ -37,6 +43,7 @@ async function main() {
     data: {
       email: 'suzuki@example.com',
       name: '鈴木花子',
+      password: '$2b$10$wEd78NRnyIEpcG55BDrLwOCrBvuRl3xm97u.yPCkbF1nnyT/iFRZi',  // bcrypt hash of 'password123'
       role: 'USER',
     },
   });

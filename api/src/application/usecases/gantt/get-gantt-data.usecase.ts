@@ -83,7 +83,7 @@ export class GetGanttDataUseCase {
       const task: GanttTaskDto = {
         id: `step-${step.getId()}`,
         name: step.getName(),
-        start: step.getCreatedAt(),
+        start: step.getStartDate() ? step.getStartDate()!.getDate() : step.getCreatedAt(),
         end: step.getDueDate() ? step.getDueDate()!.getDate() : new Date(),
         progress: this.calculateStepProgress(step.getStatus().toString()),
         type: 'step',
@@ -153,7 +153,7 @@ export class GetGanttDataUseCase {
         const task: GanttTaskDto = {
           id: `step-${step.getId()}`,
           name: `${caseEntity.getTitle()} - ${step.getName()}`,
-          start: step.getCreatedAt(),
+          start: step.getStartDate() ? step.getStartDate()!.getDate() : step.getCreatedAt(),
           end: step.getDueDate() ? step.getDueDate()!.getDate() : new Date(),
           progress: this.calculateStepProgress(step.getStatus().toString()),
           type: 'step',

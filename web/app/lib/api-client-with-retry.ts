@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import Cookies from 'js-cookie'
 
 interface RetryConfig {
   maxRetries?: number
@@ -128,9 +129,9 @@ class ApiClientWithRetry {
   }
 
   private getAuthToken(): string | null {
-    // LocalStorageまたはCookieからトークンを取得
+    // Cookieからトークンを取得
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('authToken')
+      return Cookies.get('accessToken') || null
     }
     return null
   }
@@ -212,16 +213,20 @@ class ApiClientWithRetry {
   }
 
   // 認証トークンの設定
-  setAuthToken(token: string) {
+  setAuthToken(token: string, refreshToken?: string) {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token)
+      Cookies.set('accessToken', token, { expires: 1 }) // 1 day
+      if (refreshToken) {
+        Cookies.set('refreshToken', refreshToken, { expires: 7 }) // 7 days
+      }
     }
   }
 
   // 認証トークンのクリア
   clearAuthToken() {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken')
+      Cookies.remove('accessToken')
+      Cookies.remove('refreshToken')
     }
   }
 }

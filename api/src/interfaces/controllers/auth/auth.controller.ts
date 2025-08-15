@@ -40,7 +40,7 @@ export class AuthController {
   @Post('login')
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async login(@Request() req) {
+  async login(@Request() req: any) {
     return this.authService.login(req.user);
   }
 
@@ -58,13 +58,13 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@Request() req, @Body() body: { refreshToken?: string }) {
+  async logout(@Request() req: any, @Body() body: { refreshToken?: string }) {
     await this.authService.logout(req.user.id, body.refreshToken);
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Request() req) {
+  async getProfile(@Request() req: any) {
     return req.user;
   }
 
@@ -72,7 +72,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async changePassword(
-    @Request() req,
+    @Request() req: any,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
     await this.authService.changePassword(
@@ -84,7 +84,7 @@ export class AuthController {
 
   @Get('validate')
   @UseGuards(JwtAuthGuard)
-  async validate(@Request() req) {
+  async validate(@Request() req: any) {
     // This endpoint is used to validate if the JWT token is still valid
     return {
       valid: true,

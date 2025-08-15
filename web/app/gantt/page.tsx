@@ -231,29 +231,27 @@ export default function GanttPage() {
                 value={selectedCaseId?.toString() || ''}
                 onChange={(e) => setSelectedCaseId(e.target.value ? parseInt(e.target.value) : null)}
                 className="w-64"
-              >
-                <option value="">すべての案件</option>
-                {cases.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </Select>
+                options={[
+                  { value: '', label: 'すべての案件' },
+                  ...cases.map(c => ({ value: c.id.toString(), label: c.title }))
+                ]}
+              />
               
               {/* View mode selector */}
               <Select
                 value={viewMode}
                 onChange={(e) => setViewMode(e.target.value as ViewMode)}
                 className="w-32"
-              >
-                <option value={ViewMode.Hour}>時間</option>
-                <option value={ViewMode.QuarterDay}>6時間</option>
-                <option value={ViewMode.HalfDay}>12時間</option>
-                <option value={ViewMode.Day}>日</option>
-                <option value={ViewMode.Week}>週</option>
-                <option value={ViewMode.Month}>月</option>
-                <option value={ViewMode.Year}>年</option>
-              </Select>
+                options={[
+                  { value: ViewMode.Hour, label: '時間' },
+                  { value: ViewMode.QuarterDay, label: '6時間' },
+                  { value: ViewMode.HalfDay, label: '12時間' },
+                  { value: ViewMode.Day, label: '日' },
+                  { value: ViewMode.Week, label: '週' },
+                  { value: ViewMode.Month, label: '月' },
+                  { value: ViewMode.Year, label: '年' }
+                ]}
+              />
               
               <Button 
                 variant="secondary" 

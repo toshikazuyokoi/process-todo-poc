@@ -194,13 +194,14 @@ export default function CasesPage() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-48"
-              >
-                <option value="">すべてのステータス</option>
-                <option value="draft">下書き</option>
-                <option value="in_progress">進行中</option>
-                <option value="completed">完了</option>
-                <option value="cancelled">キャンセル</option>
-              </Select>
+                options={[
+                  { value: '', label: 'すべてのステータス' },
+                  { value: 'draft', label: '下書き' },
+                  { value: 'in_progress', label: '進行中' },
+                  { value: 'completed', label: '完了' },
+                  { value: 'cancelled', label: 'キャンセル' }
+                ]}
+              />
               <Button type="submit">
                 <Search className="w-4 h-4 mr-2" />
                 検索

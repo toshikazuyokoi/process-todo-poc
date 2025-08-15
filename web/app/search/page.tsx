@@ -220,12 +220,13 @@ export default function AdvancedSearchPage() {
                 value={filters.type}
                 onChange={(e) => setFilters({ ...filters, type: e.target.value as any })}
                 className="w-40"
-              >
-                <option value="all">すべて</option>
-                <option value="cases">案件のみ</option>
-                <option value="templates">テンプレートのみ</option>
-                <option value="steps">ステップのみ</option>
-              </Select>
+                options={[
+                  { value: 'all', label: 'すべて' },
+                  { value: 'cases', label: '案件のみ' },
+                  { value: 'templates', label: 'テンプレートのみ' },
+                  { value: 'steps', label: 'ステップのみ' }
+                ]}
+              />
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -263,13 +264,14 @@ export default function AdvancedSearchPage() {
                     <Select
                       value={filters.status || ''}
                       onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                    >
-                      <option value="">すべて</option>
-                      <option value="draft">下書き</option>
-                      <option value="in_progress">進行中</option>
-                      <option value="completed">完了</option>
-                      <option value="cancelled">キャンセル</option>
-                    </Select>
+                      options={[
+                        { value: '', label: 'すべて' },
+                        { value: 'draft', label: '下書き' },
+                        { value: 'in_progress', label: '進行中' },
+                        { value: 'completed', label: '完了' },
+                        { value: 'cancelled', label: 'キャンセル' }
+                      ]}
+                    />
                   </div>
 
                   {/* 作成者 */}
@@ -283,14 +285,11 @@ export default function AdvancedSearchPage() {
                         ...filters, 
                         createdBy: e.target.value ? parseInt(e.target.value) : undefined 
                       })}
-                    >
-                      <option value="">すべて</option>
-                      {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name}
-                        </option>
-                      ))}
-                    </Select>
+                      options={[
+                        { value: '', label: 'すべて' },
+                        ...users.map(user => ({ value: user.id.toString(), label: user.name }))
+                      ]}
+                    />
                   </div>
 
                   {/* カテゴリ */}
@@ -301,12 +300,11 @@ export default function AdvancedSearchPage() {
                     <Select
                       value={filters.category || ''}
                       onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                    >
-                      <option value="">すべて</option>
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </Select>
+                      options={[
+                        { value: '', label: 'すべて' },
+                        ...categories.map(cat => ({ value: cat, label: cat }))
+                      ]}
+                    />
                   </div>
                 </div>
 

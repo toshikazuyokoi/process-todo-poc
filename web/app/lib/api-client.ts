@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
@@ -13,7 +14,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add auth token if exists
-    const token = localStorage.getItem('token')
+    const token = Cookies.get('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -54,7 +55,8 @@ apiClient.interceptors.response.use(
     
     if (error.response?.status === 401) {
       // Handle unauthorized
-      localStorage.removeItem('token')
+      Cookies.remove('accessToken')
+      Cookies.remove('refreshToken')
       window.location.href = '/login'
     }
     return Promise.reject(error)

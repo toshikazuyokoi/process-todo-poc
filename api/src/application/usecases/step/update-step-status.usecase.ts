@@ -25,6 +25,13 @@ export class UpdateStepStatusUseCase {
       throw new NotFoundException(`Step with ID ${stepId} not found`);
     }
 
+    // Check if step is locked (allow transition to blocked status even when locked)
+    if (step.isLocked() && dto.status !== 'blocked') {
+      throw new BadRequestException(
+        `Step with ID ${stepId} is locked and cannot be modified (except to blocked status)`
+      );
+    }
+
     const oldStatus = step.getStatus().toString();
     
     try {

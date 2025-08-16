@@ -1,0 +1,77 @@
+
+> api@1.0.0 test
+> jest --runInBand
+
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33m[test-request-id] Client Error: HttpException: Test error[39m
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33mObject:[39m
+{
+  "requestId": "test-request-id",
+  "url": "/api/test",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "userAgent": "test-agent",
+  "statusCode": 400,
+  "timestamp": "2025-08-16T10:36:06.644Z"
+}
+
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33m[test-request-id] Client Error: HttpException: Http Exception[39m
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33mObject:[39m
+{
+  "requestId": "test-request-id",
+  "url": "/api/test",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "userAgent": "test-agent",
+  "statusCode": 400,
+  "timestamp": "2025-08-16T10:36:06.646Z"
+}
+
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33m[err_1755340566664_kw3tjw84e] Client Error: HttpException: Test error[39m
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33mObject:[39m
+{
+  "requestId": "err_1755340566664_kw3tjw84e",
+  "url": "/api/test",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "userAgent": "test-agent",
+  "statusCode": 400,
+  "timestamp": "2025-08-16T10:36:06.664Z"
+}
+
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33m[test-request-id] Client Error: [object Object][39m
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33mObject:[39m
+{
+  "requestId": "test-request-id",
+  "url": "/api/test",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "userAgent": "test-agent",
+  "statusCode": 409,
+  "timestamp": "2025-08-16T10:36:06.665Z"
+}
+
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33m[test-request-id] Client Error: HttpException: Too Many Requests[39m
+[33m[Nest] 598005  - [39m08/16/2025, 7:36:06 PM [33m   WARN[39m [38;5;3m[GlobalExceptionFilter] [39m[33mObject:[39m
+{
+  "requestId": "test-request-id",
+  "url": "/api/test",
+  "method": "GET",
+  "ip": "127.0.0.1",
+  "userAgent": "test-agent",
+  "statusCode": 429,
+  "timestamp": "2025-08-16T10:36:06.665Z"
+}
+
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays: startDate=2024-01-01T00:00:00.000Z, businessDays=5, countryCode=JP[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays result: 2024-01-08T00:00:00.000Z[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays: startDate=2024-01-08T00:00:00.000Z, businessDays=-5, countryCode=JP[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays result: 2024-01-01T00:00:00.000Z[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays: startDate=2024-01-01T00:00:00.000Z, businessDays=2, countryCode=JP[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays result: 2024-01-04T00:00:00.000Z[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95madjustToBusinessDay: date=2024-01-06T00:00:00.000Z, direction=forward[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays: startDate=2024-01-06T00:00:00.000Z, businessDays=1, countryCode=JP[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays result: 2024-01-08T00:00:00.000Z[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95madjustToBusinessDay: date=2024-01-06T00:00:00.000Z, direction=backward[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays: startDate=2024-01-06T00:00:00.000Z, businessDays=-1, countryCode=JP[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95maddBusinessDays result: 2024-01-05T00:00:00.000Z[39m
+[95m[Nest] 598005  - [39m08/16/2025, 7:36:59 PM [95m  DEBUG[39m [38;5;3m[BusinessDayService] [39m[95madjustToBusinessDay: date=2024-01-03T00:00:00.000Z, direction=forward[39m

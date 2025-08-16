@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IStepInstanceRepository } from '@domain/repositories/step-instance.repository.interface';
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
@@ -22,6 +22,13 @@ export class AssignStepToUserUseCase {
     
     if (!step) {
       throw new NotFoundException(`Step with ID ${stepId} not found`);
+    }
+
+    // Check if step is locked
+    if (step.isLocked()) {
+      throw new BadRequestException(
+        `Step with ID ${stepId} is locked and cannot be modified`
+      );
     }
 
     // Validate user exists if assigning

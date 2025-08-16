@@ -3,12 +3,15 @@ import {
   Get,
   Query,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { ICaseRepository } from '@domain/repositories/case.repository.interface';
 import { IStepInstanceRepository } from '@domain/repositories/step-instance.repository.interface';
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
 import { StepStatus } from '@domain/values/step-status';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 interface KanbanColumnDto {
   id: string;
@@ -51,7 +54,9 @@ interface KanbanBoardDto {
 }
 
 @ApiTags('kanban')
+@ApiBearerAuth()
 @Controller('kanban')
+@UseGuards(JwtAuthGuard)
 export class KanbanController {
   constructor(
     @Inject('ICaseRepository')

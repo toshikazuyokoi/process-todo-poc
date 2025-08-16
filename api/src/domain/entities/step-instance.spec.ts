@@ -11,6 +11,7 @@ describe('StepInstance', () => {
         100,
         10,
         'Test Step',
+        null,
         dueDate,
         null,
         StepStatus.TODO,
@@ -34,6 +35,7 @@ describe('StepInstance', () => {
         100,
         10,
         'Test Step',
+        null,
         new Date('2025-12-31'),
         null,
         StepStatus.IN_PROGRESS,
@@ -52,6 +54,7 @@ describe('StepInstance', () => {
     it('should handle different status values', () => {
       const pendingInstance = new StepInstance(
         1, 100, 10, 'Pending Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -63,6 +66,7 @@ describe('StepInstance', () => {
 
       const inProgressInstance = new StepInstance(
         2, 100, 11, 'In Progress Step',
+        null,
         new Date(),
         null,
         StepStatus.IN_PROGRESS,
@@ -74,6 +78,7 @@ describe('StepInstance', () => {
 
       const completedInstance = new StepInstance(
         3, 100, 12, 'Completed Step',
+        null,
         new Date(),
         null,
         StepStatus.DONE,
@@ -88,6 +93,7 @@ describe('StepInstance', () => {
       // Simulating uppercase status from database
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         new Date(),
         null,
         'IN_PROGRESS' as any,
@@ -106,6 +112,7 @@ describe('StepInstance', () => {
       const futureDate = new Date('2025-12-31');
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         futureDate,
         null,
         StepStatus.TODO,
@@ -124,6 +131,7 @@ describe('StepInstance', () => {
         1, 100, 10, 'Test Step',
         null,
         null,
+        null,
         StepStatus.TODO,
         false,
         new Date(), 
@@ -138,6 +146,7 @@ describe('StepInstance', () => {
     it('should handle locked steps', () => {
       const lockedInstance = new StepInstance(
         1, 100, 10, 'Locked Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -152,6 +161,7 @@ describe('StepInstance', () => {
     it('should handle unlocked steps', () => {
       const unlockedInstance = new StepInstance(
         1, 100, 10, 'Unlocked Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -169,6 +179,7 @@ describe('StepInstance', () => {
       const pastDate = new Date('2024-01-01');
       const instance = new StepInstance(
         1, 100, 10, 'Overdue Step',
+        null,
         pastDate,
         null,
         StepStatus.TODO,
@@ -183,6 +194,7 @@ describe('StepInstance', () => {
     it('should identify steps that can be modified', () => {
       const unlockedPending = new StepInstance(
         1, 100, 10, 'Modifiable Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -193,6 +205,7 @@ describe('StepInstance', () => {
 
       const lockedPending = new StepInstance(
         2, 100, 11, 'Locked Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -203,6 +216,7 @@ describe('StepInstance', () => {
 
       const completedStep = new StepInstance(
         3, 100, 12, 'Completed Step',
+        null,
         new Date(),
         null,
         StepStatus.DONE,
@@ -227,6 +241,7 @@ describe('StepInstance', () => {
     it('should handle status transitions', () => {
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -253,6 +268,7 @@ describe('StepInstance', () => {
       
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         futureDate,
         null,
         StepStatus.TODO,
@@ -270,6 +286,7 @@ describe('StepInstance', () => {
     it('should handle locking and unlocking', () => {
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,
@@ -290,6 +307,7 @@ describe('StepInstance', () => {
     it('should handle assignee management', () => {
       const instance = new StepInstance(
         1, 100, 10, 'Test Step',
+        null,
         new Date(),
         null,
         StepStatus.TODO,

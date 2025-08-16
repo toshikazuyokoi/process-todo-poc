@@ -10,16 +10,23 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateUserUseCase, CreateUserDto } from '@application/usecases/user/create-user.usecase';
 import { UpdateUserUseCase, UpdateUserDto } from '@application/usecases/user/update-user.usecase';
 import { GetUsersUseCase, GetUsersFilterDto } from '@application/usecases/user/get-users.usecase';
 import { DeleteUserUseCase } from '@application/usecases/user/delete-user.usecase';
 import { AssignStepUseCase, AssignStepDto } from '@application/usecases/user/assign-step.usecase';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
+import { Roles } from '@infrastructure/auth/decorators/roles.decorator';
+import { RolesGuard } from '@infrastructure/auth/guards/roles.guard';
 
 @ApiTags('users')
+@ApiBearerAuth()
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
@@ -30,6 +37,7 @@ export class UserController {
   ) {}
 
   @Post()
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
@@ -80,6 +88,7 @@ export class UserController {
   }
 
   @Delete(':id')
+  @Roles('admin')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a user' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })

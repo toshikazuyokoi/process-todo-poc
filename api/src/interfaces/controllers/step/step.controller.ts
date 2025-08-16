@@ -1,5 +1,5 @@
-import { Controller, Get, Put, Post, Patch, Param, Body, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Put, Post, Patch, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { GetStepByIdUseCase } from '@application/usecases/step/get-step-by-id.usecase';
 import { UpdateStepStatusUseCase } from '@application/usecases/step/update-step-status.usecase';
 import { AssignStepToUserUseCase } from '@application/usecases/step/assign-step-to-user.usecase';
@@ -10,9 +10,13 @@ import { StepResponseDto } from '@application/dto/step/step-response.dto';
 import { UpdateStepStatusDto } from '@application/dto/step/update-step-status.dto';
 import { AssignStepDto } from '@application/dto/step/assign-step.dto';
 import { BulkUpdateStepsDto } from '@application/dto/step/bulk-update-steps.dto';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('Steps')
+@ApiBearerAuth()
 @Controller('steps')
+@UseGuards(JwtAuthGuard)
 export class StepController {
   constructor(
     private readonly getStepByIdUseCase: GetStepByIdUseCase,

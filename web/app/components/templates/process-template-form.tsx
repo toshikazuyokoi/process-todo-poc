@@ -90,11 +90,8 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
           name: step.name,
           basis: step.basis,
           offsetDays: step.offsetDays,
-          requiredArtifacts: step.requiredArtifactsJson?.map(a => ({
-            kind: a,
-            description: ''
-          })) || [],
-          dependsOn: step.dependsOnJson || [],
+          requiredArtifacts: step.requiredArtifacts || [],
+          dependsOn: step.dependsOn || [],
         })) || [],
       }
       

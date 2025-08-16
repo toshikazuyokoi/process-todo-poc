@@ -1,8 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../app.module';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
+import { TestDataFactory } from '../../../../test/factories/test-data.factory';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { MockJwtAuthGuard } from '../../../../test/mocks/auth.mock';
 
 describe('StepController Integration Tests - Assignee Flow', () => {
   let app: INestApplication;
@@ -11,118 +14,82 @@ describe('StepController Integration Tests - Assignee Flow', () => {
   let testCaseId: number;
   let testStepId: number;
   let testAssigneeId: number;
+  let testPrefix: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+    .overrideGuard(JwtAuthGuard)
+    .useClass(MockJwtAuthGuard)
+    .compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    
+    // Add ValidationPipe to match production environment
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+      }),
+    );
+    
     await app.init();
     
     prisma = app.get(PrismaService);
 
-    // Clean up test data
-    await prisma.stepInstance.deleteMany({
-      where: { name: { startsWith: 'TEST_STEP_' } }
-    });
-    await prisma.case.deleteMany({
-      where: { title: { startsWith: 'TEST_CASE_' } }
-    });
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test.assignee.' } }
-    });
-    await prisma.processTemplate.deleteMany({
-      where: { name: { startsWith: 'TEST_TEMPLATE_' } }
-    });
+    // Get unique prefix for this test run
+    testPrefix = TestDataFactory.getUniquePrefix();
 
-    // Create test users
-    const owner = await prisma.user.create({
-      data: {
-        email: 'test.owner@example.com',
-        name: 'Test Owner',
-        password: 'hashed_password',
-        role: 'admin',
-      }
+    // Clean up any existing test data
+    await TestDataFactory.cleanupAll(prisma);
+
+    // Create test users using factory
+    const owner = await TestDataFactory.createUser(prisma, {
+      email: `${testPrefix}owner@example.com`,
+      name: `${testPrefix}Owner`,
+      role: 'admin',
     });
     testUserId = owner.id;
 
-    const assignee = await prisma.user.create({
-      data: {
-        email: 'test.assignee.1@example.com',
-        name: 'Test Assignee 1',
-        password: 'hashed_password',
-        role: 'member',
-      }
+    const assignee = await TestDataFactory.createUser(prisma, {
+      email: `${testPrefix}assignee@example.com`,
+      name: `${testPrefix}Assignee`,
+      role: 'member',
     });
     testAssigneeId = assignee.id;
 
-    // Create test template
-    const template = await prisma.processTemplate.create({
-      data: {
-        name: 'TEST_TEMPLATE_ASSIGNEE',
-        isActive: true,
-        stepTemplates: {
-          create: [
-            {
-              seq: 1,
-              name: 'Step 1',
-              basis: 'goal',
-              offsetDays: -10,
-              requiredArtifactsJson: []
-            }
-          ]
-        }
-      },
-      include: { stepTemplates: true }
+    // Create test template using factory
+    const template = await TestDataFactory.createTemplate(prisma, {
+      name: `${testPrefix}TEMPLATE_ASSIGNEE`,
+      stepCount: 1
     });
 
-    // Create test case
-    const testCase = await prisma.case.create({
-      data: {
-        processId: template.id,
-        title: 'TEST_CASE_ASSIGNEE',
-        goalDateUtc: new Date('2025-12-31'),
-        status: 'open',
-        createdBy: testUserId,
-      }
+    // Create test case using factory
+    const testCase = await TestDataFactory.createCase(prisma, {
+      templateId: template.id,
+      userId: testUserId,
+      title: `${testPrefix}CASE_ASSIGNEE`
     });
     testCaseId = testCase.id;
 
-    // Get the template with step templates
-    const templateWithSteps = await prisma.processTemplate.findUnique({
-      where: { id: template.id },
-      include: { stepTemplates: true }
-    });
-
-    // Create test step instance
-    const step = await prisma.stepInstance.create({
-      data: {
-        caseId: testCaseId,
-        templateId: templateWithSteps!.stepTemplates[0].id,
-        name: 'TEST_STEP_ASSIGNEE',
-        dueDateUtc: new Date('2025-12-21'),
-        status: 'todo',
-        locked: false,
-      }
+    // Create test step instance using factory
+    const step = await TestDataFactory.createStep(prisma, {
+      caseId: testCaseId,
+      templateStepId: template.stepTemplates[0].id,
+      name: `${testPrefix}STEP_ASSIGNEE`
     });
     testStepId = step.id;
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.stepInstance.deleteMany({
-      where: { id: testStepId }
-    });
-    await prisma.case.deleteMany({
-      where: { id: testCaseId }
-    });
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test.' } }
-    });
-    await prisma.processTemplate.deleteMany({
-      where: { name: { startsWith: 'TEST_TEMPLATE_' } }
-    });
+    // Clean up test data using factory
+    await TestDataFactory.cleanup(prisma, testPrefix);
 
     await app.close();
   });
@@ -243,14 +210,11 @@ describe('StepController Integration Tests - Assignee Flow', () => {
     });
 
     it('should support reassignment', async () => {
-      // Create another assignee
-      const assignee2 = await prisma.user.create({
-        data: {
-          email: 'test.assignee.2@example.com',
-          name: 'Test Assignee 2',
-          password: 'hashed_password',
-          role: 'member',
-        }
+      // Create another assignee using factory
+      const assignee2 = await TestDataFactory.createUser(prisma, {
+        email: `${testPrefix}assignee2@example.com`,
+        name: `${testPrefix}Assignee 2`,
+        role: 'member',
       });
 
       // Reset step status

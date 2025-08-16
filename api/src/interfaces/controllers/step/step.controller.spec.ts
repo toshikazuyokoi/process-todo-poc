@@ -1,11 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StepController } from './step.controller';
-import { StepInstanceRepository } from '@infrastructure/repositories/step-instance.repository';
+import { GetStepByIdUseCase } from '@application/usecases/step/get-step-by-id.usecase';
+import { UpdateStepStatusUseCase } from '@application/usecases/step/update-step-status.usecase';
+import { AssignStepToUserUseCase } from '@application/usecases/step/assign-step-to-user.usecase';
+import { LockStepUseCase } from '@application/usecases/step/lock-step.usecase';
+import { UnlockStepUseCase } from '@application/usecases/step/unlock-step.usecase';
+import { BulkUpdateStepsUseCase } from '@application/usecases/step/bulk-update-steps.usecase';
 import { BulkUpdateStepsDto } from '@application/dto/step/bulk-update-steps.dto';
+import { StepStatusEnum } from '@application/dto/step/update-step-status.dto';
 
 describe('StepController - Bulk Operations', () => {
   let controller: StepController;
-  let stepRepository: StepInstanceRepository;
+  let bulkUpdateStepsUseCase: BulkUpdateStepsUseCase;
 
   const mockStep = {
     getId: () => 1,
@@ -31,17 +37,34 @@ describe('StepController - Bulk Operations', () => {
       controllers: [StepController],
       providers: [
         {
-          provide: StepInstanceRepository,
-          useValue: {
-            findById: jest.fn(),
-            update: jest.fn(),
-          },
+          provide: GetStepByIdUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: UpdateStepStatusUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: AssignStepToUserUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: LockStepUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: UnlockStepUseCase,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: BulkUpdateStepsUseCase,
+          useValue: { execute: jest.fn() },
         },
       ],
     }).compile();
 
     controller = module.get<StepController>(StepController);
-    stepRepository = module.get<StepInstanceRepository>(StepInstanceRepository);
+    bulkUpdateStepsUseCase = module.get<BulkUpdateStepsUseCase>(BulkUpdateStepsUseCase);
     
     // Reset mock functions
     jest.clearAllMocks();
@@ -50,81 +73,90 @@ describe('StepController - Bulk Operations', () => {
   describe('bulkUpdate', () => {
     it('should update multiple steps successfully', async () => {
       const dto: BulkUpdateStepsDto = {
-        stepIds: [1, 2, 3],
-        status: 'completed',
-        assigneeId: 5,
-        locked: true,
+        updates: [
+          { stepId: 1, status: StepStatusEnum.DONE, assigneeId: 5, locked: true },
+          { stepId: 2, status: StepStatusEnum.DONE, assigneeId: 5, locked: true },
+          { stepId: 3, status: StepStatusEnum.DONE, assigneeId: 5, locked: true },
+        ],
+        userId: 1,
       };
 
-      jest.spyOn(stepRepository, 'findById')
-        .mockResolvedValueOnce(mockStep as any)
-        .mockResolvedValueOnce(mockStep as any)
-        .mockResolvedValueOnce(mockStep as any);
-      
-      jest.spyOn(stepRepository, 'update').mockResolvedValue(mockStep as any);
+      const mockResults = [
+        { ...mockStep, status: 'done' },
+        { ...mockStep, status: 'done' },
+        { ...mockStep, status: 'done' },
+      ];
+
+      jest.spyOn(bulkUpdateStepsUseCase, 'execute').mockResolvedValue(mockResults as any);
 
       const result = await controller.bulkUpdate(dto);
 
-      expect(result).toEqual({ updated: 3 });
-      expect(stepRepository.findById).toHaveBeenCalledTimes(3);
-      expect(stepRepository.update).toHaveBeenCalledTimes(3);
-      expect(mockStep.updateStatus).toHaveBeenCalledWith('completed');
-      expect(mockStep.assignTo).toHaveBeenCalledWith(5);
-      expect(mockStep.lock).toHaveBeenCalled();
+      expect(result).toEqual(mockResults);
+      expect(bulkUpdateStepsUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(bulkUpdateStepsUseCase.execute).toHaveBeenCalledWith(dto);
     });
 
     it('should skip non-existent steps', async () => {
       const dto: BulkUpdateStepsDto = {
-        stepIds: [1, 999, 3],
-        status: 'in_progress',
+        updates: [
+          { stepId: 1, status: StepStatusEnum.IN_PROGRESS },
+          { stepId: 999, status: StepStatusEnum.IN_PROGRESS },
+          { stepId: 3, status: StepStatusEnum.IN_PROGRESS },
+        ],
+        userId: 1,
       };
 
-      jest.spyOn(stepRepository, 'findById')
-        .mockResolvedValueOnce(mockStep as any)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockStep as any);
-      
-      jest.spyOn(stepRepository, 'update').mockResolvedValue(mockStep as any);
+      const mockResults = [
+        { ...mockStep, status: 'in_progress' },
+        { ...mockStep, status: 'in_progress' },
+      ];
+
+      jest.spyOn(bulkUpdateStepsUseCase, 'execute').mockResolvedValue(mockResults as any);
 
       const result = await controller.bulkUpdate(dto);
 
-      expect(result).toEqual({ updated: 2 });
-      expect(stepRepository.update).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(mockResults);
+      expect(bulkUpdateStepsUseCase.execute).toHaveBeenCalledWith(dto);
     });
 
     it('should unlock steps when locked is false', async () => {
       const dto: BulkUpdateStepsDto = {
-        stepIds: [1],
-        locked: false,
+        updates: [
+          { stepId: 1, locked: false },
+        ],
+        userId: 1,
       };
 
-      const testStep = {
-        ...mockStep,
-        lock: jest.fn(),
-        unlock: jest.fn(),
-      };
+      const mockResults = [
+        { ...mockStep, locked: false },
+      ];
 
-      jest.spyOn(stepRepository, 'findById').mockResolvedValue(testStep as any);
-      jest.spyOn(stepRepository, 'update').mockResolvedValue(testStep as any);
+      jest.spyOn(bulkUpdateStepsUseCase, 'execute').mockResolvedValue(mockResults as any);
 
-      await controller.bulkUpdate(dto);
+      const result = await controller.bulkUpdate(dto);
 
-      expect(testStep.unlock).toHaveBeenCalled();
-      expect(testStep.lock).not.toHaveBeenCalled();
+      expect(result).toEqual(mockResults);
+      expect(bulkUpdateStepsUseCase.execute).toHaveBeenCalledWith(dto);
     });
 
     it('should handle null assigneeId', async () => {
       const dto: BulkUpdateStepsDto = {
-        stepIds: [1],
-        assigneeId: null,
+        updates: [
+          { stepId: 1, assigneeId: null },
+        ],
+        userId: 1,
       };
 
-      jest.spyOn(stepRepository, 'findById').mockResolvedValue(mockStep as any);
-      jest.spyOn(stepRepository, 'update').mockResolvedValue(mockStep as any);
+      const mockResults = [
+        { ...mockStep, assigneeId: null },
+      ];
 
-      await controller.bulkUpdate(dto);
+      jest.spyOn(bulkUpdateStepsUseCase, 'execute').mockResolvedValue(mockResults as any);
 
-      expect(mockStep.assignTo).toHaveBeenCalledWith(null);
+      const result = await controller.bulkUpdate(dto);
+
+      expect(result).toEqual(mockResults);
+      expect(bulkUpdateStepsUseCase.execute).toHaveBeenCalledWith(dto);
     });
   });
 });

@@ -1,152 +1,112 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../app.module';
 import { PrismaService } from '@infrastructure/prisma/prisma.service';
 import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TestDataFactory } from '../../../../test/factories/test-data.factory';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { MockJwtAuthGuard } from '../../../../test/mocks/auth.mock';
 
 describe('KanbanController Integration Tests - Kanban Operations', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let realtimeGateway: RealtimeGateway;
+  let eventEmitter: EventEmitter2;
   let testUserId: number;
   let testAssigneeId: number;
   let testCaseId: number;
   let testStepIds: number[] = [];
+  let testPrefix: string;
+  let testTemplate: any;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+    .overrideGuard(JwtAuthGuard)
+    .useClass(MockJwtAuthGuard)
+    .compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    
+    // Add ValidationPipe to match production environment
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+      }),
+    );
+    
     await app.init();
     
     prisma = app.get(PrismaService);
     realtimeGateway = app.get(RealtimeGateway);
+    eventEmitter = app.get(EventEmitter2);
 
-    // Mock WebSocket broadcast
+    // Mock WebSocket broadcast and EventEmitter
     jest.spyOn(realtimeGateway, 'broadcastStepUpdate').mockImplementation();
+    jest.spyOn(eventEmitter, 'emit');
 
-    // Clean up test data
-    await prisma.stepInstance.deleteMany({
-      where: { name: { startsWith: 'TEST_KANBAN_STEP_' } }
-    });
-    await prisma.case.deleteMany({
-      where: { title: { startsWith: 'TEST_KANBAN_CASE_' } }
-    });
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test.kanban.' } }
-    });
-    await prisma.processTemplate.deleteMany({
-      where: { name: { startsWith: 'TEST_KANBAN_TEMPLATE_' } }
-    });
+    // Get unique prefix for this test run
+    testPrefix = TestDataFactory.getUniquePrefix();
 
-    // Create test users
-    const owner = await prisma.user.create({
-      data: {
-        email: 'test.kanban.owner@example.com',
-        name: 'Test Kanban Owner',
-        password: 'hashed_password',
-        role: 'admin',
-      }
+    // Clean up any existing test data
+    await TestDataFactory.cleanupAll(prisma);
+
+    // Create test users using factory
+    const owner = await TestDataFactory.createUser(prisma, {
+      email: `${testPrefix}kanban.owner@example.com`,
+      name: `${testPrefix}Kanban Owner`,
+      role: 'admin'
     });
     testUserId = owner.id;
 
-    const assignee = await prisma.user.create({
-      data: {
-        email: 'test.kanban.assignee@example.com',
-        name: 'Test Kanban Assignee',
-        password: 'hashed_password',
-        role: 'member',
-      }
+    const assignee = await TestDataFactory.createUser(prisma, {
+      email: `${testPrefix}kanban.assignee@example.com`,
+      name: `${testPrefix}Kanban Assignee`,
+      role: 'member'
     });
     testAssigneeId = assignee.id;
 
-    // Create test template with multiple steps
-    const template = await prisma.processTemplate.create({
-      data: {
-        name: 'TEST_KANBAN_TEMPLATE',
-        isActive: true,
-        stepTemplates: {
-          create: [
-            {
-              seq: 1,
-              name: 'Step 1',
-              basis: 'goal',
-              offsetDays: -30,
-              requiredArtifactsJson: []
-            },
-            {
-              seq: 2,
-              name: 'Step 2',
-              basis: 'prev',
-              offsetDays: 5,
-              requiredArtifactsJson: []
-            },
-            {
-              seq: 3,
-              name: 'Step 3',
-              basis: 'prev',
-              offsetDays: 3,
-              requiredArtifactsJson: []
-            }
-          ]
-        }
-      },
-      include: { stepTemplates: true }
+    // Create test template with multiple steps using factory
+    testTemplate = await TestDataFactory.createTemplate(prisma, {
+      name: `${testPrefix}KANBAN_TEMPLATE`,
+      stepCount: 3
     });
 
-    // Create test case
-    const testCase = await prisma.case.create({
-      data: {
-        processId: template.id,
-        title: 'TEST_KANBAN_CASE',
-        goalDateUtc: new Date('2025-12-31'),
-        status: 'open',
-        createdBy: testUserId,
-      }
+    // Create test case using factory
+    const testCase = await TestDataFactory.createCase(prisma, {
+      templateId: testTemplate.id,
+      userId: testUserId,
+      title: `${testPrefix}KANBAN_CASE`
     });
     testCaseId = testCase.id;
 
-    // Get the template with step templates
-    const templateWithSteps = await prisma.processTemplate.findUnique({
-      where: { id: template.id },
-      include: { stepTemplates: true }
-    });
-
-    // Create test step instances with different statuses
+    // Create test step instances with different statuses using factory
     const stepStatuses = ['todo', 'in_progress', 'done', 'blocked', 'todo'];
     for (let i = 0; i < 5; i++) {
-      const step = await prisma.stepInstance.create({
-        data: {
-          caseId: testCaseId,
-          templateId: templateWithSteps!.stepTemplates[i % 3].id,
-          name: `TEST_KANBAN_STEP_${i + 1}`,
-          dueDateUtc: new Date(`2025-12-${20 + i}`),
-          status: stepStatuses[i],
-          locked: false,
-          assigneeId: i % 2 === 0 ? testAssigneeId : null,
-        }
+      const step = await TestDataFactory.createStep(prisma, {
+        caseId: testCaseId,
+        templateStepId: testTemplate.stepTemplates[i % 3].id,
+        name: `${testPrefix}KANBAN_STEP_${i + 1}`,
+        status: stepStatuses[i] as any,
+        assigneeId: i % 2 === 0 ? testAssigneeId : null,
+        dueDate: new Date(`2025-12-${20 + i}`)
       });
       testStepIds.push(step.id);
     }
   });
 
   afterAll(async () => {
-    // Clean up test data
-    await prisma.stepInstance.deleteMany({
-      where: { id: { in: testStepIds } }
-    });
-    await prisma.case.deleteMany({
-      where: { id: testCaseId }
-    });
-    await prisma.user.deleteMany({
-      where: { email: { startsWith: 'test.kanban.' } }
-    });
-    await prisma.processTemplate.deleteMany({
-      where: { name: { startsWith: 'TEST_KANBAN_TEMPLATE' } }
-    });
+    // Clean up test data using factory
+    await TestDataFactory.cleanup(prisma, testPrefix);
 
     await app.close();
   });
@@ -222,7 +182,7 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       expect(response.body.users).toBeInstanceOf(Array);
       const testUser = response.body.users.find((u: any) => u.id === testAssigneeId);
       expect(testUser).toBeDefined();
-      expect(testUser).toHaveProperty('name', 'Test Kanban Assignee');
+      expect(testUser).toHaveProperty('name', `${testPrefix}Kanban Assignee`);
     });
 
     it('should calculate correct statistics', async () => {
@@ -264,12 +224,14 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
         .send({ status: 'in_progress' })
         .expect(200);
 
-      // Verify WebSocket notification
-      expect(realtimeGateway.broadcastStepUpdate).toHaveBeenCalledWith(
-        testCaseId,
+      // Verify event was emitted (EventEmitter-based architecture)
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'step.status.updated',
         expect.objectContaining({
-          id: todoStepId,
-          status: 'in_progress'
+          caseId: testCaseId,
+          stepId: todoStepId,
+          oldStatus: 'todo',
+          newStatus: 'in_progress'
         })
       );
 
@@ -312,7 +274,7 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
     });
 
     it('should handle blocked status correctly', async () => {
-      const stepId = testStepIds[2];
+      const stepId = testStepIds[4]; // Use the last step which is 'todo' and not modified by previous tests
 
       // Move step to blocked
       await request(app.getHttpServer())
@@ -348,20 +310,17 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       // Check that assignee names are included
       for (const item of itemsWithAssignees) {
         if (item.assigneeId === testAssigneeId) {
-          expect(item.assigneeName).toBe('Test Kanban Assignee');
+          expect(item.assigneeName).toBe(`${testPrefix}Kanban Assignee`);
         }
       }
     });
 
     it('should support filtering by multiple assignees', async () => {
-      // Create another user
-      const anotherUser = await prisma.user.create({
-        data: {
-          email: 'test.kanban.another@example.com',
-          name: 'Another User',
-          password: 'hashed_password',
-          role: 'member',
-        }
+      // Create another user using factory
+      const anotherUser = await TestDataFactory.createUser(prisma, {
+        email: `${testPrefix}kanban.another@example.com`,
+        name: `${testPrefix}Another User`,
+        role: 'member'
       });
 
       // Assign some steps to the new user

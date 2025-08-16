@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { JwtAuthGuard } from '../src/infrastructure/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../src/infrastructure/auth/guards/roles.guard';
+import { PermissionsGuard } from '../src/infrastructure/auth/guards/permissions.guard';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -9,7 +12,14 @@ describe('AppController (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(

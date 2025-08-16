@@ -5,6 +5,9 @@ import { AppModule } from '../src/app.module';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
 import { LoggingInterceptor } from '../src/common/interceptors/logging.interceptor';
 import { CustomLoggerService } from '../src/common/services/logger.service';
+import { JwtAuthGuard } from '../src/infrastructure/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../src/infrastructure/auth/guards/roles.guard';
+import { PermissionsGuard } from '../src/infrastructure/auth/guards/permissions.guard';
 
 describe('Error Handling System (e2e)', () => {
   let app: INestApplication;
@@ -13,7 +16,14 @@ describe('Error Handling System (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(PermissionsGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     logger = new CustomLoggerService();
     app = moduleFixture.createNestApplication();

@@ -5,6 +5,7 @@ import { StepTemplate } from '@/app/types'
 import { Button } from '@/app/components/ui/button'
 import { Input } from '@/app/components/ui/input'
 import { Select } from '@/app/components/ui/select'
+import { Textarea } from '@/app/components/ui/textarea'
 import { Trash2, GripVertical, Plus } from 'lucide-react'
 
 interface StepTemplateEditorProps {
@@ -26,8 +27,8 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
       name: `ステップ ${localSteps.length + 1}`,
       basis: 'prev',
       offsetDays: 1,
-      requiredArtifactsJson: [],
-      dependsOnJson: [],
+      requiredArtifacts: [],
+      dependsOn: [],
     }
     const updatedSteps = [...localSteps, newStep]
     setLocalSteps(updatedSteps)
@@ -64,14 +65,14 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
     const updatedSteps = [...localSteps]
     const step = updatedSteps[stepIndex]
     
-    if (!step.dependsOnJson) {
-      step.dependsOnJson = []
+    if (!step.dependsOn) {
+      step.dependsOn = []
     }
     
     if (checked) {
-      step.dependsOnJson = [...step.dependsOnJson, depSeq]
+      step.dependsOn = [...step.dependsOn, depSeq]
     } else {
-      step.dependsOnJson = step.dependsOnJson.filter(d => d !== depSeq)
+      step.dependsOn = step.dependsOn.filter(d => d !== depSeq)
     }
     
     setLocalSteps(updatedSteps)
@@ -168,29 +169,52 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     必要な成果物
                   </label>
-                  <div className="space-y-2">
-                    {(step.requiredArtifactsJson || []).map((artifact, artifactIndex) => (
-                      <div key={artifactIndex} className="flex items-center gap-2">
-                        <Input
-                          value={artifact}
-                          onChange={(e) => {
-                            const updatedArtifacts = [...(step.requiredArtifactsJson || [])]
-                            updatedArtifacts[artifactIndex] = e.target.value
-                            handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
-                          }}
-                          placeholder="成果物の種類（例: 設計書、議事録）"
-                        />
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => {
-                            const updatedArtifacts = (step.requiredArtifactsJson || []).filter((_, i) => i !== artifactIndex)
-                            handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                  <div className="space-y-3">
+                    {(step.requiredArtifacts || []).map((artifact, artifactIndex) => (
+                      <div key={artifactIndex} className="border rounded-lg p-3 bg-gray-50">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={artifact.kind}
+                              onChange={(e) => {
+                                const updatedArtifacts = [...(step.requiredArtifacts || [])]
+                                updatedArtifacts[artifactIndex] = {
+                                  ...updatedArtifacts[artifactIndex],
+                                  kind: e.target.value
+                                }
+                                handleUpdateStep(index, 'requiredArtifacts', updatedArtifacts)
+                              }}
+                              placeholder="成果物の種類（例: 設計書、議事録）"
+                              label="種類"
+                            />
+                            <Button
+                              type="button"
+                              variant="danger"
+                              size="sm"
+                              onClick={() => {
+                                const updatedArtifacts = (step.requiredArtifacts || []).filter((_, i) => i !== artifactIndex)
+                                handleUpdateStep(index, 'requiredArtifacts', updatedArtifacts)
+                              }}
+                              className="mt-6"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <Textarea
+                            value={artifact.description || ''}
+                            onChange={(e) => {
+                              const updatedArtifacts = [...(step.requiredArtifacts || [])]
+                              updatedArtifacts[artifactIndex] = {
+                                ...updatedArtifacts[artifactIndex],
+                                description: e.target.value
+                              }
+                              handleUpdateStep(index, 'requiredArtifacts', updatedArtifacts)
+                            }}
+                            placeholder="成果物の説明（オプション）"
+                            label="説明"
+                            rows={2}
+                          />
+                        </div>
                       </div>
                     ))}
                     <Button
@@ -198,8 +222,8 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                       variant="secondary"
                       size="sm"
                       onClick={() => {
-                        const updatedArtifacts = [...(step.requiredArtifactsJson || []), '']
-                        handleUpdateStep(index, 'requiredArtifactsJson', updatedArtifacts)
+                        const updatedArtifacts = [...(step.requiredArtifacts || []), { kind: '', description: '' }]
+                        handleUpdateStep(index, 'requiredArtifacts', updatedArtifacts)
                       }}
                     >
                       <Plus className="w-4 h-4 mr-1" />
@@ -220,7 +244,7 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                           <input
                             type="checkbox"
                             className="mr-1"
-                            checked={step.dependsOnJson?.includes(depStep.seq) || false}
+                            checked={step.dependsOn?.includes(depStep.seq) || false}
                             onChange={(e) => handleDependencyChange(index, depStep.seq, e.target.checked)}
                           />
                           <span className="text-sm">{depStep.name}</span>

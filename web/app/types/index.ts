@@ -17,8 +17,8 @@ export interface StepTemplate {
   name: string
   basis: 'goal' | 'prev'
   offsetDays: number
-  requiredArtifactsJson: string[]
-  dependsOnJson: number[]
+  requiredArtifacts: Array<{ kind: string; description?: string }>
+  dependsOn: number[]
   createdAt?: string
   updatedAt?: string
 }

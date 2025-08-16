@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Param, Body, Patch, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateCaseDto } from '@application/dto/case/create-case.dto';
 import { UpdateCaseDto } from '@application/dto/case/update-case.dto';
 import { CaseResponseDto } from '@application/dto/case/case-response.dto';
@@ -12,9 +12,13 @@ import { CaseRepository } from '@infrastructure/repositories/case.repository';
 import { BulkUpdateCasesDto } from '@application/dto/case/bulk-update-cases.dto';
 import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto';
 import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('Cases')
+@ApiBearerAuth()
 @Controller('cases')
+@UseGuards(JwtAuthGuard)
 export class CaseController {
   constructor(
     private readonly createCaseUseCase: CreateCaseUseCase,
@@ -27,7 +31,12 @@ export class CaseController {
   @Post()
   @ApiOperation({ summary: 'Create a new case from process template' })
   @ApiResponse({ status: 201, type: CaseResponseDto })
-  async create(@Body() dto: CreateCaseDto): Promise<CaseResponseDto> {
+  async create(
+    @Body() dto: CreateCaseDto,
+    @CurrentUser('id') userId: number,
+  ): Promise<CaseResponseDto> {
+    // Set createdBy from authenticated user
+    dto.createdBy = userId;
     return this.createCaseUseCase.execute(dto);
   }
 

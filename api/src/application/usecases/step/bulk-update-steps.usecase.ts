@@ -48,6 +48,16 @@ export class BulkUpdateStepsUseCase {
     for (const { step, changes } of stepUpdates) {
       let hasChanges = false;
 
+      // Check if step is locked before making changes
+      if (step.isLocked() && (
+        changes.assigneeId !== undefined || 
+        (changes.status !== undefined && changes.status !== 'blocked')
+      )) {
+        throw new BadRequestException(
+          `Step ${changes.stepId} is locked and cannot be modified (except status to blocked)`
+        );
+      }
+
       if (changes.status !== undefined) {
         try {
           step.updateStatus(changes.status as unknown as StepStatus);

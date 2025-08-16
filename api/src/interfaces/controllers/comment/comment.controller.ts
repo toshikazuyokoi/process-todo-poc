@@ -10,8 +10,9 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateCommentUseCase, CreateCommentDto } from '@application/usecases/comment/create-comment.usecase';
 import { UpdateCommentUseCase, UpdateCommentDto } from '@application/usecases/comment/update-comment.usecase';
 import { DeleteCommentUseCase } from '@application/usecases/comment/delete-comment.usecase';
@@ -19,9 +20,13 @@ import { GetStepCommentsUseCase } from '@application/usecases/comment/get-step-c
 import { GetCommentUseCase } from '@application/usecases/comment/get-comment.usecase';
 import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
 import { IStepInstanceRepository } from '@domain/repositories/step-instance.repository.interface';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('comments')
+@ApiBearerAuth()
 @Controller('comments')
+@UseGuards(JwtAuthGuard)
 export class CommentController {
   constructor(
     private readonly createCommentUseCase: CreateCommentUseCase,
@@ -38,7 +43,12 @@ export class CommentController {
   @ApiOperation({ summary: 'Create a new comment' })
   @ApiResponse({ status: 201, description: 'Comment created successfully' })
   @ApiResponse({ status: 404, description: 'Step or user not found' })
-  async createComment(@Body() dto: CreateCommentDto) {
+  async createComment(
+    @Body() dto: CreateCommentDto,
+    @CurrentUser('id') userId: number,
+  ) {
+    // Override userId from token
+    dto.userId = userId;
     const comment = await this.createCommentUseCase.execute(dto);
     const responseData = {
       id: comment.getId(),
@@ -79,8 +89,8 @@ export class CommentController {
   async updateComment(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCommentDto,
+    @CurrentUser('id') userId: number,
   ) {
-    const userId = 1; // TODO: Get from auth context
     const comment = await this.updateCommentUseCase.execute(id, userId, dto);
     return {
       id: comment.getId(),
@@ -99,8 +109,10 @@ export class CommentController {
   @ApiResponse({ status: 204, description: 'Comment deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - not authorized to delete' })
   @ApiResponse({ status: 404, description: 'Comment not found' })
-  async deleteComment(@Param('id', ParseIntPipe) id: number) {
-    const userId = 1; // TODO: Get from auth context
+  async deleteComment(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
     await this.deleteCommentUseCase.execute(id, userId);
   }
 
@@ -110,7 +122,8 @@ export class CommentController {
   @ApiResponse({ status: 404, description: 'Parent comment not found' })
   async replyToComment(
     @Param('id', ParseIntPipe) parentId: number,
-    @Body() dto: { content: string; userId: number },
+    @Body() dto: { content: string },
+    @CurrentUser('id') userId: number,
   ) {
     // Get parent comment to find stepId
     const parentComment = await this.getCommentUseCase.execute(parentId);
@@ -118,7 +131,7 @@ export class CommentController {
     const replyDto: CreateCommentDto = {
       stepId: parentComment.getStepId(),
       parentId: parentId,
-      userId: dto.userId,
+      userId: userId,
       content: dto.content,
     };
 

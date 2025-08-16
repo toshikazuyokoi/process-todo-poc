@@ -1,0 +1,72 @@
+FAIL src/interfaces/controllers/comment/comment.controller.integration.spec.ts (61.963 s)
+  ● CommentController Integration Tests - Comment Flow › PUT /comments/:id › should update a comment
+
+    expected 200 "OK", got 404 "Not Found"
+
+      227 |         .put(`/api/comments/${updateCommentId}`)
+      228 |         .send(updateData)
+    > 229 |         .expect(200);
+          |          ^
+      230 |
+      231 |       expect(response.body).toHaveProperty('id', updateCommentId);
+      232 |       expect(response.body).toHaveProperty('content', `${testPrefix}COMMENT_UPDATE_MODIFIED`);
+
+      at Object.<anonymous> (interfaces/controllers/comment/comment.controller.integration.spec.ts:229:10)
+      ----
+      at Test._assertStatus (../node_modules/supertest/lib/test.js:309:14)
+      at ../node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../node_modules/supertest/lib/test.js:152:11)
+
+  ● CommentController Integration Tests - Comment Flow › DELETE /comments/:id › should delete a comment
+
+    expected 204 "No Content", got 404 "Not Found"
+
+      262 |       await request(app.getHttpServer())
+      263 |         .delete(`/api/comments/${deleteCommentId}`)
+    > 264 |         .expect(204);  // Changed from 200 to 204 (No Content)
+          |          ^
+      265 |
+      266 |       // Verify deleted from database
+      267 |       const deletedComment = await prisma.comment.findUnique({
+
+      at Object.<anonymous> (interfaces/controllers/comment/comment.controller.integration.spec.ts:264:10)
+      ----
+      at Test._assertStatus (../node_modules/supertest/lib/test.js:309:14)
+      at ../node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../node_modules/supertest/lib/test.js:152:11)
+
+  ● CommentController Integration Tests - Comment Flow › Comment workflow integration › should handle complete comment workflow with replies
+
+    expected 200 "OK", got 404 "Not Found"
+
+      323 |         .put(`/api/comments/${replyResponse.body.id}`)
+      324 |         .send({ content: `${testPrefix}COMMENT_REPLY_UPDATED` })
+    > 325 |         .expect(200);
+          |          ^
+      326 |
+      327 |       // 5. Delete the reply
+      328 |       await request(app.getHttpServer())
+
+      at Object.<anonymous> (interfaces/controllers/comment/comment.controller.integration.spec.ts:325:10)
+      ----
+      at Test._assertStatus (../node_modules/supertest/lib/test.js:309:14)
+      at ../node_modules/supertest/lib/test.js:365:13
+      at Test._assertFunction (../node_modules/supertest/lib/test.js:342:13)
+      at Test.assert (../node_modules/supertest/lib/test.js:195:23)
+      at localAssert (../node_modules/supertest/lib/test.js:138:14)
+      at Server.<anonymous> (../node_modules/supertest/lib/test.js:152:11)
+
+PASS src/interfaces/controllers/kanban/kanban.controller.integration.spec.ts (10.316 s)
+PASS src/interfaces/controllers/step/step.controller.integration.spec.ts (10.465 s)
+
+Test Suites: 1 failed, 2 passed, 3 total
+Tests:       3 failed, 25 passed, 28 total
+Snapshots:   0 total
+Time:        84.664 s, estimated 88 s
+Ran all test suites.

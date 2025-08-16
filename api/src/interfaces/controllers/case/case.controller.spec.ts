@@ -6,6 +6,7 @@ import { ApplyReplanUseCase } from '@application/usecases/replan/apply-replan.us
 import { CaseRepository } from '@infrastructure/repositories/case.repository';
 import { BulkUpdateCasesDto } from '@application/dto/case/bulk-update-cases.dto';
 import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto';
+import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
 
 describe('CaseController - Bulk Operations', () => {
   let controller: CaseController;
@@ -61,6 +62,14 @@ describe('CaseController - Bulk Operations', () => {
             findWithStepInstances: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
+          },
+        },
+        {
+          provide: RealtimeGateway,
+          useValue: {
+            sendCaseUpdate: jest.fn(),
+            sendStepUpdate: jest.fn(),
+            broadcast: jest.fn(),
           },
         },
       ],

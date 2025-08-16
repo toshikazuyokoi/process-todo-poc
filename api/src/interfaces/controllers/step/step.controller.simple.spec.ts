@@ -16,17 +16,17 @@ describe('StepController Unit Tests', () => {
   let controller: StepController;
   let assignStepToUserUseCase: AssignStepToUserUseCase;
 
-  const mockStep = {
-    getId: () => 1,
-    getName: () => 'Test Step',
-    getAssigneeId: () => null,
-    getStatus: () => ({ toString: () => 'todo' }),
-    getCaseId: () => 1,
-    isLocked: () => false,
-    getCreatedAt: () => new Date(),
-    getUpdatedAt: () => new Date(),
-    getDueDate: () => null,
-    getStartDate: () => null,
+  const mockStepDto = {
+    id: 1,
+    name: 'Test Step',
+    assigneeId: null,
+    status: 'todo',
+    caseId: 1,
+    locked: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    dueDate: null,
+    startDate: null,
   };
 
   beforeEach(async () => {
@@ -105,26 +105,26 @@ describe('StepController Unit Tests', () => {
     it('should assign a user to a step', async () => {
       const stepId = 1;
       const assigneeId = 2;
-      const updatedStep = { ...mockStep, getAssigneeId: () => assigneeId };
+      const updatedStepDto = { ...mockStepDto, assigneeId };
 
-      jest.spyOn(assignStepToUserUseCase, 'execute').mockResolvedValue(updatedStep as any);
+      jest.spyOn(assignStepToUserUseCase, 'execute').mockResolvedValue(updatedStepDto as any);
 
       const result = await controller.assignTo(stepId, { assigneeId });
 
-      expect(assignStepToUserUseCase.execute).toHaveBeenCalledWith({ stepId, assigneeId });
+      expect(assignStepToUserUseCase.execute).toHaveBeenCalledWith(stepId, { assigneeId });
       expect(result).toHaveProperty('id', 1);
       expect(result).toHaveProperty('assigneeId', assigneeId);
     });
 
     it('should unassign a user when assigneeId is null', async () => {
       const stepId = 1;
-      const updatedStep = { ...mockStep, getAssigneeId: () => null };
+      const updatedStepDto = { ...mockStepDto, assigneeId: null };
 
-      jest.spyOn(assignStepToUserUseCase, 'execute').mockResolvedValue(updatedStep as any);
+      jest.spyOn(assignStepToUserUseCase, 'execute').mockResolvedValue(updatedStepDto as any);
 
       const result = await controller.assignTo(stepId, { assigneeId: null });
 
-      expect(assignStepToUserUseCase.execute).toHaveBeenCalledWith({ stepId, assigneeId: null });
+      expect(assignStepToUserUseCase.execute).toHaveBeenCalledWith(stepId, { assigneeId: null });
       expect(result).toHaveProperty('assigneeId', null);
     });
 

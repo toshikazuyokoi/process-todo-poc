@@ -7,8 +7,8 @@ export class StepResponseDto {
   @ApiProperty({ description: 'Case ID' })
   caseId: number;
 
-  @ApiProperty({ description: 'Template ID' })
-  templateId: number;
+  @ApiProperty({ description: 'Template ID', nullable: true })
+  templateId: number | null;
 
   @ApiProperty({ description: 'Step name' })
   name: string;

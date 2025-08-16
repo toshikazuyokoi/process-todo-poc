@@ -25,25 +25,27 @@ export class UpdateStepStatusUseCase {
       throw new NotFoundException(`Step with ID ${stepId} not found`);
     }
 
-    // Validate status transition
-    const currentStatus = step.getStatus().toString();
-    if (!this.isValidStatusTransition(currentStatus, dto.status)) {
-      throw new BadRequestException(
-        `Invalid status transition from ${currentStatus} to ${dto.status}`
-      );
+    const oldStatus = step.getStatus().toString();
+    
+    try {
+      // Let domain handle validation
+      step.updateStatus(dto.status as unknown as StepStatus);
+    } catch (error) {
+      // Convert domain error to appropriate HTTP error
+      if (error instanceof Error && error.message.includes('Cannot transition from')) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
     }
-
-    // Update status
-    const oldStatus = currentStatus;
-    step.updateStatus(dto.status as StepStatus);
+    
     const updatedStep = await this.stepRepository.update(step);
 
     // Emit event for real-time updates
-    const stepId = step.getId();
-    if (stepId) {
+    const stepIdValue = step.getId();
+    if (stepIdValue) {
       this.eventEmitter.emit('step.status.updated', {
         caseId: step.getCaseId(),
-        stepId,
+        stepId: stepIdValue,
         oldStatus,
         newStatus: dto.status,
         updatedBy: dto.userId,
@@ -58,17 +60,5 @@ export class UpdateStepStatusUseCase {
     }
 
     return this.stepResponseMapper.toResponseDto(updatedStep, assigneeName);
-  }
-
-  private isValidStatusTransition(from: string, to: string): boolean {
-    const validTransitions: Record<string, string[]> = {
-      'todo': ['in_progress', 'blocked', 'cancelled'],
-      'in_progress': ['done', 'todo', 'blocked', 'cancelled'],
-      'done': [], // Cannot transition from done
-      'blocked': ['todo', 'in_progress', 'cancelled'],
-      'cancelled': ['todo'], // Allow reactivating
-    };
-
-    return validTransitions[from]?.includes(to) || false;
   }
 }

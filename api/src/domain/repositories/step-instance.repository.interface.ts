@@ -10,6 +10,7 @@ export interface IStepInstanceRepository {
   saveMany(stepInstances: StepInstance[]): Promise<StepInstance[]>;
   update(stepInstance: StepInstance): Promise<StepInstance>;
   updateMany(stepInstances: StepInstance[]): Promise<StepInstance[]>;
+  updateManyInTransaction(stepInstances: StepInstance[]): Promise<StepInstance[]>;
   delete(id: number): Promise<void>;
   findOverdue(): Promise<StepInstance[]>;
   findUpcoming(days: number): Promise<StepInstance[]>;

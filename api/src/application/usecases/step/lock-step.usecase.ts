@@ -34,11 +34,11 @@ export class LockStepUseCase {
     const updatedStep = await this.stepRepository.update(step);
 
     // Emit event for real-time updates
-    const stepId = step.getId();
-    if (stepId) {
+    const stepIdValue = step.getId();
+    if (stepIdValue) {
       this.eventEmitter.emit('step.locked', {
         caseId: step.getCaseId(),
-        stepId,
+        stepId: stepIdValue,
         lockedBy: dto.userId,
       });
     }

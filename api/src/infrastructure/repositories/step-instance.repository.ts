@@ -178,6 +178,34 @@ export class StepInstanceRepository implements IStepInstanceRepository {
     return data.map((d) => this.toDomain(d));
   }
 
+  async updateManyInTransaction(stepInstances: StepInstance[]): Promise<StepInstance[]> {
+    if (stepInstances.length === 0) {
+      return [];
+    }
+
+    const data = await this.prisma.$transaction(
+      stepInstances.map((stepInstance) => {
+        const id = stepInstance.getId();
+        if (!id) {
+          throw new Error('Cannot update step instance without ID');
+        }
+        return this.prisma.stepInstance.update({
+          where: { id },
+          data: {
+            name: stepInstance.getName(),
+            startDateUtc: stepInstance.getStartDate()?.getDate() || null,
+            dueDateUtc: stepInstance.getDueDate()?.getDate() || null,
+            assigneeId: stepInstance.getAssigneeId(),
+            status: stepInstance.getStatus().toString(),
+            locked: stepInstance.isLocked(),
+          },
+        });
+      }),
+    );
+
+    return data.map((d) => this.toDomain(d));
+  }
+
   async delete(id: number): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.artifact.deleteMany({

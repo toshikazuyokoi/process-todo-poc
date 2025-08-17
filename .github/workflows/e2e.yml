@@ -2,15 +2,15 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, develop, 'feat/**' ]
+    branches: [main, develop, "feat/**"]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # 毎日午前2時（JST 11時）に実行
-    - cron: '0 17 * * *'
+    - cron: "0 17 * * *"
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: "20"
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: process_todo_test
@@ -20,12 +20,12 @@ jobs:
     name: E2E Test Suite
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     strategy:
       matrix:
         browser: [chromium, firefox, webkit]
         shard: [1, 2, 3]
-    
+
     services:
       postgres:
         image: postgres:15
@@ -40,7 +40,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7-alpine
         ports:
@@ -59,7 +59,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       # Backend setup
       - name: Install backend dependencies
@@ -186,7 +186,7 @@ jobs:
     if: always()
     needs: [e2e-tests]
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -222,7 +222,7 @@ jobs:
           script: |
             const fs = require('fs');
             const reportPath = 'web/playwright-report/index.html';
-            
+
             if (fs.existsSync(reportPath)) {
               const comment = `## 🎭 E2E Test Results
               
@@ -246,7 +246,7 @@ jobs:
     name: Performance Tests
     runs-on: ubuntu-latest
     needs: [e2e-tests]
-    
+
     services:
       postgres:
         image: postgres:15
@@ -275,7 +275,7 @@ jobs:
         uses: treosh/lighthouse-ci-action@v10
         with:
           urls: |
-            http://localhost:3000
+            http://localhost:
             http://localhost:3000/templates
             http://localhost:3000/cases
           uploadArtifacts: true

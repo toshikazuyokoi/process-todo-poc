@@ -70,6 +70,8 @@ export interface ReplanPreview {
 export interface StepDiff {
   stepId: number
   stepName: string
+  oldStartDate: string | null
+  newStartDate: string | null
   oldDueDate: string | null
   newDueDate: string | null
   isLocked: boolean

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '@/app/lib/api-client'
 import { User } from '@/app/types'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select'
+import { Select } from '@/app/components/ui/select'
 import { Loader2 } from 'lucide-react'
 
 interface AssigneeSelectorProps {
@@ -67,20 +67,16 @@ export function AssigneeSelector({ stepId, currentAssigneeId, onAssign }: Assign
   return (
     <Select
       value={currentAssigneeId?.toString() || 'unassigned'}
-      onValueChange={handleAssign}
+      onChange={(e) => handleAssign(e.target.value)}
       disabled={updating}
-    >
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="担当者を選択" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="unassigned">未割当</SelectItem>
-        {users.map((user) => (
-          <SelectItem key={user.id} value={user.id.toString()}>
-            {user.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      className="w-[180px]"
+      options={[
+        { value: 'unassigned', label: '未割当' },
+        ...users.map((user) => ({
+          value: user.id.toString(),
+          label: user.name
+        }))
+      ]}
+    />
   )
 }

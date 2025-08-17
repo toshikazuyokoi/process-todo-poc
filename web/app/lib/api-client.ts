@@ -35,7 +35,8 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor for error handling
+// Response interceptor for logging only
+// Authentication handling is delegated to AuthContext
 apiClient.interceptors.response.use(
   (response) => {
     console.log('API Response:', {
@@ -53,12 +54,8 @@ apiClient.interceptors.response.use(
       message: error.message
     })
     
-    if (error.response?.status === 401) {
-      // Handle unauthorized
-      Cookies.remove('accessToken')
-      Cookies.remove('refreshToken')
-      window.location.href = '/login'
-    }
+    // 認証エラー(401)の処理はAuthContextに委譲
+    // ここでは何も処理せず、エラーをそのまま伝播させる
     return Promise.reject(error)
   }
 )
@@ -117,9 +114,9 @@ export const api = {
   // Notifications
   createNotification: (data: any) => apiClient.post('/notifications', data),
   getUserNotifications: (userId: number, isRead?: boolean) => 
-    apiClient.get(`/notifications/users/${userId}`, { params: { isRead } }),
+    apiClient.get('/notifications/my', { params: { isRead } }),
   markAsRead: (id: number) => apiClient.put(`/notifications/${id}/read`),
-  markAllAsRead: (userId: number) => apiClient.put(`/notifications/users/${userId}/read-all`),
+  markAllAsRead: () => apiClient.put('/notifications/read-all'),
   deleteNotification: (id: number) => apiClient.delete(`/notifications/${id}`),
 
   // Gantt

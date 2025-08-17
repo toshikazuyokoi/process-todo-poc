@@ -53,7 +53,9 @@ export class PreviewReplanUseCase {
       const step = existingSteps.find((s) => s.getId() === diff.stepId);
       return {
         stepId: diff.stepId,
-        stepName: step?.getName() || '',
+        stepName: step?.getName() || diff.stepName,
+        oldStartDate: diff.oldStartDate,
+        newStartDate: diff.newStartDate,
         oldDueDate: diff.oldDueDate,
         newDueDate: diff.newDueDate,
         isLocked: diff.isLocked,

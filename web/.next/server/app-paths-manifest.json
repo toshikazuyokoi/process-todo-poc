@@ -1,20 +1,8 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/calendar/page": "app/calendar/page.js",
   "/cases/[id]/page": "app/cases/[id]/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/cases/new/page": "app/cases/new/page.js",
-  "/cases/page": "app/cases/page.js",
-  "/cases/[id]/edit/page": "app/cases/[id]/edit/page.js",
-  "/kanban/page": "app/kanban/page.js",
   "/gantt/page": "app/gantt/page.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/search/page": "app/search/page.js",
-  "/notifications/page": "app/notifications/page.js",
-  "/page": "app/page.js",
-  "/templates/page": "app/templates/page.js",
-  "/templates/[id]/page": "app/templates/[id]/page.js",
-  "/templates/new/page": "app/templates/new/page.js",
-  "/templates/[id]/view/page": "app/templates/[id]/view/page.js"
+  "/cases/page": "app/cases/page.js",
+  "/calendar/page": "app/calendar/page.js",
+  "/kanban/page": "app/kanban/page.js",
+  "/page": "app/page.js"
 }

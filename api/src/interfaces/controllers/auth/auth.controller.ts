@@ -9,27 +9,50 @@ import {
   Get,
   Patch,
 } from '@nestjs/common';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { AuthService } from '../../../infrastructure/auth/auth.service';
 import { LocalAuthGuard } from '../../../infrastructure/auth/guards/local-auth.guard';
 import { JwtAuthGuard } from '../../../infrastructure/auth/guards/jwt-auth.guard';
 
 export class LoginDto {
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @IsNotEmpty()
   password: string;
 }
 
 export class SignupDto {
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
   password: string;
+
+  @IsString()
+  @IsNotEmpty()
   name: string;
 }
 
 export class RefreshTokenDto {
+  @IsString()
+  @IsNotEmpty()
   refreshToken: string;
 }
 
 export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
   oldPassword: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
   newPassword: string;
 }
 
@@ -39,7 +62,6 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalAuthGuard)
-  @HttpCode(HttpStatus.OK)
   async login(@Request() req: any) {
     return this.authService.login(req.user);
   }
@@ -50,7 +72,6 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @HttpCode(HttpStatus.OK)
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto.refreshToken);
   }

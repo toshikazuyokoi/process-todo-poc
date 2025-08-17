@@ -4,14 +4,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from '@/app/components/notifications/notification-bell'
 import { Button } from '@/app/components/ui/button'
-import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard } from 'lucide-react'
+import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard, LogOut } from 'lucide-react'
+import { useAuth } from '@/app/contexts/auth-context'
 
 export function Header() {
   const router = useRouter()
-  // TODO: Get actual logged-in user ID from auth context
-  // For now, using user ID 4 (管理者) which exists in the database
-  const userId = 4
-  const userName = '管理者'
+  const { user, logout } = useAuth()
+  
+  const userId = user?.id || 4
+  const userName = user?.name || 'ゲスト'
 
   return (
     <header className="bg-white border-b shadow-sm">
@@ -90,6 +91,15 @@ export function Header() {
                 <Users className="w-4 h-4 text-gray-600" />
               </div>
               <span className="text-sm text-gray-700">{userName}</span>
+              <Button
+                onClick={logout}
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+                title="ログアウト"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>

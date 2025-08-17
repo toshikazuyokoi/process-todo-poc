@@ -19,6 +19,9 @@ export interface SchedulePlan {
 
 export interface ScheduleDiff {
   stepId: number;
+  stepName: string;
+  oldStartDate: Date | null;
+  newStartDate: Date;
   oldDueDate: Date | null;
   newDueDate: Date;
   isLocked: boolean;
@@ -739,16 +742,17 @@ export class ReplanDomainService {
   ): ScheduleDiff[] {
     const diffs: ScheduleDiff[] = [];
     const newScheduleMap = new Map(
-      newPlan.steps.map((s) => [s.templateId, s.dueDateUtc]),
+      newPlan.steps.map((s) => [s.templateId, s]),
     );
     
     for (const existing of existingSteps) {
       const templateId = existing.getTemplateId();
       if (!templateId) continue;
       
-      const newDueDate = newScheduleMap.get(templateId);
-      if (!newDueDate) continue;
+      const newSchedule = newScheduleMap.get(templateId);
+      if (!newSchedule) continue;
       
+      const oldStartDate = existing.getStartDate()?.getDate() || null;
       const oldDueDate = existing.getDueDate()?.getDate() || null;
       const isLocked = lockedStepIds.has(existing.getId()!);
       
@@ -756,11 +760,15 @@ export class ReplanDomainService {
         continue;
       }
       
-      if (!oldDueDate || oldDueDate.getTime() !== newDueDate.getTime()) {
+      if (!oldDueDate || oldDueDate.getTime() !== newSchedule.dueDateUtc.getTime() ||
+          !oldStartDate || oldStartDate.getTime() !== newSchedule.startDateUtc.getTime()) {
         diffs.push({
           stepId: existing.getId()!,
+          stepName: existing.getName(),
+          oldStartDate,
+          newStartDate: newSchedule.startDateUtc,
           oldDueDate,
-          newDueDate,
+          newDueDate: newSchedule.dueDateUtc,
           isLocked,
         });
       }

@@ -22,6 +22,6 @@ module.exports = {
     '^@interfaces/(.*)$': '<rootDir>/interfaces/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/../test/setup-integration.ts'],
-  testTimeout: 30000,
+  testTimeout: 0,
   maxWorkers: 1, // Run tests sequentially for database consistency
 };

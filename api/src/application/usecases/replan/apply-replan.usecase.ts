@@ -53,6 +53,7 @@ export class ApplyReplanUseCase {
     for (const diff of diffs) {
       const step = existingSteps.find((s) => s.getId() === diff.stepId);
       if (step && !diff.isLocked) {
+        step.updateStartDate(diff.newStartDate);
         step.updateDueDate(diff.newDueDate);
       }
     }
@@ -80,6 +81,7 @@ export class ApplyReplanUseCase {
         caseId: step.getCaseId(),
         templateId: step.getTemplateId(),
         name: step.getName(),
+        startDateUtc: step.getStartDate()?.getDate() || null,
         dueDateUtc: step.getDueDate()?.getDate() || null,
         assigneeId: step.getAssigneeId(),
         status: step.getStatus().toString(),

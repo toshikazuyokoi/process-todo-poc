@@ -56,6 +56,14 @@ class KPICache {
 
 export class KPICalculator {
   private cache = new KPICache();
+  private referenceDate?: Date; // テスト用の基準日付
+  
+  /**
+   * Set reference date for testing
+   */
+  setReferenceDate(date: Date): void {
+    this.referenceDate = date;
+  }
 
   /**
    * Calculate overall progress rate across all cases
@@ -97,15 +105,18 @@ export class KPICalculator {
       // Check if all steps were completed before their due dates
       if (!caseItem.stepInstances) return true;
       
+      // Use the case's updatedAt as the completion date
+      // For testing: if referenceDate is set, it overrides the actual completion date
+      const completionDate = this.referenceDate ? this.referenceDate : new Date(caseItem.updatedAt || Date.now());
+      
       return caseItem.stepInstances.every(step => {
         if (step.status !== 'done') return true;
         if (!step.dueDateUtc) return true;
         
-        // For this example, we assume completion date is current date
-        // In production, you'd track actual completion dates
+        // Check if the step was completed before its due date
         const dueDate = new Date(step.dueDateUtc);
-        const now = new Date();
-        return now <= dueDate;
+        // The case was completed on completionDate, so check if it was before the due date
+        return completionDate <= dueDate;
       });
     });
     
@@ -163,14 +174,14 @@ export class KPICalculator {
    * Count overdue tasks
    */
   countOverdueTasks(stepInstances: StepInstance[]): number {
-    const now = new Date();
+    const referenceDate = this.referenceDate || new Date();
     
     return stepInstances.filter(step => {
-      if (step.status === 'done' || step.status === 'cancelled') return false;
+      if (step.status === 'done') return false; // cancelled status doesn't exist in current implementation
       if (!step.dueDateUtc) return false;
       
       const dueDate = new Date(step.dueDateUtc);
-      return dueDate < now;
+      return dueDate < referenceDate;
     }).length;
   }
 

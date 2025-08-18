@@ -3,7 +3,7 @@ import { DraggableCalendar } from '../draggable-calendar';
 import '@testing-library/jest-dom';
 
 // Mock API client
-jest.mock('@/app/lib/api-client', () => ({
+jest.mock('../../../lib/api-client', () => ({
   apiClient: {
     get: jest.fn(),
     put: jest.fn(),

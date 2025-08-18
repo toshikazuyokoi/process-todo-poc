@@ -79,12 +79,11 @@ describe('CaseForm', () => {
       const select = screen.getByLabelText(/プロセステンプレート/);
       expect(select).toBeInTheDocument();
       
-      // オプションが表示されることを確認
-      fireEvent.click(select);
-      await waitFor(() => {
-        expect(screen.getByText('Template 1')).toBeInTheDocument();
-        expect(screen.getByText('Template 2')).toBeInTheDocument();
-      });
+      // オプションが存在することを確認
+      const options = select.querySelectorAll('option');
+      expect(options).toHaveLength(3); // 「選択してください」+ 2テンプレート
+      expect(options[1]).toHaveTextContent('Template 1 (v1)');
+      expect(options[2]).toHaveTextContent('Template 2 (v1)');
     });
 
     it('必須項目が未入力の場合エラーメッセージが表示される', async () => {
@@ -94,8 +93,11 @@ describe('CaseForm', () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(screen.getByText('案件名は必須です')).toBeInTheDocument();
-        expect(screen.getByText('プロセステンプレートを選択してください')).toBeInTheDocument();
+        // role="alert" でエラーメッセージを取得
+        const alerts = screen.getAllByRole('alert');
+        const alertTexts = alerts.map(alert => alert.textContent);
+        expect(alertTexts).toContain('案件名は必須です');
+        expect(alertTexts).toContain('プロセステンプレートを選択してください');
       });
     });
 

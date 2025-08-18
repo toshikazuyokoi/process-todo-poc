@@ -13,6 +13,31 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
+// Mock api-client to prevent interceptor errors
+jest.mock('@/app/lib/api-client', () => ({
+  apiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    interceptors: {
+      request: {
+        use: jest.fn(() => 1),
+        eject: jest.fn()
+      },
+      response: {
+        use: jest.fn(() => 1),
+        eject: jest.fn()
+      }
+    }
+  },
+  api: {
+    getProcessTemplates: jest.fn(),
+    getCases: jest.fn(),
+    // Add other api methods as needed
+  }
+}));
+
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 const mockedCookies = Cookies as jest.Mocked<typeof Cookies>;
 
@@ -27,16 +52,54 @@ describe('AuthContext', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Create a mock axios instance with all required properties
+    const mockAxiosInstance = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      patch: jest.fn(),
+      interceptors: {
+        request: { 
+          use: jest.fn((callback) => {
+            // Store the callback if needed for testing
+            return 1;
+          }), 
+          eject: jest.fn() 
+        },
+        response: { 
+          use: jest.fn((successCallback, errorCallback) => {
+            // Store callbacks if needed for testing
+            return 1;
+          }), 
+          eject: jest.fn() 
+        },
+      },
+      defaults: { 
+        headers: { 
+          common: {},
+          get: {},
+          post: {},
+          put: {},
+          delete: {},
+          patch: {}
+        } 
+      }
+    };
+    
+    // Mock axios.create to return our mock instance
+    mockedAxios.create = jest.fn(() => mockAxiosInstance as any);
+    
+    // Also set the mocked methods on the main axios object for backward compatibility
+    mockedAxios.get = mockAxiosInstance.get as any;
+    mockedAxios.post = mockAxiosInstance.post as any;
+    mockedAxios.interceptors = mockAxiosInstance.interceptors as any;
+    mockedAxios.defaults = mockAxiosInstance.defaults as any;
+    
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
     });
-    mockedAxios.get = jest.fn();
-    mockedAxios.post = jest.fn();
-    mockedAxios.interceptors = {
-      request: { use: jest.fn(), eject: jest.fn() },
-      response: { use: jest.fn(() => 1), eject: jest.fn() },
-    } as any;
-    mockedAxios.defaults = { headers: { common: {} } } as any;
   });
 
   describe('AuthProvider', () => {

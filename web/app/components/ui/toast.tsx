@@ -129,7 +129,7 @@ const ToastItem: React.FC<{
   }
 
   return (
-    <div className={getStyles()}>
+    <div className={getStyles()} data-testid={`toast-${toast.id}`}>
       <div className="flex-shrink-0">
         {getIcon()}
       </div>

@@ -232,11 +232,12 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
           />
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="goalDate" className="block text-sm font-medium text-gray-700 mb-1">
               ゴール日付
             </label>
             <div className="relative">
               <input
+                id="goalDate"
                 type="date"
                 value={caseData.goalDateUtc || ''}
                 onChange={(e) => setCaseData({ ...caseData, goalDateUtc: e.target.value })}

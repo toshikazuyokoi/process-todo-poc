@@ -15,6 +15,7 @@ node_modules/
 /.next
 /out
 web/.next
+**/.next/
 
 # Misc
 .DS_Store
@@ -62,3 +63,13 @@ temp/
 
 # Prisma
 api/prisma/migrations/dev/
+
+# Test artifacts and debug files
+**/test-result*.txt
+**/test-output.txt
+**/test-errors.txt
+api/test-*.js
+api/fix-*.sh
+**/*-analysis.md
+**/*-report.md
+performance-tests/*.js

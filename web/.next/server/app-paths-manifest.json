@@ -1,8 +1,0 @@
-{
-  "/cases/[id]/page": "app/cases/[id]/page.js",
-  "/gantt/page": "app/gantt/page.js",
-  "/cases/page": "app/cases/page.js",
-  "/calendar/page": "app/calendar/page.js",
-  "/kanban/page": "app/kanban/page.js",
-  "/page": "app/page.js"
-}

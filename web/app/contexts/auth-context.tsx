@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import axios from 'axios';
+import { apiClient } from '@/app/lib/api-client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -47,14 +48,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Axios interceptor for token refresh
+  // Helper function to extract path from URL (environment independent)
+  const getPathFromUrl = (url: string): string => {
+    if (!url) return '';
+    try {
+      // Try to parse as absolute URL
+      const urlObj = new URL(url);
+      return urlObj.pathname;
+    } catch {
+      // If parsing fails, assume it's already a relative path
+      return url;
+    }
+  };
+
+  // Check if the request is to an auth endpoint
+  const isAuthEndpoint = (url: string): boolean => {
+    const path = getPathFromUrl(url);
+    const authPaths = ['/auth/refresh', '/auth/logout', '/auth/login', '/auth/signup', '/auth/validate'];
+    return authPaths.some(authPath => path.includes(authPath));
+  };
+
+  // Axios interceptor for token refresh (for global axios instance)
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
         
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Don't retry if no config or already retried
+        if (!originalRequest || originalRequest._retry) {
+          return Promise.reject(error);
+        }
+        
+        // Don't retry auth endpoints to prevent loops
+        if (isAuthEndpoint(originalRequest.url)) {
+          return Promise.reject(error);
+        }
+        
+        // Only handle 401 errors
+        if (error.response?.status === 401) {
           originalRequest._retry = true;
           
           try {
@@ -63,7 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             originalRequest.headers['Authorization'] = `Bearer ${token}`;
             return axios(originalRequest);
           } catch (refreshError) {
-            await logout();
+            // If refresh fails, logout asynchronously to avoid interceptor loop
+            setTimeout(() => {
+              setUser(null);
+              Cookies.remove('accessToken');
+              Cookies.remove('refreshToken');
+              delete axios.defaults.headers.common['Authorization'];
+              router.push('/login');
+            }, 0);
             return Promise.reject(refreshError);
           }
         }
@@ -75,7 +114,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [router]);
+
+  // apiClient interceptor for token refresh
+  useEffect(() => {
+    const interceptor = apiClient.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        
+        // Don't retry if no config or already retried
+        if (!originalRequest || originalRequest._retry) {
+          return Promise.reject(error);
+        }
+        
+        // Don't retry auth endpoints to prevent loops
+        if (isAuthEndpoint(originalRequest.url)) {
+          return Promise.reject(error);
+        }
+        
+        // Only handle 401 errors
+        if (error.response?.status === 401) {
+          originalRequest._retry = true;
+          
+          try {
+            await refreshToken();
+            const token = Cookies.get('accessToken');
+            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          } catch (refreshError) {
+            // If refresh fails, logout asynchronously to avoid interceptor loop
+            setTimeout(() => {
+              setUser(null);
+              Cookies.remove('accessToken');
+              Cookies.remove('refreshToken');
+              delete axios.defaults.headers.common['Authorization'];
+              router.push('/login');
+            }, 0);
+            return Promise.reject(refreshError);
+          }
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      apiClient.interceptors.response.eject(interceptor);
+    };
+  }, [router]);
 
   const validateToken = useCallback(async () => {
     const token = Cookies.get('accessToken');
@@ -182,9 +269,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Mark this request to skip interceptor
       const response = await axios.post(`${API_URL}/auth/refresh`, {
         refreshToken: token,
-      });
+      }, {
+        // Add flag to prevent interceptor from processing this request
+        _retry: true
+      } as any);
 
       const { accessToken, refreshToken: newRefreshToken } = response.data;
 
@@ -194,8 +285,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Update auth header
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      
+      // Also update the user info if provided
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
     } catch (error) {
       console.error('Token refresh failed:', error);
+      // Clear invalid tokens
+      Cookies.remove('accessToken');
+      Cookies.remove('refreshToken');
+      delete axios.defaults.headers.common['Authorization'];
       throw error;
     }
   };

@@ -135,36 +135,9 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
         alert('案件を更新しました')
         router.push(`/cases/${caseId}`)
       } else {
-        console.log('About to send createPayload:', createPayload)
-        console.log('createPayload JSON:', JSON.stringify(createPayload))
-        console.log('typeof createPayload:', typeof createPayload)
-        console.log('Object.keys(createPayload):', Object.keys(createPayload))
-        
-        // fetchを使って直接送信
-        try {
-          const fetchResponse = await fetch('http://localhost:3001/api/cases', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(createPayload)
-          })
-          
-          console.log('Fetch response status:', fetchResponse.status)
-          const fetchData = await fetchResponse.json()
-          console.log('Fetch response data:', fetchData)
-          
-          if (fetchResponse.ok) {
-            alert('案件を作成しました')
-            router.push(`/cases/${fetchData.id}`)
-          } else {
-            console.error('Fetch error response:', fetchData)
-            throw new Error(`Fetch failed with status ${fetchResponse.status}`)
-          }
-        } catch (fetchError: any) {
-          console.error('Fetch error:', fetchError)
-          throw fetchError
-        }
+        const response = await api.createCase(createPayload)
+        alert('案件を作成しました')
+        router.push(`/cases/${response.data.id}`)
       }
     } catch (error: any) {
       console.error('Failed to save case:', error)
@@ -259,11 +232,12 @@ export function CaseForm({ caseId, templateId }: CaseFormProps) {
           />
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="goalDate" className="block text-sm font-medium text-gray-700 mb-1">
               ゴール日付
             </label>
             <div className="relative">
               <input
+                id="goalDate"
                 type="date"
                 value={caseData.goalDateUtc || ''}
                 onChange={(e) => setCaseData({ ...caseData, goalDateUtc: e.target.value })}

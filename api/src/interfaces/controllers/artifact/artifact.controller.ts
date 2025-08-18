@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -18,13 +19,18 @@ import {
   ApiResponse,
   ApiConsumes,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UploadArtifactUseCase } from '@application/usecases/artifact/upload-artifact.usecase';
 import { DeleteArtifactUseCase } from '@application/usecases/artifact/delete-artifact.usecase';
 import { GetStepArtifactsUseCase } from '@application/usecases/artifact/get-step-artifacts.usecase';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('artifacts')
+@ApiBearerAuth()
 @Controller('artifacts')
+@UseGuards(JwtAuthGuard)
 export class ArtifactController {
   constructor(
     private readonly uploadArtifactUseCase: UploadArtifactUseCase,
@@ -63,6 +69,7 @@ export class ArtifactController {
     @Param('stepId', ParseIntPipe) stepId: number,
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { kind: string; required?: string },
+    @CurrentUser('id') userId: number,
   ) {
     if (!file) {
       throw new Error('File is required');
@@ -72,7 +79,7 @@ export class ArtifactController {
       stepId,
       kind: body.kind || 'document',
       required: body.required === 'true',
-      uploadedBy: 1, // TODO: Get from auth context
+      uploadedBy: userId,
       file,
     });
   }
@@ -94,8 +101,10 @@ export class ArtifactController {
     status: 204,
     description: 'Artifact deleted successfully',
   })
-  async deleteArtifact(@Param('id', ParseIntPipe) id: number) {
-    const userId = 1; // TODO: Get from auth context
+  async deleteArtifact(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
     await this.deleteArtifactUseCase.execute(id, userId);
   }
 }

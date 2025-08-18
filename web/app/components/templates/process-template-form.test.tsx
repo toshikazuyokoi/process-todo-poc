@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProcessTemplateForm } from './process-template-form'
-import { api } from '@/lib/api-client'
+import { api } from '../../lib/api-client'
 
 // Mock the API client
-jest.mock('@/lib/api-client', () => ({
+jest.mock('../../lib/api-client', () => ({
   api: {
     getProcessTemplate: jest.fn(),
     createProcessTemplate: jest.fn(),

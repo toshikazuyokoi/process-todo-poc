@@ -131,6 +131,33 @@ export class CaseRepository implements ICaseRepository {
     return data ? this.toDomainWithSteps(data) : null;
   }
 
+  async findAllWithStepInstances(status?: CaseStatus): Promise<Case[]> {
+    const where: any = {};
+    
+    if (status) {
+      const statusMap: Record<string, string> = {
+        'open': 'OPEN',
+        'in_progress': 'IN_PROGRESS',
+        'completed': 'COMPLETED',
+        'cancelled': 'CANCELLED',
+        'on_hold': 'ON_HOLD',
+      };
+      where.status = statusMap[status.toString()] || status.toString().toUpperCase();
+    }
+
+    const data = await this.prisma.case.findMany({
+      where,
+      include: {
+        stepInstances: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return data.map((d) => this.toDomainWithSteps(d));
+  }
+
   async findUpcoming(days: number): Promise<Case[]> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
@@ -219,6 +246,7 @@ export class CaseRepository implements ICaseRepository {
           step.caseId,
           step.templateId,
           step.name,
+          step.startDateUtc,  // 開始日を追加
           step.dueDateUtc,
           step.assigneeId,
           step.status,

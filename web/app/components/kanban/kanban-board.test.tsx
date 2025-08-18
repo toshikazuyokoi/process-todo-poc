@@ -81,9 +81,10 @@ describe('KanbanBoard', () => {
     it('should display due dates when available', () => {
       render(<KanbanBoard stepInstances={mockStepInstances} />);
       
-      expect(screen.getByText(/Due:.*1\/15\/2024/)).toBeInTheDocument();
-      expect(screen.getByText(/Due:.*1\/16\/2024/)).toBeInTheDocument();
-      expect(screen.getByText(/Due:.*1\/17\/2024/)).toBeInTheDocument();
+      // 日付の表示を確認 (data-testidを使用)
+      expect(screen.getByTestId('due-date-1')).toHaveTextContent('Due: 2024/01/15');
+      expect(screen.getByTestId('due-date-2')).toHaveTextContent('Due: 2024/01/16');
+      expect(screen.getByTestId('due-date-3')).toHaveTextContent('Due: 2024/01/17');
     });
   });
 
@@ -223,14 +224,17 @@ describe('KanbanBoard', () => {
       fireEvent.click(editButton);
       
       // Try to remove all columns one by one
-      let removeButtons = screen.getAllByText('✕');
+      let removeButtons = screen.queryAllByText('✕');
       while (removeButtons.length > 1) {
         fireEvent.click(removeButtons[0]); // Always click first remove button
-        removeButtons = screen.getAllByText('✕');
+        removeButtons = screen.queryAllByText('✕');
       }
       
-      // Last column should not have remove button since we can't remove it
-      // But it should still exist (check by finding an input field for column name)
+      // After removing columns until only one remains,
+      // the last column should not have a remove button
+      expect(screen.queryByText('✕')).not.toBeInTheDocument();
+      
+      // But the column should still exist (check by finding an input field for column name)
       const columnInputs = screen.getAllByRole('textbox');
       expect(columnInputs).toHaveLength(1); // Only one column left
     });

@@ -17,8 +17,8 @@ export interface StepTemplate {
   name: string
   basis: 'goal' | 'prev'
   offsetDays: number
-  requiredArtifactsJson: string[]
-  dependsOnJson: number[]
+  requiredArtifacts: Array<{ kind: string; description?: string }>
+  dependsOn: number[]
   createdAt?: string
   updatedAt?: string
 }
@@ -70,6 +70,8 @@ export interface ReplanPreview {
 export interface StepDiff {
   stepId: number
   stepName: string
+  oldStartDate: string | null
+  newStartDate: string | null
   oldDueDate: string | null
   newDueDate: string | null
   isLocked: boolean

@@ -4,12 +4,16 @@ import { WebSocketProvider, useWebSocket } from './websocket-context';
 import { io, Socket } from 'socket.io-client';
 
 // socket.io-clientのモック
-jest.mock('socket.io-client');
+jest.mock('socket.io-client', () => ({
+  io: jest.fn(),
+  Socket: jest.fn(),
+}));
 
 describe('WebSocketContext', () => {
   let mockSocket: Partial<Socket>;
   let mockIo: jest.MockedFunction<typeof io>;
   const originalEnv = process.env;
+  const originalRequire = (global as any).require;
 
   beforeEach(() => {
     // 環境変数をモック
@@ -30,6 +34,14 @@ describe('WebSocketContext', () => {
     // ioのモック
     mockIo = io as jest.MockedFunction<typeof io>;
     mockIo.mockReturnValue(mockSocket as Socket);
+    
+    // requireをモックして、socket.io-clientの動的インポートをサポート
+    (global as any).require = jest.fn((module: string) => {
+      if (module === 'socket.io-client') {
+        return { io: mockIo };
+      }
+      return originalRequire ? originalRequire(module) : undefined;
+    });
 
     // console.logをモック
     jest.spyOn(console, 'log').mockImplementation();
@@ -39,6 +51,7 @@ describe('WebSocketContext', () => {
   afterEach(() => {
     jest.clearAllMocks();
     process.env = originalEnv;
+    (global as any).require = originalRequire;
   });
 
   describe('WebSocketProvider', () => {
@@ -314,17 +327,41 @@ describe('WebSocketContext', () => {
 
   describe('Error handling', () => {
     it('should throw error when useWebSocket is used outside provider', () => {
+      // Error Boundary to catch React errors
+      class TestErrorBoundary extends React.Component<
+        { children: React.ReactNode },
+        { hasError: boolean; error: Error | null }
+      > {
+        state = { hasError: false, error: null };
+        
+        static getDerivedStateFromError(error: Error) {
+          return { hasError: true, error };
+        }
+        
+        render() {
+          if (this.state.hasError) {
+            return <div data-testid="error-message">{this.state.error?.message}</div>;
+          }
+          return this.props.children;
+        }
+      }
+      
+      // Component that uses the hook outside provider
       const TestComponent = () => {
-        useWebSocket();
-        return null;
+        const context = useWebSocket();
+        return <div>Should not render</div>;
       };
 
-      // エラーをキャッチ
+      // Suppress console.error for this test
       const spy = jest.spyOn(console, 'error').mockImplementation();
       
-      expect(() => {
-        render(<TestComponent />);
-      }).toThrow('useWebSocket must be used within WebSocketProvider');
+      const { getByTestId } = render(
+        <TestErrorBoundary>
+          <TestComponent />
+        </TestErrorBoundary>
+      );
+      
+      expect(getByTestId('error-message')).toHaveTextContent('useWebSocket must be used within WebSocketProvider');
       
       spy.mockRestore();
     });

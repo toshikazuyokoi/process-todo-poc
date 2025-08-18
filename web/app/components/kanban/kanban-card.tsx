@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { StepInstance, User } from '@/app/types';
 import { Calendar, User as UserIcon, AlertCircle } from 'lucide-react';
+import { formatDateJP } from '@/app/utils/date-formatter';
 
 export interface KanbanCardProps {
   step: StepInstance;
@@ -98,7 +99,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
         {step.dueDateUtc && (
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <Calendar className="w-3 h-3" />
-            <span>{new Date(step.dueDateUtc).toLocaleDateString('ja-JP')}</span>
+            <span data-testid={`due-date-${step.id}`}>{formatDateJP(step.dueDateUtc)}</span>
             {priority !== 'none' && priority !== 'low' && (
               <span className={`
                 ml-auto px-1.5 py-0.5 rounded text-xs font-medium

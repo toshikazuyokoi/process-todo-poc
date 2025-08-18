@@ -4,6 +4,7 @@ import { Artifact } from './artifact';
 
 export class StepInstance {
   private status: StepStatusValue;
+  private startDate: DueDate | null;
   private dueDate: DueDate | null;
   private _artifacts: Artifact[] = [];
 
@@ -12,6 +13,7 @@ export class StepInstance {
     private readonly caseId: number,
     private readonly templateId: number | null,
     private name: string,
+    startDateUtc: Date | string | null,
     dueDateUtc: Date | string | null,
     private assigneeId: number | null,
     status: StepStatus | string,
@@ -20,6 +22,7 @@ export class StepInstance {
     private updatedAt: Date,
   ) {
     this.status = new StepStatusValue(status);
+    this.startDate = startDateUtc ? new DueDate(startDateUtc) : null;
     this.dueDate = dueDateUtc ? new DueDate(dueDateUtc) : null;
   }
 
@@ -37,6 +40,10 @@ export class StepInstance {
 
   getName(): string {
     return this.name;
+  }
+
+  getStartDate(): DueDate | null {
+    return this.startDate;
   }
 
   getDueDate(): DueDate | null {
@@ -87,6 +94,14 @@ export class StepInstance {
       throw new Error('Step name cannot be empty');
     }
     this.name = name;
+    this.updatedAt = new Date();
+  }
+
+  updateStartDate(startDate: Date | string | null): void {
+    if (this.locked && !this.status.isDone()) {
+      throw new Error('Cannot update start date of a locked step');
+    }
+    this.startDate = startDate ? new DueDate(startDate) : null;
     this.updatedAt = new Date();
   }
 

@@ -11,15 +11,20 @@ import {
   HttpCode,
   HttpStatus,
   ParseBoolPipe,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateNotificationUseCase, CreateNotificationDto } from '@application/usecases/notification/create-notification.usecase';
 import { GetUserNotificationsUseCase } from '@application/usecases/notification/get-user-notifications.usecase';
 import { MarkAsReadUseCase } from '@application/usecases/notification/mark-as-read.usecase';
 import { DeleteNotificationUseCase } from '@application/usecases/notification/delete-notification.usecase';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('notifications')
+@ApiBearerAuth()
 @Controller('notifications')
+@UseGuards(JwtAuthGuard)
 export class NotificationController {
   constructor(
     private readonly createNotificationUseCase: CreateNotificationUseCase,
@@ -68,13 +73,12 @@ export class NotificationController {
     }));
   }
 
-  @Get('users/:userId')
-  @ApiOperation({ summary: 'Get notifications for a user' })
+  @Get('my')
+  @ApiOperation({ summary: 'Get my notifications' })
   @ApiQuery({ name: 'isRead', required: false, type: Boolean })
   @ApiResponse({ status: 200, description: 'List of notifications' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserNotifications(
-    @Param('userId', ParseIntPipe) userId: number,
+  async getMyNotifications(
+    @CurrentUser('id') userId: number,
     @Query('isRead') isRead?: string,
   ) {
     const isReadValue = isRead === 'true' ? true : isRead === 'false' ? false : undefined;
@@ -86,8 +90,10 @@ export class NotificationController {
   @ApiResponse({ status: 200, description: 'Notification marked as read' })
   @ApiResponse({ status: 403, description: 'Forbidden - not your notification' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
-  async markAsRead(@Param('id', ParseIntPipe) id: number) {
-    const userId = 1; // TODO: Get from auth context
+  async markAsRead(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
     const notification = await this.markAsReadUseCase.execute(id, userId);
     return {
       id: notification.getId(),
@@ -103,11 +109,11 @@ export class NotificationController {
     };
   }
 
-  @Put('users/:userId/read-all')
+  @Put('read-all')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Mark all notifications as read for a user' })
+  @ApiOperation({ summary: 'Mark all my notifications as read' })
   @ApiResponse({ status: 204, description: 'All notifications marked as read' })
-  async markAllAsRead(@Param('userId', ParseIntPipe) userId: number) {
+  async markAllAsRead(@CurrentUser('id') userId: number) {
     await this.markAsReadUseCase.executeAll(userId);
   }
 
@@ -117,16 +123,18 @@ export class NotificationController {
   @ApiResponse({ status: 204, description: 'Notification deleted successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - not your notification' })
   @ApiResponse({ status: 404, description: 'Notification not found' })
-  async deleteNotification(@Param('id', ParseIntPipe) id: number) {
-    const userId = 1; // TODO: Get from auth context
+  async deleteNotification(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('id') userId: number,
+  ) {
     await this.deleteNotificationUseCase.execute(id, userId);
   }
 
-  @Delete('users/:userId')
+  @Delete('all')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete all notifications for a user' })
+  @ApiOperation({ summary: 'Delete all my notifications' })
   @ApiResponse({ status: 204, description: 'All notifications deleted' })
-  async deleteAllNotifications(@Param('userId', ParseIntPipe) userId: number) {
+  async deleteAllNotifications(@CurrentUser('id') userId: number) {
     await this.deleteNotificationUseCase.executeAll(userId);
   }
 }

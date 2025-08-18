@@ -90,11 +90,8 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
           name: step.name,
           basis: step.basis,
           offsetDays: step.offsetDays,
-          requiredArtifacts: step.requiredArtifactsJson?.map(a => ({
-            kind: a,
-            description: ''
-          })) || [],
-          dependsOn: step.dependsOnJson || [],
+          requiredArtifacts: step.requiredArtifacts || [],
+          dependsOn: step.dependsOn || [],
         })) || [],
       }
       
@@ -117,9 +114,20 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
       }
     } catch (error: any) {
       console.error('Failed to save template:', error)
-      if (error.response?.status === 409) {
+      console.log('Payload sent:', templateId ? updatePayload : createPayload) // デバッグ用
+      
+      if (error.response?.data?.errors) {
+        // バリデーションエラーの詳細表示
+        const validationErrors = error.response.data.errors
+        const errorMessages = Object.entries(validationErrors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n')
+        alert(`バリデーションエラー:\n${errorMessages}`)
+      } else if (error.response?.status === 409) {
         const message = error.response?.data?.message || '同じ名前のテンプレートが既に存在します'
         alert(`保存エラー: ${message}`)
+      } else if (error.response?.data?.message) {
+        alert(`エラー: ${error.response.data.message}`)
       } else {
         alert('保存に失敗しました')
       }

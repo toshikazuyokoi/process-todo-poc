@@ -60,6 +60,7 @@ model StepInstance {
   caseId     Int           @map("case_id")
   templateId Int?          @map("template_id")
   name       String
+  startDateUtc DateTime?   @map("start_date_utc")
   dueDateUtc DateTime?     @map("due_date_utc")
   assigneeId Int?          @map("assignee_id")
   status     String        @default("todo")

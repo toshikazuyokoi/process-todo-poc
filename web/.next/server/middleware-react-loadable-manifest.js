@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST="{\"app/providers/websocket-wrapper.tsx -> @/app/contexts/websocket-context\":{\"id\":\"app/providers/websocket-wrapper.tsx -> @/app/contexts/websocket-context\",\"files\":[\"static/chunks/_app-pages-browser_app_contexts_websocket-context_tsx.js\"]}}"

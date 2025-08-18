@@ -1,37 +1,55 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
+import { IsArray, ValidateNested, IsInt, IsOptional, IsEnum, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+import { StepStatusEnum } from './update-step-status.dto';
 
-export class BulkUpdateStepsDto {
-  @ApiProperty({
-    description: 'Array of step IDs to update',
-    type: [Number],
-    example: [1, 2, 3],
-  })
-  @IsArray()
-  @IsNumber({}, { each: true })
-  stepIds: number[];
+export class BulkUpdateStepDto {
+  @IsInt()
+  @Min(1)
+  @ApiProperty({ description: 'Step ID' })
+  stepId: number;
 
-  @ApiPropertyOptional({
-    description: 'New status to apply to all steps',
-    enum: ['pending', 'in_progress', 'completed', 'blocked'],
-  })
   @IsOptional()
-  @IsEnum(['pending', 'in_progress', 'completed', 'blocked'])
-  status?: string;
-
-  @ApiPropertyOptional({
-    description: 'New assignee ID to apply to all steps',
-    type: Number,
+  @IsEnum(StepStatusEnum)
+  @ApiProperty({ 
+    enum: StepStatusEnum,
+    description: 'New status',
+    required: false 
   })
+  status?: StepStatusEnum;
+
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @ApiProperty({ 
+    description: 'New assignee ID',
+    required: false,
+    nullable: true
+  })
   assigneeId?: number | null;
 
-  @ApiPropertyOptional({
-    description: 'Lock or unlock all steps',
-    type: Boolean,
-  })
   @IsOptional()
-  @IsBoolean()
+  @ApiProperty({ 
+    description: 'Lock/unlock the step',
+    required: false
+  })
   locked?: boolean;
+}
+
+export class BulkUpdateStepsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkUpdateStepDto)
+  @ApiProperty({ 
+    type: [BulkUpdateStepDto],
+    description: 'Array of step updates to apply'
+  })
+  updates: BulkUpdateStepDto[];
+
+  @IsOptional()
+  @IsInt()
+  @ApiProperty({ 
+    description: 'User ID performing the bulk update',
+    required: false 
+  })
+  userId?: number;
 }

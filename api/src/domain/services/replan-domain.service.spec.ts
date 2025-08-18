@@ -36,7 +36,7 @@ describe('ReplanDomainService', () => {
   });
 
   describe('calculateScheduleV2', () => {
-    it('should calculate dates for goal-based steps correctly', async () => {
+    it('should calculate both start and end dates correctly', async () => {
       const goalDate = new Date('2025-12-31');
       
       // Create mock step templates
@@ -85,11 +85,14 @@ describe('ReplanDomainService', () => {
       const leadStep = result.steps.find(s => s.templateId === 1);
       expect(leadStep).toBeDefined();
       expect(leadStep?.dueDateUtc).toBeDefined();
+      expect(leadStep?.startDateUtc).toBeDefined();
       expect(leadStep?.dueDateUtc.getFullYear()).toBeGreaterThanOrEqual(2025);
+      expect(leadStep?.startDateUtc?.getFullYear()).toBeGreaterThanOrEqual(2025);
       
       const kickoffStep = result.steps.find(s => s.templateId === 9);
       expect(kickoffStep).toBeDefined();
       expect(kickoffStep?.dueDateUtc).toEqual(goalDate);
+      expect(kickoffStep?.startDateUtc).toBeDefined();
     });
 
     it('should calculate dates for prev-based steps with dependencies', async () => {

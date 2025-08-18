@@ -1,141 +1,86 @@
-import { Controller, Get, Put, Param, Body, Patch } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { StepInstanceRepository } from '@infrastructure/repositories/step-instance.repository';
-import { StepStatus } from '@domain/values/step-status';
+import { Controller, Get, Put, Post, Patch, Param, Body, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { GetStepByIdUseCase } from '@application/usecases/step/get-step-by-id.usecase';
+import { UpdateStepStatusUseCase } from '@application/usecases/step/update-step-status.usecase';
+import { AssignStepToUserUseCase } from '@application/usecases/step/assign-step-to-user.usecase';
+import { LockStepUseCase } from '@application/usecases/step/lock-step.usecase';
+import { UnlockStepUseCase } from '@application/usecases/step/unlock-step.usecase';
+import { BulkUpdateStepsUseCase } from '@application/usecases/step/bulk-update-steps.usecase';
+import { StepResponseDto } from '@application/dto/step/step-response.dto';
+import { UpdateStepStatusDto } from '@application/dto/step/update-step-status.dto';
+import { AssignStepDto } from '@application/dto/step/assign-step.dto';
 import { BulkUpdateStepsDto } from '@application/dto/step/bulk-update-steps.dto';
-import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
-import { CaseRepository } from '@infrastructure/repositories/case.repository';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
 
 @ApiTags('Steps')
+@ApiBearerAuth()
 @Controller('steps')
+@UseGuards(JwtAuthGuard)
 export class StepController {
   constructor(
-    private readonly stepInstanceRepository: StepInstanceRepository,
-    private readonly realtimeGateway: RealtimeGateway,
-    private readonly caseRepository: CaseRepository,
+    private readonly getStepByIdUseCase: GetStepByIdUseCase,
+    private readonly updateStepStatusUseCase: UpdateStepStatusUseCase,
+    private readonly assignStepToUserUseCase: AssignStepToUserUseCase,
+    private readonly lockStepUseCase: LockStepUseCase,
+    private readonly unlockStepUseCase: UnlockStepUseCase,
+    private readonly bulkUpdateStepsUseCase: BulkUpdateStepsUseCase,
   ) {}
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a step instance by ID' })
-  async findOne(@Param('id') id: string) {
-    const step = await this.stepInstanceRepository.findById(+id);
-    if (!step) {
-      throw new Error('Step not found');
-    }
-    return this.toResponseDto(step);
+  @ApiOperation({ summary: 'Get step by ID' })
+  @ApiResponse({ status: 200, description: 'Step found', type: StepResponseDto })
+  @ApiResponse({ status: 404, description: 'Step not found' })
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<StepResponseDto> {
+    return this.getStepByIdUseCase.execute({ stepId: id });
   }
 
   @Put(':id/status')
   @ApiOperation({ summary: 'Update step status' })
+  @ApiResponse({ status: 200, description: 'Status updated', type: StepResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid status transition' })
+  @ApiResponse({ status: 404, description: 'Step not found' })
   async updateStatus(
-    @Param('id') id: string,
-    @Body() dto: { status: string },
-  ) {
-    const step = await this.stepInstanceRepository.findById(+id);
-    if (!step) {
-      throw new Error('Step not found');
-    }
-
-    step.updateStatus(dto.status as StepStatus);
-    const updated = await this.stepInstanceRepository.update(step);
-    const responseDto = this.toResponseDto(updated);
-    
-    // WebSocket経由でリアルタイム更新を送信
-    const caseId = step.getCaseId();
-    this.realtimeGateway.broadcastStepUpdate(caseId, +id, responseDto);
-    
-    return responseDto;
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStepStatusDto,
+  ): Promise<StepResponseDto> {
+    return this.updateStepStatusUseCase.execute(id, dto);
   }
 
   @Put(':id/assignee')
-  @ApiOperation({ summary: 'Assign step to user' })
+  @ApiOperation({ summary: 'Assign or unassign user to step' })
+  @ApiResponse({ status: 200, description: 'Assignee updated', type: StepResponseDto })
+  @ApiResponse({ status: 404, description: 'Step or user not found' })
   async assignTo(
-    @Param('id') id: string,
-    @Body() dto: { assigneeId: number | null },
-  ) {
-    const step = await this.stepInstanceRepository.findById(+id);
-    if (!step) {
-      throw new Error('Step not found');
-    }
-
-    step.assignTo(dto.assigneeId);
-    const updated = await this.stepInstanceRepository.update(step);
-    return this.toResponseDto(updated);
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignStepDto,
+  ): Promise<StepResponseDto> {
+    return this.assignStepToUserUseCase.execute(id, dto);
   }
 
   @Put(':id/lock')
-  @ApiOperation({ summary: 'Lock a step' })
-  async lock(@Param('id') id: string) {
-    const step = await this.stepInstanceRepository.findById(+id);
-    if (!step) {
-      throw new Error('Step not found');
-    }
-
-    step.lock();
-    const updated = await this.stepInstanceRepository.update(step);
-    return this.toResponseDto(updated);
+  @ApiOperation({ summary: 'Lock step' })
+  @ApiResponse({ status: 200, description: 'Step locked', type: StepResponseDto })
+  @ApiResponse({ status: 404, description: 'Step not found' })
+  @ApiResponse({ status: 409, description: 'Step already locked' })
+  async lock(@Param('id', ParseIntPipe) id: number): Promise<StepResponseDto> {
+    return this.lockStepUseCase.execute({ stepId: id });
   }
 
   @Put(':id/unlock')
-  @ApiOperation({ summary: 'Unlock a step' })
-  async unlock(@Param('id') id: string) {
-    const step = await this.stepInstanceRepository.findById(+id);
-    if (!step) {
-      throw new Error('Step not found');
-    }
-
-    step.unlock();
-    const updated = await this.stepInstanceRepository.update(step);
-    return this.toResponseDto(updated);
+  @ApiOperation({ summary: 'Unlock step' })
+  @ApiResponse({ status: 200, description: 'Step unlocked', type: StepResponseDto })
+  @ApiResponse({ status: 404, description: 'Step not found' })
+  @ApiResponse({ status: 409, description: 'Step already unlocked' })
+  async unlock(@Param('id', ParseIntPipe) id: number): Promise<StepResponseDto> {
+    return this.unlockStepUseCase.execute({ stepId: id });
   }
 
   @Patch('bulk')
-  @ApiOperation({ summary: 'Bulk update multiple steps' })
-  @ApiResponse({ status: 200, description: 'Steps updated successfully' })
-  async bulkUpdate(@Body() dto: BulkUpdateStepsDto): Promise<{ updated: number }> {
-    let updated = 0;
-    
-    for (const stepId of dto.stepIds) {
-      const step = await this.stepInstanceRepository.findById(stepId);
-      if (!step) {
-        continue;
-      }
-
-      if (dto.status) {
-        step.updateStatus(dto.status as StepStatus);
-      }
-      if (dto.assigneeId !== undefined) {
-        step.assignTo(dto.assigneeId);
-      }
-      if (dto.locked !== undefined) {
-        if (dto.locked) {
-          step.lock();
-        } else {
-          step.unlock();
-        }
-      }
-
-      await this.stepInstanceRepository.update(step);
-      updated++;
-    }
-
-    return { updated };
-  }
-
-  private toResponseDto(step: any) {
-    return {
-      id: step.getId(),
-      caseId: step.getCaseId(),
-      templateId: step.getTemplateId(),
-      name: step.getName(),
-      dueDateUtc: step.getDueDate()?.getDate() || null,
-      assigneeId: step.getAssigneeId(),
-      status: step.getStatus().toString(),
-      locked: step.isLocked(),
-      createdAt: step.getCreatedAt(),
-      updatedAt: step.getUpdatedAt(),
-      isOverdue: step.isOverdue(),
-      daysUntilDue: step.getDaysUntilDue(),
-    };
+  @ApiOperation({ summary: 'Bulk update steps' })
+  @ApiResponse({ status: 200, description: 'Steps updated', type: [StepResponseDto] })
+  @ApiResponse({ status: 207, description: 'Partial success' })
+  async bulkUpdate(@Body() dto: BulkUpdateStepsDto): Promise<StepResponseDto[]> {
+    return this.bulkUpdateStepsUseCase.execute(dto);
   }
 }

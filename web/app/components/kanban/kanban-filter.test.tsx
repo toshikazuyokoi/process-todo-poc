@@ -306,9 +306,11 @@ describe('KanbanFilter', () => {
       const userCheckbox = screen.getByLabelText('User One');
       fireEvent.click(userCheckbox);
 
-      // Check for filter summary
+      // Check for filter summary - use getAllByText since "User One" appears in both checkbox and summary
       await waitFor(() => {
-        const filterSummary = screen.getByText('User One').closest('span');
+        const userOneElements = screen.getAllByText('User One');
+        // The filter summary is the second occurrence (first is in the checkbox label)
+        const filterSummary = userOneElements[1].closest('span');
         expect(filterSummary).toHaveClass('bg-blue-100');
       });
     });

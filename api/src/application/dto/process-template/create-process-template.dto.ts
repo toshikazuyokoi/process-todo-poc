@@ -1,24 +1,28 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, IsOptional, IsInt, Min, Max, IsIn, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStepTemplateDto {
   @ApiProperty({ description: 'Step sequence number' })
-  @IsNotEmpty()
+  @IsInt()
+  @Min(1)
   seq: number;
 
   @ApiProperty({ description: 'Step name' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   name: string;
 
   @ApiProperty({ description: 'Basis for calculation', enum: ['goal', 'prev'] })
   @IsString()
-  @IsNotEmpty()
+  @IsIn(['goal', 'prev'])
   basis: 'goal' | 'prev';
 
   @ApiProperty({ description: 'Offset days from basis' })
-  @IsNotEmpty()
+  @IsInt()
+  @Min(-365)
+  @Max(365)
   offsetDays: number;
 
   @ApiProperty({ description: 'Required artifacts', type: 'array', required: false })

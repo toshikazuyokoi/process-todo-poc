@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/app/lib/api-client'
+import { useAuth } from '@/app/contexts/auth-context'
+import { useRealtimeUpdates } from '@/app/hooks/use-realtime-updates'
 import { Button } from '@/app/components/ui/button'
 import { Textarea } from '@/app/components/ui/textarea'
 import { MessageCircle, Send, Reply, User, Clock, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
@@ -24,6 +26,7 @@ interface StepCommentsProps {
 }
 
 export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
+  const { user } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [replyTo, setReplyTo] = useState<number | null>(null)
@@ -32,6 +35,28 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
   const [submitting, setSubmitting] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [users, setUsers] = useState<any[]>([])
+
+  // WebSocket通知を受信
+  useRealtimeUpdates({
+    onCommentAdded: useCallback((data: any) => {
+      if (data.stepId === stepId) {
+        // 楽観的更新: 自分が追加したコメントでなければ、リストに追加
+        setComments(prev => {
+          const exists = prev.some(c => c.id === data.comment.id)
+          if (!exists) {
+            return [...prev, data.comment]
+          }
+          return prev
+        })
+      }
+    }, [stepId]),
+    onCommentDeleted: useCallback((data: any) => {
+      if (data.stepId === stepId) {
+        // コメントを削除
+        setComments(prev => prev.filter(c => c.id !== data.commentId))
+      }
+    }, [stepId]),
+  } as any)
 
   useEffect(() => {
     if (expanded) {
@@ -98,20 +123,48 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return
+    if (!user) {
+      alert('ログインが必要です')
+      return
+    }
     
+    // 楽観的更新: 一時的なコメントを即座に追加
+    const tempComment: Comment = {
+      id: Date.now(), // 一時的なID
+      stepId,
+      parentId: null,
+      userId: user.id,
+      userName: user.name,
+      content: newComment,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      replies: [],
+    }
+    
+    setComments(prev => [...prev, tempComment])
+    setNewComment('')
     setSubmitting(true)
+    
     try {
-      await api.createComment({
+      const response = await api.createComment({
         stepId,
-        content: newComment,
-        userId: 1, // TODO: Get actual logged-in user ID
+        content: tempComment.content,
+        userId: user.id,
       })
-      setNewComment('')
-      fetchComments()
+      
+      // 成功時: 一時的なコメントを実際のコメントに置き換え
+      setComments(prev => 
+        prev.map(c => c.id === tempComment.id ? { ...response.data, userName: user.name, replies: [] } : c)
+      )
+      
       if (onCommentAdded) onCommentAdded()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit comment:', error)
-      alert('コメントの投稿に失敗しました')
+      // 失敗時: 楽観的更新をロールバック
+      setComments(prev => prev.filter(c => c.id !== tempComment.id))
+      setNewComment(tempComment.content) // コメント内容を復元
+      const errorMessage = error.response?.data?.message || 'コメントの投稿に失敗しました'
+      alert(errorMessage)
     } finally {
       setSubmitting(false)
     }
@@ -119,21 +172,26 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
 
   const handleSubmitReply = async (parentId: number) => {
     if (!replyContent.trim()) return
+    if (!user) {
+      alert('ログインが必要です')
+      return
+    }
     
     setSubmitting(true)
     try {
       await api.replyToComment(parentId, {
         stepId,
         content: replyContent,
-        userId: 1, // TODO: Get actual logged-in user ID
+        userId: user.id,
       })
       setReplyContent('')
       setReplyTo(null)
       fetchComments()
       if (onCommentAdded) onCommentAdded()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit reply:', error)
-      alert('返信の投稿に失敗しました')
+      const errorMessage = error.response?.data?.message || '返信の投稿に失敗しました'
+      alert(errorMessage)
     } finally {
       setSubmitting(false)
     }
@@ -201,13 +259,15 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
                   返信
                 </Button>
               )}
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => handleDeleteComment(comment.id)}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
+              {user && user.id === comment.userId && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => handleDeleteComment(comment.id)}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
             </div>
             
             {replyTo === comment.id && (

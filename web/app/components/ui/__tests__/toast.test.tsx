@@ -93,7 +93,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
 
       expect(screen.getByText('Success!')).toBeInTheDocument();
       expect(screen.getByText('Operation completed')).toBeInTheDocument();
@@ -107,7 +109,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Error Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Error Toast'));
+      });
 
       expect(screen.getByText('Error!')).toBeInTheDocument();
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
@@ -120,7 +124,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
 
       expect(screen.getByText('Warning!')).toBeInTheDocument();
     });
@@ -132,7 +138,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Info Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Info Toast'));
+      });
 
       expect(screen.getByText('Info')).toBeInTheDocument();
       expect(screen.getByText('Learn More')).toBeInTheDocument();
@@ -145,9 +153,11 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
-      fireEvent.click(screen.getByText('Add Error Toast'));
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+        fireEvent.click(screen.getByText('Add Error Toast'));
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
 
       expect(screen.getByTestId('toast-count')).toHaveTextContent('3');
       expect(screen.getByText('Success!')).toBeInTheDocument();
@@ -162,11 +172,15 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
       expect(screen.getByText('Success!')).toBeInTheDocument();
 
       const closeButton = screen.getByRole('button', { name: /閉じる/i });
-      fireEvent.click(closeButton);
+      act(() => {
+        fireEvent.click(closeButton);
+      });
 
       expect(screen.queryByText('Success!')).not.toBeInTheDocument();
       expect(screen.getByTestId('toast-count')).toHaveTextContent('0');
@@ -179,13 +193,17 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
-      fireEvent.click(screen.getByText('Add Error Toast'));
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+        fireEvent.click(screen.getByText('Add Error Toast'));
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
 
       expect(screen.getByTestId('toast-count')).toHaveTextContent('3');
 
-      fireEvent.click(screen.getByText('Clear All'));
+      act(() => {
+        fireEvent.click(screen.getByText('Clear All'));
+      });
 
       expect(screen.getByTestId('toast-count')).toHaveTextContent('0');
       expect(screen.queryByText('Success!')).not.toBeInTheDocument();
@@ -200,7 +218,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
       expect(screen.getByText('Success!')).toBeInTheDocument();
 
       // Default duration is 5000ms
@@ -220,7 +240,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
       expect(screen.getByText('Warning!')).toBeInTheDocument();
 
       act(() => {
@@ -257,8 +279,10 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Toast'));
-      fireEvent.click(screen.getByText('Action'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Toast'));
+        fireEvent.click(screen.getByText('Action'));
+      });
 
       expect(actionCallback).toHaveBeenCalled();
     });
@@ -272,9 +296,11 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
       
-      const toastElement = screen.getByText('Success!').closest('div');
+      const toastElement = screen.getByText('Success!').closest('[data-testid^="toast-"]');
       expect(toastElement).toHaveClass('border-green-200');
     });
 
@@ -285,9 +311,11 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Error Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Error Toast'));
+      });
       
-      const toastElement = screen.getByText('Error!').closest('div');
+      const toastElement = screen.getByText('Error!').closest('[data-testid^="toast-"]');
       expect(toastElement).toHaveClass('border-red-200');
     });
 
@@ -298,9 +326,11 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
       
-      const toastElement = screen.getByText('Warning!').closest('div');
+      const toastElement = screen.getByText('Warning!').closest('[data-testid^="toast-"]');
       expect(toastElement).toHaveClass('border-yellow-200');
     });
 
@@ -311,9 +341,11 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Info Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Info Toast'));
+      });
       
-      const toastElement = screen.getByText('Info').closest('div');
+      const toastElement = screen.getByText('Info').closest('[data-testid^="toast-"]');
       expect(toastElement).toHaveClass('border-blue-200');
     });
   });
@@ -326,7 +358,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
       
       const icon = document.querySelector('.text-green-500');
       expect(icon).toBeInTheDocument();
@@ -339,7 +373,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Error Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Error Toast'));
+      });
       
       const icon = document.querySelector('.text-red-500');
       expect(icon).toBeInTheDocument();
@@ -352,7 +388,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Warning Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Warning Toast'));
+      });
       
       const icon = document.querySelector('.text-yellow-500');
       expect(icon).toBeInTheDocument();
@@ -365,7 +403,9 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Info Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Info Toast'));
+      });
       
       const icon = document.querySelector('.text-blue-500');
       expect(icon).toBeInTheDocument();
@@ -380,12 +420,14 @@ describe('Toast System', () => {
         </ToastProvider>
       );
 
-      fireEvent.click(screen.getByText('Add Success Toast'));
+      act(() => {
+        fireEvent.click(screen.getByText('Add Success Toast'));
+      });
       
-      const toastElement = screen.getByText('Success!').closest('div');
+      const toastElement = screen.getByText('Success!').closest('[data-testid^="toast-"]');
       
-      // Initially should have opacity-0 class (before animation)
-      expect(toastElement).toHaveClass('transition-all');
+      // Check for transition classes in the full class string
+      expect(toastElement?.className).toContain('transition-all');
       
       // After animation delay
       act(() => {

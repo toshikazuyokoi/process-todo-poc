@@ -3,12 +3,16 @@ import {
   Get,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { GetGanttDataUseCase } from '@application/usecases/gantt/get-gantt-data.usecase';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
 
 @ApiTags('gantt')
+@ApiBearerAuth()
 @Controller('gantt')
+@UseGuards(JwtAuthGuard)
 export class GanttController {
   constructor(
     private readonly getGanttDataUseCase: GetGanttDataUseCase,

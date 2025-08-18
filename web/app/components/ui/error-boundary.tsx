@@ -70,13 +70,17 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     // APIエンドポイントに送信
-    fetch('/api/errors/report', {
+    const fetchPromise = fetch('/api/errors/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(errorReport),
-    }).catch(err => {
-      console.error('Failed to report error:', err)
     })
+    
+    if (fetchPromise && typeof fetchPromise.catch === 'function') {
+      fetchPromise.catch(err => {
+        console.error('Failed to report error:', err)
+      })
+    }
   }
 
   handleReset = () => {

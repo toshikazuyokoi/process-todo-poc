@@ -62,15 +62,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         
         error = responseObj.error;
         details = responseObj.details;
-        
-        // エラーコードの設定
-        if (status === HttpStatus.TOO_MANY_REQUESTS) {
-          errorCode = 'RATE_LIMIT_ERROR';
-        } else if (status === HttpStatus.UNAUTHORIZED) {
-          errorCode = 'AUTH_ERROR';
-        }
       } else {
         message = exception.message;
+      }
+      
+      // エラーコードの設定（レスポンスの型に関わらず設定）
+      if (status === HttpStatus.TOO_MANY_REQUESTS) {
+        errorCode = 'RATE_LIMIT_ERROR';
+      } else if (status === HttpStatus.UNAUTHORIZED) {
+        errorCode = 'AUTH_ERROR';
       }
     } else if ((exception as any)?.name === 'QueryFailedError') {
       // データベースエラーの処理

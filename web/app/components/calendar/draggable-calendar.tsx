@@ -37,6 +37,8 @@ interface CalendarEvent {
     stepId?: number;
     status?: string;
     assignee?: string;
+    assigneeId?: number;
+    caseTitle?: string;
     type: 'case' | 'step';
   };
 }
@@ -73,16 +75,35 @@ function DraggableEventCard({
     opacity: isDragging || isSortableDragging ? 0.5 : 1,
   };
 
-  const getEventColor = (status?: string): string => {
-    switch (status) {
+  const getEventColor = (status?: string, color?: string): string => {
+    // APIから提供された色があれば優先的に使用
+    if (color) {
+      const colorMap: Record<string, string> = {
+        '#10B981': 'bg-green-500',
+        '#3B82F6': 'bg-blue-500',
+        '#F59E0B': 'bg-amber-500',
+        '#EF4444': 'bg-red-500',
+        '#6B7280': 'bg-gray-500',
+        '#9CA3AF': 'bg-gray-400',
+      };
+      return colorMap[color] || 'bg-gray-500';
+    }
+    
+    // ステータスに基づくフォールバック
+    switch (status?.toLowerCase()) {
       case 'completed':
+      case 'done':
         return 'bg-green-500';
       case 'in_progress':
+      case 'open':
         return 'bg-blue-500';
       case 'pending':
+      case 'on_hold':
         return 'bg-amber-500';
       case 'blocked':
         return 'bg-red-500';
+      case 'todo':
+        return 'bg-gray-400';
       default:
         return 'bg-gray-500';
     }
@@ -94,7 +115,7 @@ function DraggableEventCard({
       style={style}
       className={`
         relative p-2 rounded text-xs text-white cursor-move
-        ${getEventColor(event.extendedProps?.status)}
+        ${getEventColor(event.extendedProps?.status, event.color)}
         hover:opacity-80 transition-opacity
       `}
       data-testid={`draggable-event-${event.id}`}

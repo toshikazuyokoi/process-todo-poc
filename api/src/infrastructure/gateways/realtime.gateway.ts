@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 
 interface JoinRoomPayload {
   caseId: number;
@@ -28,6 +29,13 @@ interface CaseUpdatePayload {
 interface StepUpdatePayload {
   caseId: number;
   stepId: number;
+  data: any;
+}
+
+interface CommentPayload {
+  caseId: number;
+  stepId: number;
+  commentId: number;
   data: any;
 }
 
@@ -218,6 +226,28 @@ export class RealtimeGateway
     });
   }
 
+  // コメント追加の通知
+  public broadcastCommentAdded(caseId: number, stepId: number, comment: any) {
+    const roomId = `case-${caseId}`;
+    this.server.to(roomId).emit('comment-added', {
+      caseId,
+      stepId,
+      comment,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // コメント削除の通知
+  public broadcastCommentDeleted(caseId: number, stepId: number, commentId: number) {
+    const roomId = `case-${caseId}`;
+    this.server.to(roomId).emit('comment-deleted', {
+      caseId,
+      stepId,
+      commentId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // 接続中のクライアント数を取得
   public getConnectedClientsCount(): number {
     return this.server.sockets.sockets.size;
@@ -227,5 +257,112 @@ export class RealtimeGateway
   public getRoomClientsCount(caseId: number): number {
     const roomId = `case-${caseId}`;
     return this.rooms.get(roomId)?.size || 0;
+  }
+
+  // Event listeners for UseCase events
+  @OnEvent('step.status.updated')
+  handleStepStatusUpdated(payload: {
+    caseId: number;
+    stepId: number;
+    oldStatus: string;
+    newStatus: string;
+    updatedBy?: number;
+  }) {
+    this.logger.log(`Step status updated: ${payload.stepId} from ${payload.oldStatus} to ${payload.newStatus}`);
+    const roomId = `case-${payload.caseId}`;
+    this.server.to(roomId).emit('step-status-updated', {
+      ...payload,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @OnEvent('step.assignee.updated')
+  handleStepAssigneeUpdated(payload: {
+    caseId: number;
+    stepId: number;
+    oldAssigneeId: number | null;
+    newAssigneeId: number | null | undefined;
+    updatedBy?: number;
+  }) {
+    this.logger.log(`Step assignee updated: ${payload.stepId} from ${payload.oldAssigneeId} to ${payload.newAssigneeId}`);
+    const roomId = `case-${payload.caseId}`;
+    this.server.to(roomId).emit('step-assignee-updated', {
+      ...payload,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @OnEvent('step.locked')
+  handleStepLocked(payload: {
+    caseId: number;
+    stepId: number;
+    lockedBy?: number;
+  }) {
+    this.logger.log(`Step locked: ${payload.stepId}`);
+    const roomId = `case-${payload.caseId}`;
+    this.server.to(roomId).emit('step-locked', {
+      ...payload,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @OnEvent('step.unlocked')
+  handleStepUnlocked(payload: {
+    caseId: number;
+    stepId: number;
+    unlockedBy?: number;
+  }) {
+    this.logger.log(`Step unlocked: ${payload.stepId}`);
+    const roomId = `case-${payload.caseId}`;
+    this.server.to(roomId).emit('step-unlocked', {
+      ...payload,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @OnEvent('step.updated')
+  handleStepUpdated(payload: {
+    caseId: number;
+    stepId: number;
+    updatedBy?: number;
+    changes: {
+      status?: string;
+      assigneeId?: number | null;
+      locked?: boolean;
+    };
+  }) {
+    this.logger.log(`Step updated: ${payload.stepId}`);
+    const roomId = `case-${payload.caseId}`;
+    this.server.to(roomId).emit('step-updated', {
+      ...payload,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @OnEvent('steps.bulk.updated')
+  handleStepsBulkUpdated(payload: {
+    userId?: number;
+    totalCount: number;
+    successCount: number;
+    failureCount: number;
+    results: any[];
+  }) {
+    this.logger.log(`Bulk steps updated: ${payload.successCount} succeeded, ${payload.failureCount} failed`);
+    // Get unique case IDs from results
+    const caseIds = new Set<number>();
+    for (const result of payload.results) {
+      if (result.success && result.data?.caseId) {
+        caseIds.add(result.data.caseId);
+      }
+    }
+    // Notify all affected case rooms
+    for (const caseId of caseIds) {
+      const roomId = `case-${caseId}`;
+      this.server.to(roomId).emit('steps-bulk-updated', {
+        ...payload,
+        caseId,
+        timestamp: new Date().toISOString(),
+      });
+    }
   }
 }

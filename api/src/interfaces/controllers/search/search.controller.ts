@@ -2,13 +2,17 @@ import {
   Controller,
   Get,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { SearchCasesUseCase, SearchCasesDto } from '@application/usecases/search/search-cases.usecase';
 import { SearchStepsUseCase, SearchStepsDto } from '@application/usecases/search/search-steps.usecase';
+import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
 
 @ApiTags('search')
+@ApiBearerAuth()
 @Controller('search')
+@UseGuards(JwtAuthGuard)
 export class SearchController {
   constructor(
     private readonly searchCasesUseCase: SearchCasesUseCase,

@@ -8,6 +8,12 @@ export class StepDiffDto {
   stepName: string;
 
   @ApiProperty()
+  oldStartDate: Date | null;
+
+  @ApiProperty()
+  newStartDate: Date;
+
+  @ApiProperty()
   oldDueDate: Date | null;
 
   @ApiProperty()

@@ -48,6 +48,7 @@ export class StepInstanceRepository implements IStepInstanceRepository {
         caseId: stepInstance.getCaseId(),
         templateId: stepInstance.getTemplateId(),
         name: stepInstance.getName(),
+        startDateUtc: stepInstance.getStartDate()?.getDate() || null,
         dueDateUtc: stepInstance.getDueDate()?.getDate() || null,
         assigneeId: stepInstance.getAssigneeId(),
         status: stepInstance.getStatus().toString(),
@@ -59,27 +60,31 @@ export class StepInstanceRepository implements IStepInstanceRepository {
   }
 
   async saveMany(stepInstances: StepInstance[]): Promise<StepInstance[]> {
-    this.logger.log('=== saveMany START ===');
-    this.logger.log(`Saving ${stepInstances.length} step instances`);
+    console.log('=== saveMany START ===');
+    console.log(`Saving ${stepInstances.length} step instances`);
     
     // Log input data
     stepInstances.forEach((si, index) => {
+      const startDate = si.getStartDate()?.getDate();
       const dueDate = si.getDueDate()?.getDate();
-      this.logger.log(`Input[${index}]: ${si.getName()}`);
-      this.logger.log(`  Template ID: ${si.getTemplateId()}`);
-      this.logger.log(`  Due Date: ${dueDate ? dueDate.toISOString() : 'null'}`);
+      console.log(`Input[${index}]: ${si.getName()}`);
+      console.log(`  Template ID: ${si.getTemplateId()}`);
+      console.log(`  Start Date: ${startDate ? startDate.toISOString() : 'null'}`);
+      console.log(`  Due Date: ${dueDate ? dueDate.toISOString() : 'null'}`);
       if (dueDate) {
-        this.logger.log(`  Year: ${dueDate.getFullYear()}`);
+        console.log(`  Year: ${dueDate.getFullYear()}`);
       }
     });
     
     const dataToSave = stepInstances.map((stepInstance) => {
+      const startDateValue = stepInstance.getStartDate()?.getDate() || null;
       const dueDateValue = stepInstance.getDueDate()?.getDate() || null;
-      this.logger.debug(`Preparing to save: ${stepInstance.getName()} with date: ${dueDateValue?.toISOString() || 'null'}`);
+      this.logger.debug(`Preparing to save: ${stepInstance.getName()} with start: ${startDateValue?.toISOString() || 'null'}, due: ${dueDateValue?.toISOString() || 'null'}`);
       return {
         caseId: stepInstance.getCaseId(),
         templateId: stepInstance.getTemplateId(),
         name: stepInstance.getName(),
+        startDateUtc: startDateValue,
         dueDateUtc: dueDateValue,
         assigneeId: stepInstance.getAssigneeId(),
         status: stepInstance.getStatus().toString(),
@@ -138,6 +143,7 @@ export class StepInstanceRepository implements IStepInstanceRepository {
       where: { id },
       data: {
         name: stepInstance.getName(),
+        startDateUtc: stepInstance.getStartDate()?.getDate() || null,
         dueDateUtc: stepInstance.getDueDate()?.getDate() || null,
         assigneeId: stepInstance.getAssigneeId(),
         status: stepInstance.getStatus().toString(),
@@ -159,6 +165,35 @@ export class StepInstanceRepository implements IStepInstanceRepository {
           where: { id },
           data: {
             name: stepInstance.getName(),
+            startDateUtc: stepInstance.getStartDate()?.getDate() || null,
+            dueDateUtc: stepInstance.getDueDate()?.getDate() || null,
+            assigneeId: stepInstance.getAssigneeId(),
+            status: stepInstance.getStatus().toString(),
+            locked: stepInstance.isLocked(),
+          },
+        });
+      }),
+    );
+
+    return data.map((d) => this.toDomain(d));
+  }
+
+  async updateManyInTransaction(stepInstances: StepInstance[]): Promise<StepInstance[]> {
+    if (stepInstances.length === 0) {
+      return [];
+    }
+
+    const data = await this.prisma.$transaction(
+      stepInstances.map((stepInstance) => {
+        const id = stepInstance.getId();
+        if (!id) {
+          throw new Error('Cannot update step instance without ID');
+        }
+        return this.prisma.stepInstance.update({
+          where: { id },
+          data: {
+            name: stepInstance.getName(),
+            startDateUtc: stepInstance.getStartDate()?.getDate() || null,
             dueDateUtc: stepInstance.getDueDate()?.getDate() || null,
             assigneeId: stepInstance.getAssigneeId(),
             status: stepInstance.getStatus().toString(),
@@ -222,6 +257,7 @@ export class StepInstanceRepository implements IStepInstanceRepository {
       data.caseId,
       data.templateId,
       data.name,
+      data.startDateUtc,
       data.dueDateUtc,
       data.assigneeId,
       data.status,

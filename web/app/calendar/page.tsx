@@ -12,11 +12,14 @@ interface CalendarEvent {
   title: string;
   start: Date | string;
   end?: Date | string;
+  color?: string;
   extendedProps?: {
     caseId?: number;
     stepId?: number;
     status?: string;
     assignee?: string;
+    assigneeId?: number;
+    caseTitle?: string;
     type: 'case' | 'step';
   };
 }
@@ -34,104 +37,32 @@ export default function CalendarPage() {
   const loadEvents = async () => {
     setLoading(true);
     try {
-      // ケースデータを取得（ステップは各ケースに含まれる）
-      const casesResponse = await apiClient.get('/cases');
-
-      const calendarEvents: CalendarEvent[] = [];
-
-      // ケースとそのステップをイベントに変換
-      for (const caseItem of casesResponse.data) {
-        // ケースをイベントに追加
-        if (caseItem.goalDateUtc) {
-          calendarEvents.push({
-            id: `case-${caseItem.id}`,
-            title: caseItem.title,
-            start: caseItem.goalDateUtc,
-            extendedProps: {
-              caseId: caseItem.id,
-              status: caseItem.status,
-              type: 'case',
-            },
-          });
-        }
-
-        // 各ケースの詳細を取得してステップを取得
-        try {
-          const caseDetailResponse = await apiClient.get(`/cases/${caseItem.id}`);
-          const steps = caseDetailResponse.data.steps || [];
-          
-          // ステップをイベントに変換
-          steps.forEach((step: any) => {
-            if (step.dueDateUtc) {
-              calendarEvents.push({
-                id: `step-${step.id}`,
-                title: step.name,
-                start: step.dueDateUtc,
-                extendedProps: {
-                  stepId: step.id,
-                  caseId: caseItem.id,
-                  status: step.status,
-                  assignee: step.assigneeId,
-                  type: 'step',
-                },
-              });
-            }
-          });
-        } catch (error) {
-          console.error(`Failed to load steps for case ${caseItem.id}:`, error);
-        }
-      }
-
+      // カレンダー専用APIを使用
+      const response = await apiClient.get('/calendar');
+      
+      // APIレスポンスをフロントエンド形式に変換
+      const calendarEvents: CalendarEvent[] = response.data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        color: event.color,
+        extendedProps: {
+          caseId: event.caseId,
+          stepId: event.stepId,
+          status: event.status,
+          assignee: event.assigneeName || event.assigneeId?.toString(),
+          assigneeId: event.assigneeId,
+          caseTitle: event.caseTitle,
+          type: event.type,
+        },
+      }));
+      
       setEvents(calendarEvents);
     } catch (error) {
       console.error('Failed to load calendar events:', error);
-      // ダミーデータを設定（開発用）
-      setEvents([
-        {
-          id: '1',
-          title: 'プロジェクトA 期限',
-          start: '2025-01-20',
-          extendedProps: {
-            caseId: 1,
-            status: 'in_progress',
-            type: 'case',
-          },
-        },
-        {
-          id: '2',
-          title: '設計レビュー',
-          start: '2025-01-15T14:00:00',
-          end: '2025-01-15T16:00:00',
-          extendedProps: {
-            stepId: 1,
-            status: 'pending',
-            type: 'step',
-            assignee: '田中',
-          },
-        },
-        {
-          id: '3',
-          title: '実装完了',
-          start: '2025-01-25',
-          extendedProps: {
-            stepId: 2,
-            status: 'pending',
-            type: 'step',
-            assignee: '佐藤',
-          },
-        },
-        {
-          id: '4',
-          title: 'テスト実施',
-          start: '2025-01-28',
-          extendedProps: {
-            stepId: 3,
-            status: 'pending',
-            type: 'step',
-            assignee: '鈴木',
-          },
-        },
-      ]);
+      // エラー時は空のイベントを表示
+      setEvents([]);
     } finally {
       setLoading(false);
     }

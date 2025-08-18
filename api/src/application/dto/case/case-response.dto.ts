@@ -14,6 +14,9 @@ export class StepInstanceResponseDto {
   name: string;
 
   @ApiProperty()
+  startDateUtc: Date | null;
+
+  @ApiProperty()
   dueDateUtc: Date | null;
 
   @ApiProperty()

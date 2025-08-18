@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { join } from 'path';
 import * as fs from 'fs';
@@ -61,7 +61,11 @@ async function bootstrap() {
         const messages = errors.map(error => 
           Object.values(error.constraints || {}).join(', ')
         );
-        return new Error(messages.join('; '));
+        return new BadRequestException({
+          statusCode: 400,
+          message: messages,
+          error: 'Bad Request'
+        });
       },
     }),
   );
@@ -92,7 +96,7 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3005;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
   console.log(`Swagger documentation: http://localhost:${port}/api/docs`);

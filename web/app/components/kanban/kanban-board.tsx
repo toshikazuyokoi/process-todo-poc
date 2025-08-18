@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { StepInstance } from '@/app/types';
+import { formatDateJP } from '@/app/utils/date-formatter';
 
 export interface KanbanColumn {
   id: string;
@@ -138,8 +139,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {/* Basic card display - will be enhanced in task 2.2 */}
                       <div className="text-sm font-medium">{step.name}</div>
                       {step.dueDateUtc && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Due: {new Date(step.dueDateUtc).toLocaleDateString()}
+                        <div className="text-xs text-gray-500 mt-1" data-testid={`due-date-${step.id}`}>
+                          Due: {formatDateJP(step.dueDateUtc)}
                         </div>
                       )}
                     </div>

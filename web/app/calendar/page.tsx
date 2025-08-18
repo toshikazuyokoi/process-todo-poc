@@ -12,11 +12,14 @@ interface CalendarEvent {
   title: string;
   start: Date | string;
   end?: Date | string;
+  color?: string;
   extendedProps?: {
     caseId?: number;
     stepId?: number;
     status?: string;
     assignee?: string;
+    assigneeId?: number;
+    caseTitle?: string;
     type: 'case' | 'step';
   };
 }
@@ -34,53 +37,27 @@ export default function CalendarPage() {
   const loadEvents = async () => {
     setLoading(true);
     try {
-      // ケースデータを取得（ステップは各ケースに含まれる）
-      const casesResponse = await apiClient.get('/cases');
-
-      const calendarEvents: CalendarEvent[] = [];
-
-      // ケースとそのステップをイベントに変換
-      for (const caseItem of casesResponse.data) {
-        // ケースをイベントに追加
-        if (caseItem.goalDateUtc) {
-          calendarEvents.push({
-            id: `case-${caseItem.id}`,
-            title: caseItem.title,
-            start: caseItem.goalDateUtc,
-            extendedProps: {
-              caseId: caseItem.id,
-              status: caseItem.status,
-              type: 'case',
-            },
-          });
-        }
-
-        // ステップインスタンスをイベントに変換
-        if (caseItem.stepInstances && Array.isArray(caseItem.stepInstances)) {
-          caseItem.stepInstances.forEach((step: any) => {
-            // 開始日と終了日を設定
-            const startDate = step.startDateUtc || step.createdAt;
-            const endDate = step.dueDateUtc;
-            
-            if (endDate) {
-              calendarEvents.push({
-                id: `step-${step.id}`,
-                title: `${step.name} (${caseItem.title})`,
-                start: startDate,
-                end: endDate,
-                extendedProps: {
-                  stepId: step.id,
-                  caseId: caseItem.id,
-                  status: step.status,
-                  assignee: step.assigneeId,
-                  type: 'step',
-                },
-              });
-            }
-          });
-        }
-      }
-
+      // カレンダー専用APIを使用
+      const response = await apiClient.get('/calendar');
+      
+      // APIレスポンスをフロントエンド形式に変換
+      const calendarEvents: CalendarEvent[] = response.data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        color: event.color,
+        extendedProps: {
+          caseId: event.caseId,
+          stepId: event.stepId,
+          status: event.status,
+          assignee: event.assigneeName || event.assigneeId?.toString(),
+          assigneeId: event.assigneeId,
+          caseTitle: event.caseTitle,
+          type: event.type,
+        },
+      }));
+      
       setEvents(calendarEvents);
     } catch (error) {
       console.error('Failed to load calendar events:', error);

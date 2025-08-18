@@ -1,4 +1,0 @@
-
-> api@1.0.0 test:e2e
-> jest --config ./test/jest-e2e.json --runInBand
-

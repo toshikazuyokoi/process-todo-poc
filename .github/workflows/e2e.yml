@@ -97,7 +97,7 @@ jobs:
         run: |
           npm run start:prod &
           sleep 10
-          curl -f http://localhost:3005/api || exit 1
+          curl -f http://localhost:3005/health || exit 1
 
       # Frontend setup
       - name: Install frontend dependencies

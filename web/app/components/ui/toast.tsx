@@ -164,22 +164,19 @@ const ToastItem: React.FC<{
   )
 }
 
-// 便利なヘルパー関数
-export const toast = {
-  success: (title: string, message?: string) => {
-    const { addToast } = useToast()
+// 便利なヘルパー関数 - これらは useToast フックを使用するコンポーネント内で使用する必要があります
+// 直接呼び出すのではなく、useToast フックから addToast を取得して使用してください
+export const createToast = {
+  success: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
     addToast({ type: 'success', title, message })
   },
-  error: (title: string, message?: string) => {
-    const { addToast } = useToast()
+  error: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
     addToast({ type: 'error', title, message })
   },
-  warning: (title: string, message?: string) => {
-    const { addToast } = useToast()
+  warning: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
     addToast({ type: 'warning', title, message })
   },
-  info: (title: string, message?: string) => {
-    const { addToast } = useToast()
+  info: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
     addToast({ type: 'info', title, message })
   },
 }

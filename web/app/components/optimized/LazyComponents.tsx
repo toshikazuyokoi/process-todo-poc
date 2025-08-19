@@ -147,11 +147,11 @@ export function createLazyComponent<T extends ComponentType<any>>(
 ) {
   return dynamic(
     async () => {
-      const module = await importFunc();
-      if (exportName && exportName in module) {
-        return { default: (module as any)[exportName] };
+      const mod = await importFunc();
+      if (exportName && exportName in mod) {
+        return { default: (mod as any)[exportName] };
       }
-      return module as { default: T };
+      return mod as { default: T };
     },
     {
       loading: options?.loading || (() => <LoadingSpinner />),

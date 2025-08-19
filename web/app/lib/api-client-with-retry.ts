@@ -27,7 +27,7 @@ class ApiClientWithRetry {
     }
   }
 
-  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api') {
+  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api') {
     this.client = axios.create({
       baseURL,
       timeout: 30000,

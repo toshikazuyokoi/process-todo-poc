@@ -60,7 +60,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     // APIのURLからベースURLを取得（/apiを除外）
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api';
     const serverUrl = apiUrl.replace('/api', '');
     const newSocket = io(`${serverUrl}/realtime`, {
       auth: {

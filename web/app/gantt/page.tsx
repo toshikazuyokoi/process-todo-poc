@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { api } from '@/app/lib/api-client'
 import { Button } from '@/app/components/ui/button'
 import { Select } from '@/app/components/ui/select'
+import { Pagination } from '@/app/components/ui/pagination'
 import { ArrowLeft, Calendar, Filter, Loader2, ZoomIn, ZoomOut, Download } from 'lucide-react'
 import { Task, ViewMode } from 'gantt-task-react'
 import 'gantt-task-react/dist/index.css'
@@ -54,6 +55,8 @@ export default function GanttPage() {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Week)
   const [showGantt, setShowGantt] = useState(false)
   const [cases, setCases] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
 
   useEffect(() => {
     fetchCases()
@@ -61,6 +64,7 @@ export default function GanttPage() {
 
   useEffect(() => {
     fetchGanttData()
+    setCurrentPage(1) // Reset page when filter changes
   }, [selectedCaseId])
 
   const fetchCases = async () => {
@@ -324,6 +328,34 @@ export default function GanttPage() {
             ) : (
               <div>
                 {/* Simple task list as alternative */}
+                {/* Pagination info and controls */}
+                <div className="flex justify-between items-center mb-3 px-2">
+                  <div className="text-sm text-gray-600">
+                    {tasks.length > 0 && (
+                      <>
+                        {((currentPage - 1) * itemsPerPage) + 1}-
+                        {Math.min(currentPage * itemsPerPage, tasks.length)} / 全{tasks.length}件
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600">表示件数:</label>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value))
+                        setCurrentPage(1)
+                      }}
+                      className="px-2 py-1 text-sm border rounded"
+                    >
+                      <option value="10">10件</option>
+                      <option value="20">20件</option>
+                      <option value="50">50件</option>
+                      <option value="100">100件</option>
+                    </select>
+                  </div>
+                </div>
+                
                 <div className="border rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -335,7 +367,7 @@ export default function GanttPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {tasks.slice(0, 20).map((task) => (
+                    {tasks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((task) => (
                       <tr 
                         key={task.id} 
                         className="hover:bg-gray-50 cursor-pointer"
@@ -372,12 +404,18 @@ export default function GanttPage() {
                     ))}
                   </tbody>
                 </table>
-                {tasks.length > 20 && (
-                  <div className="p-3 bg-gray-50 text-center text-sm text-gray-600">
-                    他 {tasks.length - 20} 件のタスク
-                  </div>
-                )}
               </div>
+              
+              {/* Pagination controls */}
+              {tasks.length > itemsPerPage && (
+                <div className="mt-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(tasks.length / itemsPerPage)}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
             </div>
             )
           ) : (

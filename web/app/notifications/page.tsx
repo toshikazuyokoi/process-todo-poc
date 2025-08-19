@@ -84,7 +84,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      await api.markAllAsRead(userId)
+      await api.markAllAsRead()
       setNotifications(notifications.map(n => ({ ...n, isRead: true })))
     } catch (error) {
       console.error('Failed to mark all as read:', error)

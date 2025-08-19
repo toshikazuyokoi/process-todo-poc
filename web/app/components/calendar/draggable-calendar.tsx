@@ -279,7 +279,7 @@ export function DraggableCalendar({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
-            variant={selectedView === 'month' ? 'default' : 'outline'}
+            variant={selectedView === 'month' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setSelectedView('month')}
           >
@@ -287,7 +287,7 @@ export function DraggableCalendar({
             月表示
           </Button>
           <Button
-            variant={selectedView === 'week' ? 'default' : 'outline'}
+            variant={selectedView === 'week' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setSelectedView('week')}
           >
@@ -295,7 +295,7 @@ export function DraggableCalendar({
             週表示
           </Button>
           <Button
-            variant={selectedView === 'day' ? 'default' : 'outline'}
+            variant={selectedView === 'day' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setSelectedView('day')}
           >

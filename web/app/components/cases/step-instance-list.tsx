@@ -162,7 +162,7 @@ export function StepInstanceList({ steps, onUpdate }: StepInstanceListProps) {
                   <User className="w-4 h-4 text-gray-600" />
                   <AssigneeSelector
                     stepId={step.id!}
-                    currentAssigneeId={step.assigneeId}
+                    currentAssigneeId={step.assigneeId ?? null}
                     onAssign={onUpdate}
                   />
                 </div>

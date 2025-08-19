@@ -166,7 +166,7 @@ jobs:
         working-directory: ./web
         run: |
           npx playwright test \
-            --browser=${{ matrix.browser }} \
+            --project=${{ matrix.browser }} \
             --shard=${{ matrix.shard }}/3 \
             --reporter=html \
             --retries=2

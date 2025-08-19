@@ -123,7 +123,11 @@ export const api = {
   getGanttData: (caseId?: number) => 
     apiClient.get('/gantt', { params: { caseId } }),
 
+  // Process Templates
+  getTemplates: () => apiClient.get('/process-templates'),
+
   // Search
   searchCases: (params: any) => apiClient.get('/search/cases', { params }),
   searchSteps: (params: any) => apiClient.get('/search/steps', { params }),
+  searchTemplates: (params: any) => apiClient.get('/search/templates', { params }),
 }

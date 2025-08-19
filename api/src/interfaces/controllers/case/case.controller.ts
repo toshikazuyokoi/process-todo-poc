@@ -14,6 +14,7 @@ import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto'
 import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
 import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@infrastructure/auth/decorators/current-user.decorator';
+import { CommentRepository } from '@infrastructure/repositories/comment.repository';
 
 @ApiTags('Cases')
 @ApiBearerAuth()
@@ -26,6 +27,7 @@ export class CaseController {
     private readonly applyReplanUseCase: ApplyReplanUseCase,
     private readonly caseRepository: CaseRepository,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly commentRepository: CommentRepository,
   ) {}
 
   @Post()
@@ -45,7 +47,7 @@ export class CaseController {
   @ApiResponse({ status: 200, type: [CaseResponseDto] })
   async findAll(): Promise<CaseResponseDto[]> {
     const cases = await this.caseRepository.findAllWithStepInstances();
-    return cases.map((c) => this.toResponseDto(c));
+    return Promise.all(cases.map((c) => this.toResponseDto(c)));
   }
 
   @Get(':id')
@@ -172,7 +174,13 @@ export class CaseController {
     return { deleted };
   }
 
-  private toResponseDto(caseEntity: any): CaseResponseDto {
+  private async toResponseDto(caseEntity: any): Promise<CaseResponseDto> {
+    const stepInstances = caseEntity.getStepInstances();
+    const stepIds = stepInstances.map((step: any) => step.getId()).filter((id: any) => id != null);
+    
+    // Get comment counts for all steps
+    const commentCounts = await this.commentRepository.countByStepIds(stepIds);
+    
     return {
       id: caseEntity.getId(),
       processId: caseEntity.getProcessId(),
@@ -182,7 +190,7 @@ export class CaseController {
       createdBy: caseEntity.getCreatedBy(),
       createdAt: caseEntity.getCreatedAt(),
       updatedAt: caseEntity.getUpdatedAt(),
-      stepInstances: caseEntity.getStepInstances().map((step: any) => ({
+      stepInstances: stepInstances.map((step: any) => ({
         id: step.getId(),
         caseId: step.getCaseId(),
         templateId: step.getTemplateId(),
@@ -193,6 +201,7 @@ export class CaseController {
         locked: step.isLocked(),
         createdAt: step.getCreatedAt(),
         updatedAt: step.getUpdatedAt(),
+        commentCount: commentCounts.get(step.getId()) || 0,
       })),
       progress: caseEntity.getProgress(),
     };

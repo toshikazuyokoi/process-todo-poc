@@ -227,7 +227,7 @@ export function StepInstanceList({ steps, onUpdate }: StepInstanceListProps) {
           </div>
           
           {/* Comments section */}
-          {step.id && <StepComments stepId={step.id} />}
+          {step.id && <StepComments stepId={step.id} initialCommentCount={step.commentCount} />}
         </div>
       ))}
       

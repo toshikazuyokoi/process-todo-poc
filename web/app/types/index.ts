@@ -49,6 +49,7 @@ export interface StepInstance {
   locked: boolean
   createdAt?: string
   updatedAt?: string
+  commentCount?: number
 }
 
 // 再計画リクエスト

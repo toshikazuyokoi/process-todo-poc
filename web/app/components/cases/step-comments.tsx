@@ -22,10 +22,11 @@ interface Comment {
 
 interface StepCommentsProps {
   stepId: number
+  initialCommentCount?: number
   onCommentAdded?: () => void
 }
 
-export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
+export function StepComments({ stepId, initialCommentCount = 0, onCommentAdded }: StepCommentsProps) {
   const { user } = useAuth()
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
@@ -315,6 +316,9 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
     return total + 1 + (comment.replies?.length || 0)
   }, 0)
 
+  // Use initial count when comments haven't been loaded yet
+  const displayCount = expanded ? totalComments : (initialCommentCount ?? totalComments)
+
   return (
     <div className="mt-4 border-t pt-4">
       <button
@@ -322,7 +326,7 @@ export function StepComments({ stepId, onCommentAdded }: StepCommentsProps) {
         className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
       >
         <MessageCircle className="w-4 h-4" />
-        <span>コメント ({totalComments})</span>
+        <span>コメント ({displayCount})</span>
         {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
       

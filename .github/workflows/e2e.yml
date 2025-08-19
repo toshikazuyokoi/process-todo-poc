@@ -96,7 +96,15 @@ jobs:
         working-directory: ./api
         run: |
           npm run start:prod &
-          sleep 10
+          echo "Waiting for backend server to start..."
+          for i in {1..30}; do
+            if curl -f http://localhost:3005/health 2>/dev/null; then
+              echo "Backend server is ready!"
+              break
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+          done
           curl -f http://localhost:3005/health || exit 1
 
       # Frontend setup
@@ -119,7 +127,15 @@ jobs:
         working-directory: ./web
         run: |
           npm run start &
-          sleep 10
+          echo "Waiting for frontend server to start..."
+          for i in {1..30}; do
+            if curl -f http://localhost:3000 2>/dev/null; then
+              echo "Frontend server is ready!"
+              break
+            fi
+            echo "Waiting for frontend... ($i/30)"
+            sleep 2
+          done
           curl -f http://localhost:3000 || exit 1
 
       # Playwright setup

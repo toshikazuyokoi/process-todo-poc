@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, Suspense } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -272,10 +272,12 @@ export const KanbanBoardComplete: React.FC<KanbanBoardCompleteProps> = ({
         <div className="flex justify-between items-center mb-4 px-4">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-semibold">Kanban Board</h2>
-            <KanbanFilter
-              users={users}
-              onFilterChange={handleFilterChange}
-            />
+            <Suspense fallback={<div className="text-gray-500 text-sm">フィルター読み込み中...</div>}>
+              <KanbanFilter
+                users={users}
+                onFilterChange={handleFilterChange}
+              />
+            </Suspense>
           </div>
           <div className="flex gap-2">
             {/* WIP Limits Toggle */}

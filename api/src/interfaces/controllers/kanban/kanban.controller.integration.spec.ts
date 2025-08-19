@@ -207,8 +207,29 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
   });
 
   describe('Kanban drag-and-drop workflow', () => {
+    let dragDropStepId: number;
+
+    beforeEach(async () => {
+      // Create a fresh step for each test
+      const step = await TestDataFactory.createStep(prisma, {
+        caseId: testCaseId,
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}DRAG_DROP_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: testAssigneeId
+      });
+      dragDropStepId = step.id;
+    });
+
+    afterEach(async () => {
+      // Clean up the test step
+      await prisma.stepInstance.delete({ 
+        where: { id: dragDropStepId } 
+      }).catch(() => {});
+    });
+
     it('should handle complete drag-and-drop workflow', async () => {
-      const todoStepId = testStepIds[0];
+      const todoStepId = dragDropStepId;
 
       // 1. Get initial kanban state
       const initialBoard = await request(app.getHttpServer())
@@ -274,7 +295,15 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
     });
 
     it('should handle blocked status correctly', async () => {
-      const stepId = testStepIds[4]; // Use the last step which is 'todo' and not modified by previous tests
+      // Create a new step for this test
+      const blockedTestStep = await TestDataFactory.createStep(prisma, {
+        caseId: testCaseId,
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}BLOCKED_TEST_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: testAssigneeId
+      });
+      const stepId = blockedTestStep.id;
 
       // Move step to blocked
       await request(app.getHttpServer())
@@ -292,6 +321,11 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       const blockedItem = blockedColumn.items.find((item: any) => item.id === stepId);
       expect(blockedItem).toBeDefined();
       expect(blockedItem.status).toBe('blocked');
+
+      // Clean up
+      await prisma.stepInstance.delete({ 
+        where: { id: stepId } 
+      }).catch(() => {});
     });
   });
 
@@ -323,10 +357,13 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
         role: 'member'
       });
 
-      // Assign some steps to the new user
-      await prisma.stepInstance.update({
-        where: { id: testStepIds[1] },
-        data: { assigneeId: anotherUser.id }
+      // Create a new step for the new user
+      const newStep = await TestDataFactory.createStep(prisma, {
+        caseId: testCaseId,
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}MULTI_USER_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: anotherUser.id
       });
 
       // Get kanban filtered by specific assignee
@@ -346,6 +383,9 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       expect(foundCount).toBeGreaterThan(0);
 
       // Clean up
+      await prisma.stepInstance.delete({ 
+        where: { id: newStep.id } 
+      }).catch(() => {});
       await prisma.user.delete({ where: { id: anotherUser.id } });
     });
   });

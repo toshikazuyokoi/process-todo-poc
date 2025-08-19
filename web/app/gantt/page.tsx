@@ -285,18 +285,6 @@ export default function GanttPage() {
                 <GanttChart
                   tasks={ganttTasks}
                   viewMode={viewMode}
-                  onDateChange={(task: Task, start: Date, end: Date) => {
-                    const newTasks = ganttTasks.map(t => 
-                      t.id === task.id ? { ...t, start, end } : t
-                    )
-                    setGanttTasks(newTasks)
-                  }}
-                  onProgressChange={(task: Task, progress: number) => {
-                    const newTasks = ganttTasks.map(t => 
-                      t.id === task.id ? { ...t, progress } : t
-                    )
-                    setGanttTasks(newTasks)
-                  }}
                   onClick={(task: Task) => handleTaskClick(task.id)}
                   listCellWidth="155px"
                   columnWidth={60}

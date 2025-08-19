@@ -72,7 +72,7 @@ export function Pagination({
         {getPageNumbers().map(page => (
           <Button
             key={page}
-            variant={page === currentPage ? 'default' : 'ghost'}
+            variant={page === currentPage ? 'primary' : 'ghost'}
             size="sm"
             onClick={() => onPageChange(page)}
             className="min-w-[2rem]"

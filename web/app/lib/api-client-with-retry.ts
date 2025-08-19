@@ -11,6 +11,7 @@ interface RetryConfig {
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   retry?: RetryConfig
   skipRetry?: boolean
+  retryCount?: number
 }
 
 class ApiClientWithRetry {

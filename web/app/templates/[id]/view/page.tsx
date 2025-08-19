@@ -176,8 +176,8 @@ export default function ViewTemplatePage({ params }: { params: { id: string } })
                         {step.offsetDays > 0 ? '+' : ''}{step.offsetDays}日
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {step.dependsOnJson.length > 0 
-                          ? `ステップ ${step.dependsOnJson.join(', ')}`
+                        {step.dependsOn && step.dependsOn.length > 0 
+                          ? `ステップ ${step.dependsOn.join(', ')}`
                           : '-'
                         }
                       </td>

@@ -4,8 +4,9 @@ async function globalSetup(config: FullConfig) {
   console.log('🚀 Starting E2E test setup...');
   
   // テスト用環境変数の設定
-  process.env.NODE_ENV = 'test';
-  process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3005/api';
+  // TypeScript strictモードでprocess.envは読み取り専用のため、型アサーションを使用
+  (process.env as any).NODE_ENV = 'test';
+  (process.env as any).NEXT_PUBLIC_API_URL = 'http://localhost:3005/api';
   
   // データベースのセットアップ（必要に応じて）
   if (process.env.RESET_DB === 'true') {

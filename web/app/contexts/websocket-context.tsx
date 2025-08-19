@@ -79,7 +79,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     });
 
     // 接続失敗
-    newSocket.on('connect_error', (error) => {
+    newSocket.on('connect_error', (error: Error) => {
       console.error('WebSocket connection error:', error.message);
       setIsConnected(false);
       setConnectionError(error.message);
@@ -102,7 +102,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     });
 
     // 切断
-    newSocket.on('disconnect', (reason) => {
+    newSocket.on('disconnect', (reason: string) => {
       console.log('WebSocket disconnected:', reason);
       setIsConnected(false);
       
@@ -113,7 +113,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     });
 
     // サーバーからの接続確認
-    newSocket.on('connected', (data) => {
+    newSocket.on('connected', (data: any) => {
       console.log('Server confirmed connection:', data);
     });
 

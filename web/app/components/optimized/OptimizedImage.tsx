@@ -231,7 +231,7 @@ export function ProgressiveImage({
   alt,
   className,
   ...props
-}: OptimizedImageProps & { lowQualitySrc?: string; highQualitySrc: string }) {
+}: Omit<OptimizedImageProps, 'src'> & { lowQualitySrc?: string; highQualitySrc: string }) {
   const [currentSrc, setCurrentSrc] = useState(lowQualitySrc || highQualitySrc);
   const [isHighQualityLoaded, setIsHighQualityLoaded] = useState(false);
 
@@ -249,13 +249,13 @@ export function ProgressiveImage({
   return (
     <div className={cn('relative', className)}>
       <OptimizedImage
+        {...props}
         src={currentSrc}
         alt={alt}
         className={cn(
           className,
           !isHighQualityLoaded && lowQualitySrc && 'filter blur-sm'
         )}
-        {...props}
       />
     </div>
   );

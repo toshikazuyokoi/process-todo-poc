@@ -30,11 +30,11 @@ export default function CaseDetailPage({ params }: { params: { id: string } }) {
       console.log('Step updated in real-time:', event)
       // ステップデータを更新
       setCaseData(prev => {
-        if (!prev || !prev.steps) return prev
-        const updatedSteps = prev.steps.map(step =>
+        if (!prev || !prev.stepInstances) return prev
+        const updatedSteps = prev.stepInstances.map(step =>
           step.id === event.stepId ? { ...step, ...event.data } : step
         )
-        return { ...prev, steps: updatedSteps }
+        return { ...prev, stepInstances: updatedSteps }
       })
     },
   })

@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005/api';
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {

@@ -5,8 +5,12 @@ test.describe('Template Management', () => {
     // ホームページに移動
     await page.goto('/')
     
-    // テンプレート作成ページへ移動
-    await page.click('text=新規テンプレート作成')
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState('networkidle')
+    
+    // テンプレート作成ページへ移動 - より具体的なセレクターと待機を追加
+    await page.waitForSelector('button:has-text("新規テンプレート作成")', { timeout: 30000 })
+    await page.click('button:has-text("新規テンプレート作成")')
     await expect(page).toHaveURL('/templates/new')
     
     // テンプレート基本情報を入力

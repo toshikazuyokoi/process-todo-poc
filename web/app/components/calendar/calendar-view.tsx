@@ -80,7 +80,7 @@ export function CalendarView({
       title: clickInfo.event.title,
       start: clickInfo.event.start || new Date(),
       end: clickInfo.event.end || undefined,
-      extendedProps: clickInfo.event.extendedProps,
+      extendedProps: clickInfo.event.extendedProps as CalendarEvent['extendedProps'],
     };
     onEventClick?.(event);
   };
@@ -91,7 +91,7 @@ export function CalendarView({
       title: dropInfo.event.title,
       start: dropInfo.event.start || new Date(),
       end: dropInfo.event.end || undefined,
-      extendedProps: dropInfo.event.extendedProps,
+      extendedProps: dropInfo.event.extendedProps as CalendarEvent['extendedProps'],
     };
     const oldDate = dropInfo.oldEvent.start || new Date();
     const newDate = dropInfo.event.start || new Date();

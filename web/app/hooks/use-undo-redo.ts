@@ -21,7 +21,7 @@ export function useUndoRedo<T>(
   const currentState = history[currentIndex];
 
   // 状態を更新（アンドゥ履歴に追加）
-  const setState = useCallback((updater: (draft: Draft<T>) => void | T) => {
+  const setState = useCallback((updater: (draft: Draft<T>) => void) => {
     const newState = produce(history[currentIndex], updater);
     
     // 現在の位置より後の履歴を削除して新しい状態を追加

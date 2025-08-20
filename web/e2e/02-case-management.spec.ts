@@ -5,7 +5,11 @@ test.describe('Case Management', () => {
     // ホームページに移動
     await page.goto('/')
     
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState('networkidle')
+    
     // 案件作成ページへ移動
+    await page.waitForSelector('button:has-text("新規案件作成")', { timeout: 30000 })
     await page.click('button:has-text("新規案件作成")')
     await expect(page).toHaveURL('/cases/new')
     

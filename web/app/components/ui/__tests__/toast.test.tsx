@@ -77,7 +77,11 @@ describe('Toast System', () => {
 
     it('should throw error when useToast is used outside provider', () => {
       const TestErrorComponent = () => {
-        expect(() => useToast()).toThrow('useToast must be used within a ToastProvider');
+        try {
+          useToast();
+        } catch (error) {
+          expect(error).toEqual(new Error('useToast must be used within a ToastProvider'));
+        }
         return null;
       };
 

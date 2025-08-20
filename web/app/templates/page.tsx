@@ -71,10 +71,10 @@ export default function TemplatesPage() {
   const fetchCategories = async () => {
     try {
       const response = await api.getProcessTemplates()
-      const uniqueCategories = [...new Set(response.data
+      const uniqueCategories = Array.from(new Set(response.data
         .map((t: any) => t.category)
         .filter((c: string | null) => c !== null)
-      )] as string[]
+      )) as string[]
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Failed to fetch categories:', error)
@@ -135,7 +135,7 @@ export default function TemplatesPage() {
     if (!confirm('このテンプレートを削除してもよろしいですか？')) return
     
     try {
-      await api.deleteTemplate(templateId)
+      await api.deleteProcessTemplate(templateId)
       searchTemplates()
     } catch (error) {
       console.error('Failed to delete template:', error)
@@ -145,8 +145,10 @@ export default function TemplatesPage() {
 
   const handleDuplicate = async (templateId: number) => {
     try {
-      await api.duplicateTemplate(templateId)
-      searchTemplates()
+      // TODO: Implement duplicate template API
+      // await api.duplicateTemplate(templateId)
+      // searchTemplates()
+      alert('テンプレート複製機能は未実装です')
     } catch (error) {
       console.error('Failed to duplicate template:', error)
       alert('テンプレートの複製に失敗しました')

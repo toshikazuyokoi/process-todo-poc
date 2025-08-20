@@ -117,6 +117,38 @@ export class CommentRepository implements ICommentRepository {
     });
   }
 
+  async countByStepIds(stepIds: number[]): Promise<Map<number, number>> {
+    if (stepIds.length === 0) {
+      return new Map<number, number>();
+    }
+
+    const counts = await this.prisma.comment.groupBy({
+      by: ['stepId'],
+      where: {
+        stepId: {
+          in: stepIds,
+        },
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const countMap = new Map<number, number>();
+    counts.forEach(count => {
+      countMap.set(count.stepId, count._count.id);
+    });
+    
+    // Ensure all stepIds have an entry (0 if no comments)
+    stepIds.forEach(stepId => {
+      if (!countMap.has(stepId)) {
+        countMap.set(stepId, 0);
+      }
+    });
+
+    return countMap;
+  }
+
   private toDomain(data: any): Comment {
     return new Comment({
       id: data.id,

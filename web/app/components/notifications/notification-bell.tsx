@@ -63,7 +63,7 @@ export function NotificationBell({ userId }: NotificationBellProps) {
 
   const markAllAsRead = async () => {
     try {
-      await api.markAllAsRead(userId)
+      await api.markAllAsRead()
       setNotifications(notifications.map(n => ({ ...n, isRead: true })))
       setUnreadCount(0)
       setTimeout(() => setShowDropdown(false), 500)

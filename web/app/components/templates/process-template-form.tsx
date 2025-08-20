@@ -64,7 +64,7 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
       }
       
       // 依存関係の循環チェック（簡易版）
-      if (step.dependsOnJson && step.dependsOnJson.includes(step.seq)) {
+      if (step.dependsOn && step.dependsOn.includes(step.seq)) {
         newErrors[`step_${index}_deps`] = `ステップ ${index + 1} は自分自身に依存できません`
       }
     })
@@ -81,29 +81,30 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
     }
     
     setSaving(true)
+    
+    // 新規作成時はversionとisActiveを送らない
+    const createPayload = {
+      name: template.name,
+      stepTemplates: template.stepTemplates?.map(step => ({
+        seq: step.seq,
+        name: step.name,
+        basis: step.basis,
+        offsetDays: step.offsetDays,
+        requiredArtifacts: step.requiredArtifacts || [],
+        dependsOn: step.dependsOn || [],
+      })) || [],
+    }
+    
+    // 更新時はversionとisActiveも含める
+    const updatePayload = {
+      ...createPayload,
+      version: template.version,
+      isActive: template.isActive,
+    }
+    
+    const payload = templateId ? updatePayload : createPayload
+    
     try {
-      // 新規作成時はversionとisActiveを送らない
-      const createPayload = {
-        name: template.name,
-        stepTemplates: template.stepTemplates?.map(step => ({
-          seq: step.seq,
-          name: step.name,
-          basis: step.basis,
-          offsetDays: step.offsetDays,
-          requiredArtifacts: step.requiredArtifacts || [],
-          dependsOn: step.dependsOn || [],
-        })) || [],
-      }
-      
-      // 更新時はversionとisActiveも含める
-      const updatePayload = {
-        ...createPayload,
-        version: template.version,
-        isActive: template.isActive,
-      }
-      
-      const payload = templateId ? updatePayload : createPayload
-      
       if (templateId) {
         await api.updateProcessTemplate(templateId, payload)
         alert('テンプレートを更新しました')
@@ -114,7 +115,7 @@ export function ProcessTemplateForm({ templateId }: ProcessTemplateFormProps) {
       }
     } catch (error: any) {
       console.error('Failed to save template:', error)
-      console.log('Payload sent:', templateId ? updatePayload : createPayload) // デバッグ用
+      console.log('Payload sent:', payload) // デバッグ用
       
       if (error.response?.data?.errors) {
         // バリデーションエラーの詳細表示
@@ -273,9 +274,9 @@ function ProcessFlowPreview({ steps }: { steps: StepTemplate[] }) {
               <div className="text-xs text-gray-600 mt-1">
                 {step.offsetDays > 0 ? '+' : ''}{step.offsetDays}日
               </div>
-              {step.dependsOnJson && step.dependsOnJson.length > 0 && (
+              {step.dependsOn && step.dependsOn.length > 0 && (
                 <div className="text-xs text-gray-500 mt-1">
-                  依存: {step.dependsOnJson.join(', ')}
+                  依存: {step.dependsOn.join(', ')}
                 </div>
               )}
             </div>

@@ -57,8 +57,8 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
     // Get unique prefix for this test run
     testPrefix = TestDataFactory.getUniquePrefix();
 
-    // Clean up any existing test data
-    await TestDataFactory.cleanupAll(prisma);
+    // Clean up only this test's data (not all test data)
+    await TestDataFactory.cleanup(prisma, testPrefix);
 
     // Create test users using factory
     const owner = await TestDataFactory.createUser(prisma, {
@@ -207,8 +207,43 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
   });
 
   describe('Kanban drag-and-drop workflow', () => {
+    let dragDropStepId: number;
+    let dragDropCaseId: number;
+
+    beforeEach(async () => {
+      // Create a dedicated case for this test to avoid conflicts
+      const dragDropCase = await TestDataFactory.createCase(prisma, {
+        templateId: testTemplate.id,
+        userId: testUserId,
+        title: `${testPrefix}DRAG_DROP_CASE_${Date.now()}`
+      });
+      dragDropCaseId = dragDropCase.id;
+
+      // Create a fresh step for each test
+      const step = await TestDataFactory.createStep(prisma, {
+        caseId: dragDropCaseId, // Use dedicated case ID instead of shared testCaseId
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}DRAG_DROP_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: testAssigneeId
+      });
+      dragDropStepId = step.id;
+    });
+
+    afterEach(async () => {
+      // Clean up the test step first (due to foreign key constraints)
+      await prisma.stepInstance.delete({ 
+        where: { id: dragDropStepId } 
+      }).catch(() => {});
+      
+      // Then clean up the test case
+      await prisma.case.delete({ 
+        where: { id: dragDropCaseId } 
+      }).catch(() => {});
+    });
+
     it('should handle complete drag-and-drop workflow', async () => {
-      const todoStepId = testStepIds[0];
+      const todoStepId = dragDropStepId;
 
       // 1. Get initial kanban state
       const initialBoard = await request(app.getHttpServer())
@@ -228,7 +263,7 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'step.status.updated',
         expect.objectContaining({
-          caseId: testCaseId,
+          caseId: dragDropCaseId,
           stepId: todoStepId,
           oldStatus: 'todo',
           newStatus: 'in_progress'
@@ -274,7 +309,15 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
     });
 
     it('should handle blocked status correctly', async () => {
-      const stepId = testStepIds[4]; // Use the last step which is 'todo' and not modified by previous tests
+      // Create a new step for this test
+      const blockedTestStep = await TestDataFactory.createStep(prisma, {
+        caseId: testCaseId,
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}BLOCKED_TEST_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: testAssigneeId
+      });
+      const stepId = blockedTestStep.id;
 
       // Move step to blocked
       await request(app.getHttpServer())
@@ -292,6 +335,11 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       const blockedItem = blockedColumn.items.find((item: any) => item.id === stepId);
       expect(blockedItem).toBeDefined();
       expect(blockedItem.status).toBe('blocked');
+
+      // Clean up
+      await prisma.stepInstance.delete({ 
+        where: { id: stepId } 
+      }).catch(() => {});
     });
   });
 
@@ -323,10 +371,20 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
         role: 'member'
       });
 
-      // Assign some steps to the new user
-      await prisma.stepInstance.update({
-        where: { id: testStepIds[1] },
-        data: { assigneeId: anotherUser.id }
+      // Create a dedicated case for this test
+      const multiUserCase = await TestDataFactory.createCase(prisma, {
+        templateId: testTemplate.id,
+        userId: testUserId,
+        title: `${testPrefix}MULTI_USER_CASE_${Date.now()}`
+      });
+
+      // Create a new step for the new user
+      const newStep = await TestDataFactory.createStep(prisma, {
+        caseId: multiUserCase.id,
+        templateStepId: testTemplate.stepTemplates[0].id,
+        name: `${testPrefix}MULTI_USER_STEP_${Date.now()}`,
+        status: 'todo',
+        assigneeId: anotherUser.id
       });
 
       // Get kanban filtered by specific assignee
@@ -346,6 +404,12 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
       expect(foundCount).toBeGreaterThan(0);
 
       // Clean up
+      await prisma.stepInstance.delete({ 
+        where: { id: newStep.id } 
+      }).catch(() => {});
+      await prisma.case.delete({ 
+        where: { id: multiUserCase.id } 
+      }).catch(() => {});
       await prisma.user.delete({ where: { id: anotherUser.id } });
     });
   });

@@ -89,7 +89,9 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
           {step.name}
         </h4>
         {step.locked && (
-          <AlertCircle className="w-4 h-4 text-amber-500" title="Locked" />
+          <span title="Locked">
+            <AlertCircle className="w-4 h-4 text-amber-500" />
+          </span>
         )}
       </div>
 

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { E2E_CONFIG } from './e2e/config'
 
 export default defineConfig({
   testDir: './e2e',
@@ -11,12 +12,12 @@ export default defineConfig({
     [['html', { outputFolder: 'playwright-report', open: 'on-failure' }], ['list']],
   
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: E2E_CONFIG.frontend.baseUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 10000,
-    navigationTimeout: 30000,
+    actionTimeout: E2E_CONFIG.timeouts.action,
+    navigationTimeout: E2E_CONFIG.timeouts.navigation,
   },
 
   /* Configure test match patterns */
@@ -32,20 +33,40 @@ export default defineConfig({
 
   /* Configure projects for different test categories */
   projects: [
+    // 認証セットアップ
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+      teardown: 'cleanup'
+    },
+    
     // デスクトップブラウザ
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // 認証状態を使用
+        storageState: E2E_CONFIG.auth.storageFile,
+      },
+      dependencies: ['setup'], // setupプロジェクトに依存
       testMatch: /.*\.spec\.ts$/,
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: E2E_CONFIG.auth.storageFile,
+      },
+      dependencies: ['setup'],
       testMatch: /0[1-4].*\.spec\.ts$/, // 基本的なテストのみ
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: E2E_CONFIG.auth.storageFile,
+      },
+      dependencies: ['setup'],
       testMatch: /0[1-4].*\.spec\.ts$/, // 基本的なテストのみ
     },
 
@@ -71,24 +92,34 @@ export default defineConfig({
     // エッジケーステスト（本番環境のみ）
     {
       name: 'edge',
-      use: { ...devices['Desktop Edge'] },
+      use: {
+        ...devices['Desktop Edge'],
+        storageState: E2E_CONFIG.auth.storageFile,
+      },
+      dependencies: ['setup'],
       testMatch: /06-business-critical\.spec\.ts/,
+    },
+    
+    // クリーンアッププロジェクト
+    {
+      name: 'cleanup',
+      testMatch: /.*\.teardown\.ts/,
     },
   ],
 
   /* 環境別設定 */
   webServer: [
     {
-      command: 'cd ../api && PORT=3005 npm run start:dev',
-      url: 'http://localhost:3005/api/process-templates',
-      reuseExistingServer: true,
-      timeout: 120 * 1000,
+      command: `cd ../api && PORT=${E2E_CONFIG.api.port} npm run start:dev`,
+      url: `${E2E_CONFIG.api.baseUrl}/process-templates`,
+      reuseExistingServer: !process.env.CI,
+      timeout: E2E_CONFIG.timeouts.server,
     },
     {
-      command: 'PORT=3000 npm run dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: true,
-      timeout: 120 * 1000,
+      command: `PORT=${E2E_CONFIG.frontend.port} npm run dev`,
+      url: E2E_CONFIG.frontend.baseUrl,
+      reuseExistingServer: !process.env.CI,
+      timeout: E2E_CONFIG.timeouts.server,
     }
   ],
 
@@ -97,7 +128,7 @@ export default defineConfig({
   globalTeardown: './e2e/global-teardown.ts',
 
   /* テストのタイムアウト設定 */
-  timeout: process.env.CI ? 60000 : 30000,
+  timeout: process.env.CI ? E2E_CONFIG.timeouts.navigation : E2E_CONFIG.timeouts.action,
   expect: {
     timeout: 5000,
   },

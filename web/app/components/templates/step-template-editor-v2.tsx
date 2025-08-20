@@ -39,7 +39,7 @@ export function StepTemplateEditorV2({ steps, onChange }: StepTemplateEditorV2Pr
       order: step.seq || index + 1,
       basis: step.basis,
       offsetDays: step.offsetDays,
-      dependsOnJson: step.dependsOnJson || [],
+      dependsOn: step.dependsOn || [],
     }));
     setLocalSteps(convertedSteps);
   }, [steps]);
@@ -54,8 +54,8 @@ export function StepTemplateEditorV2({ steps, onChange }: StepTemplateEditorV2Pr
       name: step.name,
       basis: step.basis || 'prev',
       offsetDays: step.offsetDays || step.requiredDays || 1,
-      requiredArtifactsJson: [],
-      dependsOnJson: step.dependsOnJson || [],
+      requiredArtifacts: [],
+      dependsOn: step.dependsOn || [],
     }));
     
     onChange(convertedSteps);

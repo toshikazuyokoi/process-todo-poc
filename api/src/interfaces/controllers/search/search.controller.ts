@@ -7,6 +7,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { SearchCasesUseCase, SearchCasesDto } from '@application/usecases/search/search-cases.usecase';
 import { SearchStepsUseCase, SearchStepsDto } from '@application/usecases/search/search-steps.usecase';
+import { SearchTemplatesUseCase, SearchTemplatesDto } from '@application/usecases/search/search-templates.usecase';
 import { JwtAuthGuard } from '@infrastructure/auth/guards/jwt-auth.guard';
 
 @ApiTags('search')
@@ -17,6 +18,7 @@ export class SearchController {
   constructor(
     private readonly searchCasesUseCase: SearchCasesUseCase,
     private readonly searchStepsUseCase: SearchStepsUseCase,
+    private readonly searchTemplatesUseCase: SearchTemplatesUseCase,
   ) {}
 
   @Get('cases')
@@ -69,5 +71,28 @@ export class SearchController {
     };
 
     return await this.searchStepsUseCase.execute(dto);
+  }
+
+  @Get('templates')
+  @ApiOperation({ summary: 'Search and filter templates' })
+  @ApiQuery({ name: 'query', required: false, type: String, description: 'Search query' })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'Search results' })
+  async searchTemplates(
+    @Query('query') query?: string,
+    @Query('isActive') isActive?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const dto: SearchTemplatesDto = {
+      query,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    };
+
+    return await this.searchTemplatesUseCase.execute(dto);
   }
 }

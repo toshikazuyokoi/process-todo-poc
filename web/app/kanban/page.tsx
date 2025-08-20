@@ -12,20 +12,20 @@ export default function KanbanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // WebSocket real-time updates
-  useRealtimeUpdates({
-    onStepUpdate: (updatedStep) => {
-      setStepInstances(prev =>
-        prev.map(step =>
-          step.id === updatedStep.id ? { ...step, ...updatedStep } : step
-        )
-      );
-    },
-    onCaseUpdate: () => {
-      // Refetch if case is updated
-      fetchData();
-    },
-  });
+  // TODO: Implement WebSocket real-time updates
+  // useRealtimeUpdates({
+  //   onStepUpdate: (updatedStep) => {
+  //     setStepInstances(prev =>
+  //       prev.map(step =>
+  //         step.id === updatedStep.id ? { ...step, ...updatedStep } : step
+  //       )
+  //     );
+  //   },
+  //   onCaseUpdate: () => {
+  //     // Refetch if case is updated
+  //     fetchData();
+  //   },
+  // });
 
   useEffect(() => {
     fetchData();

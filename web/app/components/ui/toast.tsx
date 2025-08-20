@@ -164,22 +164,40 @@ const ToastItem: React.FC<{
   )
 }
 
+// グローバルトーストインスタンスを保持
+let globalAddToast: ((toast: Omit<Toast, 'id'>) => void) | null = null
+
+// トーストプロバイダー内でグローバルインスタンスを設定
+export const useToastSetup = () => {
+  const { addToast } = useToast()
+  React.useEffect(() => {
+    globalAddToast = addToast
+    return () => {
+      globalAddToast = null
+    }
+  }, [addToast])
+}
+
 // 便利なヘルパー関数
 export const toast = {
   success: (title: string, message?: string) => {
-    const { addToast } = useToast()
-    addToast({ type: 'success', title, message })
+    if (globalAddToast) {
+      globalAddToast({ type: 'success', title, message })
+    }
   },
   error: (title: string, message?: string) => {
-    const { addToast } = useToast()
-    addToast({ type: 'error', title, message })
+    if (globalAddToast) {
+      globalAddToast({ type: 'error', title, message })
+    }
   },
   warning: (title: string, message?: string) => {
-    const { addToast } = useToast()
-    addToast({ type: 'warning', title, message })
+    if (globalAddToast) {
+      globalAddToast({ type: 'warning', title, message })
+    }
   },
   info: (title: string, message?: string) => {
-    const { addToast } = useToast()
-    addToast({ type: 'info', title, message })
+    if (globalAddToast) {
+      globalAddToast({ type: 'info', title, message })
+    }
   },
 }

@@ -71,21 +71,15 @@ export default function AdvancedSearchPage() {
   }
 
   const fetchCategories = async () => {
-    try {
-      const response = await api.getTemplates()
-      const uniqueCategories = [...new Set(response.data
-        .map((t: any) => t.category)
-        .filter((c: string | null) => c !== null)
-      )] as string[]
-      setCategories(uniqueCategories)
-    } catch (error) {
-      console.error('Failed to fetch categories:', error)
-    }
+    // Temporarily disabled until template API is fully implemented
+    // Will be restored in Phase 2
+    setCategories([])
   }
 
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!filters.query && !showAdvanced) return
+    // Remove condition to allow search with empty query and closed advanced filters
+    // This enables users to search with type filter only or get all results
 
     setLoading(true)
     try {
@@ -108,7 +102,7 @@ export default function AdvancedSearchPage() {
         results.cases = response.data.cases || []
       }
 
-      // Search templates
+      // Search templates (using temporary implementation)
       if (filters.type === 'all' || filters.type === 'templates') {
         const templateParams: any = { query: filters.query }
         if (filters.category) templateParams.category = filters.category
@@ -126,7 +120,7 @@ export default function AdvancedSearchPage() {
         if (filters.status) stepParams.status = filters.status
         
         const response = await api.searchSteps(stepParams)
-        results.steps = response.data || []
+        results.steps = response.data.steps || []
       }
 
       results.total = results.cases.length + results.templates.length + results.steps.length
@@ -204,29 +198,28 @@ export default function AdvancedSearchPage() {
           <form onSubmit={handleSearch}>
             {/* 基本検索 */}
             <div className="flex gap-4 mb-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    type="text"
-                    placeholder="キーワードで検索..."
-                    value={filters.query}
-                    onChange={(e) => setFilters({ ...filters, query: e.target.value })}
-                    className="pl-10"
-                  />
-                </div>
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none z-10" />
+                {/* Note: Using native input instead of Input component to avoid wrapper div issues in relative container */}
+                <input
+                  type="text"
+                  placeholder="キーワードで検索..."
+                  value={filters.query}
+                  onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+                  className="w-full h-10 rounded-md border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
               </div>
-              <Select
+              {/* Note: Using native select to avoid wrapper div width issues */}
+              <select
                 value={filters.type}
                 onChange={(e) => setFilters({ ...filters, type: e.target.value as any })}
-                className="w-40"
-                options={[
-                  { value: 'all', label: 'すべて' },
-                  { value: 'cases', label: '案件のみ' },
-                  { value: 'templates', label: 'テンプレートのみ' },
-                  { value: 'steps', label: 'ステップのみ' }
-                ]}
-              />
+                className="h-10 w-40 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+              >
+                <option value="all">すべて</option>
+                <option value="cases">案件のみ</option>
+                <option value="templates">テンプレートのみ</option>
+                <option value="steps">ステップのみ</option>
+              </select>
               <Button type="submit" disabled={loading}>
                 {loading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -491,7 +484,8 @@ export default function AdvancedSearchPage() {
                         <div className="flex-1">
                           <h3 className="font-medium">{step.name}</h3>
                           <p className="text-sm text-gray-500 mt-1">
-                            案件: {step.caseName} | {step.estimatedHours}時間
+                            案件: {step.caseName}
+                            {step.estimatedHours && ` | ${step.estimatedHours}時間`}
                           </p>
                         </div>
                       </div>

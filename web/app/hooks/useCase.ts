@@ -32,7 +32,7 @@ export function useCase(id: number | string) {
 // ケース作成
 export function useCreateCase() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async (caseData: any) => {
@@ -47,13 +47,13 @@ export function useCreateCase() {
       // 新しいケースをキャッシュに追加
       queryClient.setQueryData(['case', data.id], data);
       
-      showToast('ケースを作成しました', 'success');
+      addToast({ type: 'success', title: 'ケースを作成しました' });
     },
     onError: (error: any) => {
-      showToast(
-        error.response?.data?.message || 'ケースの作成に失敗しました',
-        'error'
-      );
+      addToast({
+        type: 'error',
+        title: error.response?.data?.message || 'ケースの作成に失敗しました'
+      });
     },
   });
 }
@@ -61,7 +61,7 @@ export function useCreateCase() {
 // ケース更新
 export function useUpdateCase() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
@@ -86,17 +86,17 @@ export function useUpdateCase() {
         queryClient.setQueryData(['case', variables.id], context.previousCase);
       }
       
-      showToast(
-        error.response?.data?.message || 'ケースの更新に失敗しました',
-        'error'
-      );
+      addToast({
+        type: 'error',
+        title: error.response?.data?.message || 'ケースの更新に失敗しました'
+      });
     },
     onSuccess: (data, variables) => {
       // 関連するキャッシュを更新
       invalidateQueries.cases();
       invalidateQueries.dashboard();
       
-      showToast('ケースを更新しました', 'success');
+      addToast({ type: 'success', title: 'ケースを更新しました' });
     },
   });
 }
@@ -104,7 +104,7 @@ export function useUpdateCase() {
 // ケース削除
 export function useDeleteCase() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async (id: number) => {
@@ -116,13 +116,13 @@ export function useDeleteCase() {
       invalidateQueries.cases();
       invalidateQueries.dashboard();
       
-      showToast('ケースを削除しました', 'success');
+      addToast({ type: 'success', title: 'ケースを削除しました' });
     },
     onError: (error: any) => {
-      showToast(
-        error.response?.data?.message || 'ケースの削除に失敗しました',
-        'error'
-      );
+      addToast({
+        type: 'error',
+        title: error.response?.data?.message || 'ケースの削除に失敗しました'
+      });
     },
   });
 }
@@ -130,7 +130,7 @@ export function useDeleteCase() {
 // ステップ完了
 export function useCompleteStep() {
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
+  const { addToast } = useToast();
 
   return useMutation({
     mutationFn: async ({ caseId, stepId }: { caseId: number; stepId: number }) => {
@@ -157,16 +157,16 @@ export function useCompleteStep() {
         queryClient.setQueryData(['case', variables.caseId], context.previousCase);
       }
       
-      showToast(
-        error.response?.data?.message || 'ステップの完了に失敗しました',
-        'error'
-      );
+      addToast({
+        type: 'error',
+        title: error.response?.data?.message || 'ステップの完了に失敗しました'
+      });
     },
     onSuccess: (_, variables) => {
       invalidateQueries.case(variables.caseId);
       invalidateQueries.dashboard();
       
-      showToast('ステップを完了しました', 'success');
+      addToast({ type: 'success', title: 'ステップを完了しました' });
     },
   });
 }

@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Button, ButtonProps } from '@/components/ui/button';
+import { Button, ButtonProps } from '@/app/components/ui/button';
 import { useRoles } from '@/app/hooks/useRoles';
 import { usePermissions } from '@/app/hooks/usePermissions';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RoleBasedButtonProps extends ButtonProps {
   roles?: string[];
@@ -39,23 +38,14 @@ export function RoleBasedButton({
   }
 
   const button = (
-    <Button {...buttonProps} disabled={!hasAccess || buttonProps.disabled}>
+    <Button 
+      {...buttonProps} 
+      disabled={!hasAccess || buttonProps.disabled}
+      title={!hasAccess ? disabledTooltip : buttonProps.title}
+    >
       {children}
     </Button>
   );
-
-  if (!hasAccess) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent>
-            <p>{disabledTooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
 
   return button;
 }

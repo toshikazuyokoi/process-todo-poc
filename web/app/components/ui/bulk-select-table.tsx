@@ -29,7 +29,7 @@ interface BulkSelectTableProps<T> {
     key: string;
     label: string;
     icon?: React.ElementType;
-    variant?: 'default' | 'danger' | 'outline';
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'warning' | 'outline';
     confirmMessage?: string;
   }[];
   onRowClick?: (item: T) => void;
@@ -185,7 +185,7 @@ export function BulkSelectTable<T extends Record<string, any>>({
                 return (
                   <Button
                     key={action.key}
-                    variant={action.variant || 'default'}
+                    variant={action.variant || 'secondary'}
                     size="sm"
                     onClick={() => handleBulkAction(action.key, action.confirmMessage)}
                   >

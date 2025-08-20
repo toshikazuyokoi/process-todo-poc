@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('API Integration', () => {
   test.beforeEach(async ({ page }) => {
     // APIが起動していることを確認
-    const apiHealth = await fetch('http://localhost:3001/api/health').catch(() => null)
+    const apiHealth = await fetch('http://localhost:3005/api/health').catch(() => null)
     if (!apiHealth || !apiHealth.ok) {
       test.skip()
     }

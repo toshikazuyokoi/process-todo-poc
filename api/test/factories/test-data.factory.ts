@@ -195,27 +195,40 @@ export class TestDataFactory {
   static async cleanup(prisma: PrismaService, prefix: string) {
     // 削除は逆順で実行（外部キー制約を考慮）
     
-    // コメント削除
+    // コメント削除（stepInstancesに依存）
     await prisma.comment.deleteMany({
       where: { content: { contains: prefix } }
     });
 
-    // 通知削除
+    // 通知削除（独立）
     await prisma.notification.deleteMany({
       where: { message: { contains: prefix } }
     });
 
-    // アーティファクト削除
+    // アーティファクト削除（stepInstancesに依存）
     await prisma.artifact.deleteMany({
       where: { fileName: { contains: prefix } }
     });
 
-    // ステップインスタンス削除
+    // ケースに関連するステップインスタンスを先に削除
+    // 重要: caseIdでの削除を追加
+    const casesToDelete = await prisma.case.findMany({
+      where: { title: { contains: prefix } },
+      select: { id: true }
+    });
+    
+    if (casesToDelete.length > 0) {
+      await prisma.stepInstance.deleteMany({
+        where: { caseId: { in: casesToDelete.map(c => c.id) } }
+      });
+    }
+    
+    // name検索での削除も実行（念のため）
     await prisma.stepInstance.deleteMany({
       where: { name: { contains: prefix } }
     });
 
-    // ケース削除
+    // ケース削除（stepInstancesが削除済みなので安全）
     await prisma.case.deleteMany({
       where: { title: { contains: prefix } }
     });

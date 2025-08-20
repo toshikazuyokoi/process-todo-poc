@@ -7,6 +7,7 @@ import { CaseRepository } from '@infrastructure/repositories/case.repository';
 import { BulkUpdateCasesDto } from '@application/dto/case/bulk-update-cases.dto';
 import { BulkDeleteCasesDto } from '@application/dto/case/bulk-delete-cases.dto';
 import { RealtimeGateway } from '@infrastructure/gateways/realtime.gateway';
+import { CommentRepository } from '@infrastructure/repositories/comment.repository';
 
 describe('CaseController - Bulk Operations', () => {
   let controller: CaseController;
@@ -70,6 +71,17 @@ describe('CaseController - Bulk Operations', () => {
             sendCaseUpdate: jest.fn(),
             sendStepUpdate: jest.fn(),
             broadcast: jest.fn(),
+          },
+        },
+        {
+          provide: CommentRepository,
+          useValue: {
+            countByStepIds: jest.fn().mockResolvedValue(new Map<number, number>()),
+            findByStepId: jest.fn().mockResolvedValue([]),
+            save: jest.fn(),
+            findById: jest.fn(),
+            update: jest.fn(),
+            delete: jest.fn(),
           },
         },
       ],

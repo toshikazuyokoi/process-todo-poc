@@ -211,7 +211,6 @@ export function StepTemplateEditor({ steps, onChange }: StepTemplateEditorProps)
                               handleUpdateStep(index, 'requiredArtifacts', updatedArtifacts)
                             }}
                             placeholder="成果物の説明（オプション）"
-                            label="説明"
                             rows={2}
                           />
                         </div>

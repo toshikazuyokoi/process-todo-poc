@@ -31,7 +31,7 @@ export class TestController {
   }) {
     // 環境チェック（開発/テスト環境のみ許可）
     const allowedEnvs = ['test', 'development', 'e2e'];
-    const currentEnv = this.configService.get<string>('NODE_ENV');
+    const currentEnv = this.configService.get<string>('NODE_ENV') || 'production';
     
     if (!allowedEnvs.includes(currentEnv)) {
       throw new ForbiddenException('Test endpoints only available in test/development environment');
@@ -92,7 +92,7 @@ export class TestController {
   async cleanupTestData(@Body() dto: { email: string }) {
     // 環境チェック
     const allowedEnvs = ['test', 'development', 'e2e'];
-    const currentEnv = this.configService.get<string>('NODE_ENV');
+    const currentEnv = this.configService.get<string>('NODE_ENV') || 'production';
     
     if (!allowedEnvs.includes(currentEnv)) {
       throw new ForbiddenException('Test endpoints only available in test/development environment');
@@ -118,41 +118,51 @@ export class TestController {
       
       // コメントの削除
       await this.prisma.comment.deleteMany({
-        where: { createdBy: user.id }
+        where: { userId: user.id }
       });
 
       // ケースステップの削除
-      const cases = await this.prisma.processCase.findMany({
+      const cases = await this.prisma.case.findMany({
         where: { createdBy: user.id },
         select: { id: true }
       });
       
       for (const caseItem of cases) {
-        await this.prisma.caseStep.deleteMany({
+        await this.prisma.stepInstance.deleteMany({
           where: { caseId: caseItem.id }
         });
       }
 
       // ケースの削除
-      await this.prisma.processCase.deleteMany({
+      await this.prisma.case.deleteMany({
         where: { createdBy: user.id }
       });
 
       // テンプレートステップの削除
+      // Note: ProcessTemplateにcreatedByフィールドがないため、
+      // テスト用テンプレートは名前で識別
       const templates = await this.prisma.processTemplate.findMany({
-        where: { createdBy: user.id },
+        where: { 
+          name: {
+            startsWith: 'E2E_TEST_'
+          }
+        },
         select: { id: true }
       });
       
       for (const template of templates) {
-        await this.prisma.templateStep.deleteMany({
-          where: { templateId: template.id }
+        await this.prisma.stepTemplate.deleteMany({
+          where: { processId: template.id }
         });
       }
 
       // テンプレートの削除
       await this.prisma.processTemplate.deleteMany({
-        where: { createdBy: user.id }
+        where: { 
+          name: {
+            startsWith: 'E2E_TEST_'
+          }
+        }
       });
 
       // ユーザーの削除

@@ -19,6 +19,9 @@ import { CalendarModule } from './interfaces/controllers/calendar/calendar.modul
 import { KanbanModule } from './interfaces/controllers/kanban/kanban.module';
 import { TestModule } from './interfaces/controllers/test/test.module';
 import { CustomLoggerService } from './common/services/logger.service';
+import { AIConfigModule } from './config/ai-config.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
+import { ProcessorsModule } from './infrastructure/processors/processors.module';
 
 @Module({
   imports: [
@@ -28,6 +31,9 @@ import { CustomLoggerService } from './common/services/logger.service';
     }),
     EventEmitterModule.forRoot(),
     PrismaModule,
+    AIConfigModule,
+    QueueModule,
+    ProcessorsModule,
     ProcessTemplateModule,
     CaseModule,
     StepModule,

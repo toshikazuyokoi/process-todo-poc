@@ -16,6 +16,7 @@ model ProcessTemplate {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   cases         Case[]
   stepTemplates StepTemplate[]
+  aiTemplateHistory AITemplateGenerationHistory[]
 
   @@map("process_templates")
 }
@@ -121,6 +122,11 @@ model User {
   refreshTokens RefreshToken[]
   userRoles     UserRole[]
   teamMembers   TeamMember[]
+  aiSessions    AIInterviewSession[]
+  aiBackgroundJobs AIBackgroundJob[]
+  aiKnowledge   AIProcessKnowledge[]
+  aiTemplateHistory AITemplateGenerationHistory[]
+  aiUsageStats  AIUsageStatistics[]
 
   @@index([email, isActive])
   @@map("users")
@@ -294,4 +300,163 @@ model TeamMember {
 
   @@id([userId, teamId])
   @@map("team_members")
+}
+
+// AI Agent関連のモデル
+
+model AIInterviewSession {
+  id                     Int                        @id @default(autoincrement())
+  sessionId              String                     @unique @map("session_id") @db.VarChar(36)
+  userId                 Int                        @map("user_id")
+  status                 String                     @default("active") @db.VarChar(20)
+  context                Json?                      @db.JsonB
+  conversation           Json                       @default("[]") @db.JsonB
+  extractedRequirements  Json                       @default("[]") @map("extracted_requirements") @db.JsonB
+  generatedTemplate      Json?                      @map("generated_template") @db.JsonB
+  createdAt              DateTime                   @default(now()) @map("created_at")
+  updatedAt              DateTime                   @updatedAt @map("updated_at")
+  expiresAt              DateTime                   @map("expires_at")
+  
+  user                   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  backgroundJobs         AIBackgroundJob[]
+  templateGenerations    AITemplateGenerationHistory[]
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@index([userId, createdAt], map: "idx_ai_interview_sessions_active")
+  @@map("ai_interview_sessions")
+}
+
+model AIBackgroundJob {
+  id            Int                  @id @default(autoincrement())
+  jobId         String               @unique @map("job_id") @db.VarChar(36)
+  jobType       String               @map("job_type") @db.VarChar(50)
+  jobData       Json                 @map("job_data") @db.JsonB
+  status        String               @default("pending") @db.VarChar(20)
+  sessionId     String?              @map("session_id") @db.VarChar(36)
+  userId        Int                  @map("user_id")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  startedAt     DateTime?            @map("started_at")
+  completedAt   DateTime?            @map("completed_at")
+  failedAt      DateTime?            @map("failed_at")
+  errorMessage  String?              @map("error_message") @db.Text
+  retryCount    Int                  @default(0) @map("retry_count")
+  maxRetries    Int                  @default(3) @map("max_retries")
+  result        Json?                @db.JsonB
+  
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session       AIInterviewSession?  @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  
+  @@index([jobId])
+  @@index([status])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([jobType])
+  @@index([createdAt])
+  @@index([createdAt], map: "idx_ai_background_jobs_pending")
+  @@map("ai_background_jobs")
+}
+
+model AIProcessKnowledge {
+  id                    Int      @id @default(autoincrement())
+  category              String   @db.VarChar(50)
+  industry              String?  @db.VarChar(100)
+  processType           String?  @map("process_type") @db.VarChar(100)
+  title                 String   @db.VarChar(255)
+  description           String?  @db.Text
+  content               Json     @db.JsonB
+  bestPractices         Json     @default("[]") @map("best_practices") @db.JsonB
+  complianceRequirements Json     @default("[]") @map("compliance_requirements") @db.JsonB
+  version               Int      @default(1)
+  isActive              Boolean  @default(true) @map("is_active")
+  confidenceScore       Decimal  @default(0.5) @map("confidence_score") @db.Decimal(3, 2)
+  source                String?  @db.VarChar(255)
+  createdBy             Int?     @map("created_by")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  creator               User?    @relation(fields: [createdBy], references: [id])
+  
+  @@index([category])
+  @@index([industry])
+  @@index([processType])
+  @@index([isActive])
+  @@index([confidenceScore])
+  @@index([industry, processType, isActive], map: "idx_ai_process_knowledge_lookup")
+  @@map("ai_process_knowledge")
+}
+
+model AIWebResearchCache {
+  id                Int      @id @default(autoincrement())
+  queryHash         String   @unique @map("query_hash") @db.VarChar(64)
+  queryText         String   @map("query_text") @db.Text
+  searchParameters  Json?    @map("search_parameters") @db.JsonB
+  results           Json     @db.JsonB
+  sourceReliability Json?    @map("source_reliability") @db.JsonB
+  createdAt         DateTime @default(now()) @map("created_at")
+  expiresAt         DateTime @map("expires_at")
+  hitCount          Int      @default(1) @map("hit_count")
+  lastAccessedAt    DateTime @default(now()) @map("last_accessed_at")
+  
+  @@index([queryHash])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@index([lastAccessedAt], map: "idx_ai_web_research_cache_valid")
+  @@map("ai_web_research_cache")
+}
+
+model AITemplateGenerationHistory {
+  id                 Int                 @id @default(autoincrement())
+  sessionId          String              @map("session_id") @db.VarChar(36)
+  userId             Int                 @map("user_id")
+  processTemplateId  Int?                @map("process_template_id")
+  generatedTemplate  Json                @map("generated_template") @db.JsonB
+  requirementsUsed   Json                @map("requirements_used") @db.JsonB
+  knowledgeSources   Json                @default("[]") @map("knowledge_sources") @db.JsonB
+  researchSources    Json                @default("[]") @map("research_sources") @db.JsonB
+  confidenceScore    Decimal?            @map("confidence_score") @db.Decimal(3, 2)
+  userFeedback       Json?               @map("user_feedback") @db.JsonB
+  feedbackRating     Int?                @map("feedback_rating")
+  wasUsed            Boolean             @default(false) @map("was_used")
+  modifications      Json                @default("[]") @db.JsonB
+  createdAt          DateTime            @default(now()) @map("created_at")
+  finalizedAt        DateTime?           @map("finalized_at")
+  
+  session            AIInterviewSession  @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processTemplate    ProcessTemplate?    @relation(fields: [processTemplateId], references: [id], onDelete: SetNull)
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([processTemplateId])
+  @@index([createdAt])
+  @@index([wasUsed])
+  @@index([feedbackRating])
+  @@map("ai_template_generation_history")
+}
+
+model AIUsageStatistics {
+  id              Int                 @id @default(autoincrement())
+  userId          Int                 @map("user_id")
+  actionType      String              @map("action_type") @db.VarChar(50)
+  sessionId       String?             @map("session_id") @db.VarChar(36)
+  tokensUsed      Int                 @default(0) @map("tokens_used")
+  costUsd         Decimal             @default(0.0000) @map("cost_usd") @db.Decimal(10, 4)
+  processingTimeMs Int?               @map("processing_time_ms")
+  modelUsed       String?             @map("model_used") @db.VarChar(50)
+  success         Boolean             @default(true)
+  errorCode       String?             @map("error_code") @db.VarChar(50)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@index([success])
+  @@index([userId, actionType, createdAt], map: "idx_ai_usage_statistics_report")
+  @@map("ai_usage_statistics")
 }

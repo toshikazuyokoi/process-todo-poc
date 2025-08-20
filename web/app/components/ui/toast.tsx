@@ -164,19 +164,40 @@ const ToastItem: React.FC<{
   )
 }
 
-// 便利なヘルパー関数 - これらは useToast フックを使用するコンポーネント内で使用する必要があります
-// 直接呼び出すのではなく、useToast フックから addToast を取得して使用してください
-export const createToast = {
-  success: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
-    addToast({ type: 'success', title, message })
+// グローバルトーストインスタンスを保持
+let globalAddToast: ((toast: Omit<Toast, 'id'>) => void) | null = null
+
+// トーストプロバイダー内でグローバルインスタンスを設定
+export const useToastSetup = () => {
+  const { addToast } = useToast()
+  React.useEffect(() => {
+    globalAddToast = addToast
+    return () => {
+      globalAddToast = null
+    }
+  }, [addToast])
+}
+
+// 便利なヘルパー関数
+export const toast = {
+  success: (title: string, message?: string) => {
+    if (globalAddToast) {
+      globalAddToast({ type: 'success', title, message })
+    }
   },
-  error: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
-    addToast({ type: 'error', title, message })
+  error: (title: string, message?: string) => {
+    if (globalAddToast) {
+      globalAddToast({ type: 'error', title, message })
+    }
   },
-  warning: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
-    addToast({ type: 'warning', title, message })
+  warning: (title: string, message?: string) => {
+    if (globalAddToast) {
+      globalAddToast({ type: 'warning', title, message })
+    }
   },
-  info: (addToast: (toast: Omit<Toast, 'id'>) => void) => (title: string, message?: string) => {
-    addToast({ type: 'info', title, message })
+  info: (title: string, message?: string) => {
+    if (globalAddToast) {
+      globalAddToast({ type: 'info', title, message })
+    }
   },
 }

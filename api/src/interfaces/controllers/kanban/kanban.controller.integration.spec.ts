@@ -57,8 +57,8 @@ describe('KanbanController Integration Tests - Kanban Operations', () => {
     // Get unique prefix for this test run
     testPrefix = TestDataFactory.getUniquePrefix();
 
-    // Clean up any existing test data
-    await TestDataFactory.cleanupAll(prisma);
+    // Clean up only this test's data (not all test data)
+    await TestDataFactory.cleanup(prisma, testPrefix);
 
     // Create test users using factory
     const owner = await TestDataFactory.createUser(prisma, {

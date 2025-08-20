@@ -17,6 +17,7 @@ import { GanttModule } from './interfaces/controllers/gantt/gantt.module';
 import { SearchModule } from './interfaces/controllers/search/search.module';
 import { CalendarModule } from './interfaces/controllers/calendar/calendar.module';
 import { KanbanModule } from './interfaces/controllers/kanban/kanban.module';
+import { TestModule } from './interfaces/controllers/test/test.module';
 import { CustomLoggerService } from './common/services/logger.service';
 
 @Module({
@@ -40,6 +41,10 @@ import { CustomLoggerService } from './common/services/logger.service';
     SearchModule,
     CalendarModule,
     KanbanModule,
+    // Test module (E2E環境でのみ有効)
+    ...(process.env.NODE_ENV === 'e2e' || process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development' 
+      ? [TestModule] 
+      : []),
   ],
   controllers: [AppController],
   providers: [

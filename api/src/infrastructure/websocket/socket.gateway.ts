@@ -139,7 +139,7 @@ export class SocketGateway
       const room = this.sessionRooms.get(sessionId);
       
       // Verify user owns the session
-      if (room.userId !== userId) {
+      if (!room || room.userId !== userId) {
         throw new WsException('Unauthorized session access');
       }
 

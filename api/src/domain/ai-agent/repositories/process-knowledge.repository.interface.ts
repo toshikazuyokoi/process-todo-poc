@@ -19,8 +19,11 @@ export interface ProcessKnowledge {
   bestPractices?: BestPractice[];
   tags: string[];
   source: string;
-  version: number;
-  isActive: boolean;
+  version?: number;
+  isActive?: boolean;
+  confidence?: number;
+  usageCount?: number;
+  lastUsedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -29,13 +32,20 @@ export interface ProcessKnowledge {
  * Best Practice Entity
  */
 export interface BestPractice {
+  id?: number;
   title: string;
   description: string;
-  rationale: string;
-  applicability: string[];
+  rationale?: string;
+  applicability?: string[];
+  industry?: string;
+  processType?: string;
+  recommendations?: string[];
   constraints?: string[];
   benefits?: string[];
   risks?: string[];
+  source?: string;
+  confidence?: number;
+  tags?: string[];
 }
 
 export interface ProcessKnowledgeRepository {

@@ -286,8 +286,21 @@ export class ProcessKnowledge {
    */
   incrementUsage(): ProcessKnowledge {
     return new ProcessKnowledge({
-      ...this.toJSON(),
+      id: this.id,
+      domain: this.domain,
+      processType: this.processType,
+      title: this.title,
+      content: this.content,
+      sourceType: this.sourceType,
+      sourceUrl: this.sourceUrl,
+      tags: this.tags,
+      version: this.version,
+      status: this.status,
+      relevanceScore: this.relevanceScore,
       usageCount: this.usageCount + 1,
+      metadata: this.metadata,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
       lastAccessedAt: new Date(),
     });
   }
@@ -301,9 +314,22 @@ export class ProcessKnowledge {
     }
 
     return new ProcessKnowledge({
-      ...this.toJSON(),
+      id: this.id,
+      domain: this.domain,
+      processType: this.processType,
+      title: this.title,
+      content: this.content,
+      sourceType: this.sourceType,
+      sourceUrl: this.sourceUrl,
+      tags: this.tags,
+      version: this.version,
+      status: this.status,
       relevanceScore: score,
+      usageCount: this.usageCount,
+      metadata: this.metadata,
+      createdAt: this.createdAt,
       updatedAt: new Date(),
+      lastAccessedAt: this.lastAccessedAt,
     });
   }
 
@@ -312,9 +338,22 @@ export class ProcessKnowledge {
    */
   archive(): ProcessKnowledge {
     return new ProcessKnowledge({
-      ...this.toJSON(),
+      id: this.id,
+      domain: this.domain,
+      processType: this.processType,
+      title: this.title,
+      content: this.content,
+      sourceType: this.sourceType,
+      sourceUrl: this.sourceUrl,
+      tags: this.tags,
+      version: this.version,
       status: KnowledgeStatus.ARCHIVED,
+      relevanceScore: this.relevanceScore,
+      usageCount: this.usageCount,
+      metadata: this.metadata,
+      createdAt: this.createdAt,
       updatedAt: new Date(),
+      lastAccessedAt: this.lastAccessedAt,
     });
   }
 
@@ -323,9 +362,22 @@ export class ProcessKnowledge {
    */
   deprecate(): ProcessKnowledge {
     return new ProcessKnowledge({
-      ...this.toJSON(),
+      id: this.id,
+      domain: this.domain,
+      processType: this.processType,
+      title: this.title,
+      content: this.content,
+      sourceType: this.sourceType,
+      sourceUrl: this.sourceUrl,
+      tags: this.tags,
+      version: this.version,
       status: KnowledgeStatus.DEPRECATED,
+      relevanceScore: this.relevanceScore,
+      usageCount: this.usageCount,
+      metadata: this.metadata,
+      createdAt: this.createdAt,
       updatedAt: new Date(),
+      lastAccessedAt: this.lastAccessedAt,
     });
   }
 

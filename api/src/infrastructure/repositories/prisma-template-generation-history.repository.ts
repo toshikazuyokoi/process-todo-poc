@@ -73,17 +73,17 @@ export class PrismaTemplateGenerationHistoryRepository
     }
   }
 
-  async findByTemplateId(templateId: number): Promise<TemplateGenerationHistory[]> {
+  async findByProcessTemplateId(processTemplateId: number): Promise<TemplateGenerationHistory | null> {
     try {
-      const histories = await this.prisma.aITemplateGenerationHistory.findMany({
-        where: { templateId },
+      const history = await this.prisma.aITemplateGenerationHistory.findFirst({
+        where: { processTemplateId },
         orderBy: { createdAt: 'desc' },
       });
 
-      return histories.map(h => this.fromDbModel(h));
+      return history ? this.fromDbModel(history) : null;
     } catch (error) {
-      this.logger.error(`Failed to find history by template ID: ${templateId}`, error);
-      return [];
+      this.logger.error(`Failed to find history by process template ID: ${processTemplateId}`, error);
+      return null;
     }
   }
 
@@ -107,7 +107,6 @@ export class PrismaTemplateGenerationHistoryRepository
         where: { id: historyId },
         data: {
           userFeedback: existingFeedback as Prisma.JsonArray,
-          updatedAt: new Date(),
         },
       });
     } catch (error) {
@@ -122,8 +121,8 @@ export class PrismaTemplateGenerationHistoryRepository
     try {
       const histories = await this.prisma.aITemplateGenerationHistory.findMany({
         where: {
-          generationStatus: 'success',
-          templateId: {
+          wasUsed: true,
+          processTemplateId: {
             not: null,
           },
         },
@@ -145,15 +144,15 @@ export class PrismaTemplateGenerationHistoryRepository
       const [total, successful, failed, avgConfidence] = await Promise.all([
         this.prisma.aITemplateGenerationHistory.count({ where }),
         this.prisma.aITemplateGenerationHistory.count({
-          where: { ...where, generationStatus: 'success' },
+          where: { ...where, wasUsed: true },
         }),
         this.prisma.aITemplateGenerationHistory.count({
-          where: { ...where, generationStatus: 'failed' },
+          where: { ...where, wasUsed: false },
         }),
         this.prisma.aITemplateGenerationHistory.aggregate({
           where,
           _avg: {
-            confidence: true,
+            confidenceScore: true,
           },
         }),
       ]);
@@ -165,7 +164,7 @@ export class PrismaTemplateGenerationHistoryRepository
         successful,
         failed,
         successRate: Math.round(successRate * 100) / 100,
-        averageConfidence: avgConfidence._avg.confidence || 0,
+        averageConfidence: avgConfidence._avg.confidenceScore || 0,
       };
     } catch (error) {
       this.logger.error('Failed to get statistics', error);
@@ -176,6 +175,136 @@ export class PrismaTemplateGenerationHistoryRepository
         successRate: 0,
         averageConfidence: 0,
       };
+    }
+  }
+
+  async updateFeedback(id: number, feedback: UserFeedback, rating?: number): Promise<void> {
+    try {
+      const history = await this.prisma.aITemplateGenerationHistory.findUnique({
+        where: { id },
+      });
+
+      if (!history) {
+        throw new Error('History not found');
+      }
+
+      const updateData: any = {
+        userFeedback: feedback as Prisma.JsonValue,
+      };
+
+      if (rating !== undefined) {
+        updateData.feedbackRating = rating;
+      }
+
+      await this.prisma.aITemplateGenerationHistory.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update feedback for history: ${id}`, error);
+      throw new Error('Failed to update feedback');
+    }
+  }
+
+  async markAsUsed(id: number, processTemplateId: number, modifications?: any[]): Promise<void> {
+    try {
+      await this.prisma.aITemplateGenerationHistory.update({
+        where: { id },
+        data: {
+          wasUsed: true,
+          processTemplateId,
+          modifications: modifications as Prisma.JsonArray,
+          finalizedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to mark history as used: ${id}`, error);
+      throw new Error('Failed to mark as used');
+    }
+  }
+
+  async findHighRatedTemplates(minRating: number = 4, limit: number = 10): Promise<TemplateGenerationHistory[]> {
+    try {
+      const histories = await this.prisma.aITemplateGenerationHistory.findMany({
+        where: {
+          feedbackRating: {
+            gte: minRating,
+          },
+        },
+        orderBy: [
+          { feedbackRating: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: limit,
+      });
+
+      return histories.map(h => this.fromDbModel(h));
+    } catch (error) {
+      this.logger.error('Failed to find high rated templates', error);
+      return [];
+    }
+  }
+
+  async getUserStatistics(userId: number): Promise<{
+    totalGenerated: number;
+    totalUsed: number;
+    averageRating: number | null;
+    averageConfidence: number | null;
+  }> {
+    try {
+      const [totalGenerated, totalUsed, avgStats] = await Promise.all([
+        this.prisma.aITemplateGenerationHistory.count({
+          where: { userId },
+        }),
+        this.prisma.aITemplateGenerationHistory.count({
+          where: { userId, wasUsed: true },
+        }),
+        this.prisma.aITemplateGenerationHistory.aggregate({
+          where: { userId },
+          _avg: {
+            feedbackRating: true,
+            confidenceScore: true,
+          },
+        }),
+      ]);
+
+      return {
+        totalGenerated,
+        totalUsed,
+        averageRating: avgStats._avg.feedbackRating,
+        averageConfidence: avgStats._avg.confidenceScore ? Number(avgStats._avg.confidenceScore) : null,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get user statistics for user: ${userId}`, error);
+      return {
+        totalGenerated: 0,
+        totalUsed: 0,
+        averageRating: null,
+        averageConfidence: null,
+      };
+    }
+  }
+
+  async deleteOlderThan(date: Date, keepUsed: boolean = true): Promise<number> {
+    try {
+      const where: any = {
+        createdAt: {
+          lt: date,
+        },
+      };
+
+      if (keepUsed) {
+        where.wasUsed = false;
+      }
+
+      const result = await this.prisma.aITemplateGenerationHistory.deleteMany({
+        where,
+      });
+
+      return result.count;
+    } catch (error) {
+      this.logger.error('Failed to delete old history records', error);
+      return 0;
     }
   }
 
@@ -234,18 +363,18 @@ export class PrismaTemplateGenerationHistoryRepository
     return {
       sessionId: history.sessionId,
       userId: history.userId,
-      templateId: history.templateId,
-      requirements: history.requirements as Prisma.JsonArray,
+      processTemplateId: history.processTemplateId,
+      requirementsUsed: history.requirementsUsed as Prisma.JsonArray,
       generatedTemplate: history.generatedTemplate as Prisma.JsonValue,
-      confidence: history.confidence,
-      generationTime: history.generationTime,
-      tokensUsed: history.tokensUsed,
-      generationStatus: history.generationStatus,
-      errorMessage: history.errorMessage,
-      userFeedback: (history.userFeedback || []) as Prisma.JsonArray,
-      metadata: history.metadata as Prisma.JsonValue,
+      knowledgeSources: (history.knowledgeSources || []) as Prisma.JsonArray,
+      researchSources: (history.researchSources || []) as Prisma.JsonArray,
+      confidenceScore: history.confidenceScore,
+      userFeedback: history.userFeedback as Prisma.JsonValue || Prisma.JsonNull,
+      feedbackRating: history.feedbackRating,
+      wasUsed: history.wasUsed || false,
+      modifications: (history.modifications || []) as Prisma.JsonArray,
       createdAt: history.createdAt,
-      updatedAt: history.updatedAt || new Date(),
+      finalizedAt: history.finalizedAt,
     };
   }
 
@@ -254,18 +383,18 @@ export class PrismaTemplateGenerationHistoryRepository
       id: data.id,
       sessionId: data.sessionId,
       userId: data.userId,
-      templateId: data.templateId,
-      requirements: data.requirements as any[],
-      generatedTemplate: data.generatedTemplate as Record<string, any>,
-      confidence: data.confidence,
-      generationTime: data.generationTime,
-      tokensUsed: data.tokensUsed,
-      generationStatus: data.generationStatus,
-      errorMessage: data.errorMessage,
-      userFeedback: (data.userFeedback as any[]) || [],
-      metadata: data.metadata as Record<string, any>,
+      processTemplateId: data.processTemplateId,
+      requirementsUsed: data.requirementsUsed,
+      generatedTemplate: data.generatedTemplate,
+      knowledgeSources: data.knowledgeSources || [],
+      researchSources: data.researchSources || [],
+      confidenceScore: data.confidenceScore ? parseFloat(data.confidenceScore.toString()) : undefined,
+      userFeedback: data.userFeedback,
+      feedbackRating: data.feedbackRating,
+      wasUsed: data.wasUsed,
+      modifications: data.modifications || [],
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      finalizedAt: data.finalizedAt,
     };
   }
 }

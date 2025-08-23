@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import * as crypto from 'crypto';
 
 export interface WebResearchCache {
   id?: number;
@@ -28,18 +29,24 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private createQueryHash(input: string): string {
+    return crypto.createHash('sha256').update(input).digest('hex');
+  }
+
   async save(cache: WebResearchCache): Promise<WebResearchCache> {
     try {
       const data = this.toDbModel(cache);
+      const queryHash = this.createQueryHash(`${cache.query}:${cache.queryType}`);
       
       const saved = await this.prisma.aIWebResearchCache.upsert({
         where: {
-          query_queryType: {
-            query: cache.query,
-            queryType: cache.queryType,
-          },
+          queryHash,
         },
-        update: data,
+        update: {
+          ...data,
+          hitCount: { increment: 1 },
+          lastAccessedAt: new Date(),
+        },
         create: data,
       });
 
@@ -55,12 +62,11 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
     queryType: string,
   ): Promise<WebResearchCache | null> {
     try {
+      // Create hash from query and type for unique lookup
+      const queryHash = this.createQueryHash(`${query}:${queryType}`);
       const cache = await this.prisma.aIWebResearchCache.findUnique({
         where: {
-          query_queryType: {
-            query,
-            queryType,
-          },
+          queryHash,
         },
       });
 
@@ -76,10 +82,10 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
     queryType: string,
   ): Promise<WebResearchCache | null> {
     try {
+      const queryHash = this.createQueryHash(`${query}:${queryType}`);
       const cache = await this.prisma.aIWebResearchCache.findFirst({
         where: {
-          query,
-          queryType,
+          queryHash,
           expiresAt: {
             gt: new Date(),
           },
@@ -138,8 +144,13 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
 
   async findByQueryType(queryType: string): Promise<WebResearchCache[]> {
     try {
+      // Note: queryType field doesn't exist in schema, using queryText field as workaround
       const caches = await this.prisma.aIWebResearchCache.findMany({
-        where: { queryType },
+        where: { 
+          queryText: {
+            contains: queryType,
+          }
+        },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -152,12 +163,10 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
 
   async invalidate(query: string, queryType: string): Promise<void> {
     try {
+      const queryHash = this.createQueryHash(`${query}:${queryType}`);
       await this.prisma.aIWebResearchCache.update({
         where: {
-          query_queryType: {
-            query,
-            queryType,
-          },
+          queryHash,
         },
         data: {
           expiresAt: new Date(), // Set to current time to invalidate
@@ -220,28 +229,39 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
 
   private toDbModel(cache: WebResearchCache): any {
     const expiresAt = cache.expiresAt || new Date(Date.now() + this.defaultTTL);
+    const queryHash = this.createQueryHash(`${cache.query}:${cache.queryType}`);
 
     return {
-      query: cache.query,
-      queryType: cache.queryType,
+      queryHash,
+      queryText: cache.query,
+      searchParameters: {
+        queryType: cache.queryType,
+        ...(cache.metadata || {}),
+      } as Prisma.JsonValue,
       results: cache.results as Prisma.JsonArray,
-      metadata: (cache.metadata || {}) as Prisma.JsonValue,
+      sourceReliability: cache.metadata?.sourceReliability as Prisma.JsonValue || null,
       expiresAt,
       createdAt: cache.createdAt || new Date(),
-      updatedAt: new Date(),
+      lastAccessedAt: new Date(),
+      hitCount: 1,
     };
   }
 
   private fromDbModel(data: any): WebResearchCache {
+    const searchParams = data.searchParameters as any || {};
     return {
       id: data.id,
-      query: data.query,
-      queryType: data.queryType,
+      query: data.queryText,
+      queryType: searchParams.queryType || 'general',
       results: data.results as any[],
-      metadata: data.metadata as Record<string, any>,
+      metadata: {
+        ...searchParams,
+        sourceReliability: data.sourceReliability,
+        hitCount: data.hitCount,
+      } as Record<string, any>,
       expiresAt: data.expiresAt,
       createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      updatedAt: data.lastAccessedAt,
     };
   }
 }

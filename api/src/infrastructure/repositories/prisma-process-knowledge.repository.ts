@@ -47,7 +47,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
     try {
       const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
         where: { category },
-        orderBy: { confidence: 'desc' },
+        orderBy: { confidenceScore: 'desc' },
       });
 
       return knowledgeList.map(k => this.fromDbModel(k));
@@ -61,7 +61,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
     try {
       const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
         where: { industry },
-        orderBy: { confidence: 'desc' },
+        orderBy: { confidenceScore: 'desc' },
       });
 
       return knowledgeList.map(k => this.fromDbModel(k));
@@ -75,7 +75,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
     try {
       const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
         where: { processType },
-        orderBy: { confidence: 'desc' },
+        orderBy: { confidenceScore: 'desc' },
       });
 
       return knowledgeList.map(k => this.fromDbModel(k));
@@ -85,7 +85,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
     }
   }
 
-  async searchBestPractices(
+  async findBestPractices(
     industry: string,
     processType: string,
   ): Promise<BestPractice[]> {
@@ -98,7 +98,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
             { category: 'best_practice' },
           ],
         },
-        orderBy: { confidence: 'desc' },
+        orderBy: { confidenceScore: 'desc' },
         take: 20,
       });
 
@@ -114,7 +114,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
       await this.prisma.aIProcessKnowledge.update({
         where: { id },
         data: {
-          confidence,
+          confidenceScore: confidence,
           updatedAt: new Date(),
         },
       });
@@ -126,19 +126,69 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
 
   async incrementUsageCount(id: number): Promise<void> {
     try {
+      // Note: usageCount and lastUsedAt fields don't exist in the current schema
+      // This method updates only the updatedAt field as a placeholder
       await this.prisma.aIProcessKnowledge.update({
         where: { id },
         data: {
-          usageCount: {
-            increment: 1,
-          },
-          lastUsedAt: new Date(),
           updatedAt: new Date(),
         },
       });
     } catch (error) {
       this.logger.error(`Failed to increment usage count for knowledge: ${id}`, error);
       throw new Error('Failed to increment usage count');
+    }
+  }
+
+  async update(id: number, knowledge: Partial<ProcessKnowledge>): Promise<ProcessKnowledge> {
+    try {
+      const updated = await this.prisma.aIProcessKnowledge.update({
+        where: { id },
+        data: {
+          category: knowledge.category,
+          industry: knowledge.industry,
+          processType: knowledge.processType,
+          title: knowledge.title,
+          description: knowledge.description,
+          content: knowledge.content || Prisma.JsonNull,
+          source: knowledge.source,
+          confidenceScore: knowledge.confidence,
+          updatedAt: new Date(),
+        },
+      });
+
+      return this.fromDbModel(updated);
+    } catch (error) {
+      this.logger.error(`Failed to update knowledge: ${id}`, error);
+      throw new Error('Failed to update knowledge');
+    }
+  }
+
+  async findActive(): Promise<ProcessKnowledge[]> {
+    try {
+      const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
+        where: { isActive: true },
+        orderBy: { confidenceScore: 'desc' },
+      });
+
+      return knowledgeList.map(k => this.fromDbModel(k));
+    } catch (error) {
+      this.logger.error('Failed to find active knowledge', error);
+      return [];
+    }
+  }
+
+  async findByVersion(version: number): Promise<ProcessKnowledge[]> {
+    try {
+      const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
+        where: { version },
+        orderBy: { confidenceScore: 'desc' },
+      });
+
+      return knowledgeList.map(k => this.fromDbModel(k));
+    } catch (error) {
+      this.logger.error(`Failed to find knowledge by version: ${version}`, error);
+      return [];
     }
   }
 
@@ -157,8 +207,8 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
     try {
       const knowledgeList = await this.prisma.aIProcessKnowledge.findMany({
         orderBy: [
-          { usageCount: 'desc' },
-          { confidence: 'desc' },
+          { confidenceScore: 'desc' },
+          { updatedAt: 'desc' },
         ],
         take: limit,
       });
@@ -208,9 +258,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
       content: knowledge.content as Prisma.JsonValue,
       tags: knowledge.tags,
       source: knowledge.source,
-      confidence: knowledge.confidence,
-      usageCount: knowledge.usageCount || 0,
-      lastUsedAt: knowledge.lastUsedAt,
+      confidenceScore: knowledge.confidence,
       createdAt: knowledge.createdAt,
       updatedAt: knowledge.updatedAt || new Date(),
     };
@@ -227,9 +275,9 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
       content: data.content as Record<string, any>,
       tags: data.tags,
       source: data.source,
-      confidence: data.confidence,
-      usageCount: data.usageCount,
-      lastUsedAt: data.lastUsedAt,
+      confidence: Number(data.confidenceScore) || 0.5,
+      usageCount: 0, // Field doesn't exist in schema
+      lastUsedAt: null, // Field doesn't exist in schema,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };
@@ -246,7 +294,7 @@ export class PrismaProcessKnowledgeRepository implements ProcessKnowledgeReposit
       benefits: (data.content as any)?.benefits || [],
       risks: (data.content as any)?.risks || [],
       source: data.source,
-      confidence: data.confidence,
+      confidence: Number(data.confidenceScore) || 0.5,
       tags: data.tags,
     };
   }

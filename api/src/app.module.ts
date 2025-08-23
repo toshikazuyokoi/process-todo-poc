@@ -22,6 +22,7 @@ import { CustomLoggerService } from './common/services/logger.service';
 import { AIConfigModule } from './config/ai-config.module';
 import { QueueModule } from './infrastructure/queue/queue.module';
 import { ProcessorsModule } from './infrastructure/processors/processors.module';
+import { WebSocketModule } from './infrastructure/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ProcessorsModule } from './infrastructure/processors/processors.module'
     AIConfigModule,
     QueueModule,
     ProcessorsModule,
+    WebSocketModule,
     ProcessTemplateModule,
     CaseModule,
     StepModule,

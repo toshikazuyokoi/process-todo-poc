@@ -240,6 +240,75 @@ export class SocketGateway
   }
 
   /**
+   * Notify research complete (from design document)
+   */
+  notifyResearchComplete(sessionId: string, results: any[]): void {
+    this.sendToSession(sessionId, {
+      type: 'template',
+      sessionId,
+      data: {
+        event: 'research_complete',
+        results,
+      },
+      timestamp: new Date(),
+    });
+    this.logger.log(`Research complete notification sent for session ${sessionId}`);
+  }
+
+  /**
+   * Notify template generated (from design document)
+   */
+  notifyTemplateGenerated(sessionId: string, template: any): void {
+    this.sendToSession(sessionId, {
+      type: 'template',
+      sessionId,
+      data: {
+        event: 'template_generated',
+        template,
+      },
+      timestamp: new Date(),
+    });
+    this.logger.log(`Template generated notification sent for session ${sessionId}`);
+  }
+
+  /**
+   * Notify requirements extracted (from design document)
+   */
+  notifyRequirementsExtracted(sessionId: string, requirements: any[]): void {
+    this.sendToSession(sessionId, {
+      type: 'message',
+      sessionId,
+      data: {
+        event: 'requirements_extracted',
+        requirements,
+      },
+      timestamp: new Date(),
+    });
+    this.logger.log(`Requirements extracted notification sent for session ${sessionId}`);
+  }
+
+  /**
+   * Notify session status changed (from design document)
+   */
+  notifySessionStatusChanged(sessionId: string, status: string): void {
+    this.broadcastStatusChange(sessionId, status);
+    this.logger.log(`Session status changed notification sent for session ${sessionId}: ${status}`);
+  }
+
+  /**
+   * Notify error (from design document)
+   */
+  notifyError(sessionId: string, error: any): void {
+    this.sendToSession(sessionId, {
+      type: 'error',
+      sessionId,
+      data: error,
+      timestamp: new Date(),
+    });
+    this.logger.error(`Error notification sent for session ${sessionId}:`, error);
+  }
+
+  /**
    * Broadcast template generation progress
    */
   broadcastProgress(sessionId: string, progress: number, message: string) {
@@ -303,11 +372,15 @@ export class SocketGateway
   }
 
   private extractUserId(client: Socket): number | null {
-    // Extract user ID from socket handshake
-    // This would typically come from JWT token in production
-    const userId = client.handshake.auth?.userId || 
+    // Extract user ID from socket
+    // Priority: 1. From SocketAuthGuard (client.data), 2. From handshake
+    const userId = client.data?.userId ||
+                   client.handshake.auth?.userId || 
                    client.handshake.query?.userId;
     
-    return userId ? parseInt(userId as string, 10) : null;
+    if (!userId) return null;
+    
+    // Ensure we return a number
+    return typeof userId === 'number' ? userId : parseInt(userId as string, 10);
   }
 }

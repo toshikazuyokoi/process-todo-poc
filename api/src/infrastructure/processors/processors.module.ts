@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AIProcessingProcessor } from './ai-processing.processor';
 import { QueueModule } from '../queue/queue.module';
 import { AIConfigModule } from '../../config/ai-config.module';
+import { WebSocketModule } from '../websocket/websocket.module';
 
 /**
  * Processors Module
@@ -11,6 +12,7 @@ import { AIConfigModule } from '../../config/ai-config.module';
   imports: [
     QueueModule,
     AIConfigModule,
+    WebSocketModule,
   ],
   providers: [
     AIProcessingProcessor,

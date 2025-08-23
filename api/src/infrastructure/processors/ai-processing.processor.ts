@@ -2,6 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bull';
 import { JobType, JobResult } from '../queue/background-job-queue.interface';
+import { SocketGateway } from '../websocket/socket.gateway';
 
 /**
  * AI Processing Processor
@@ -10,6 +11,9 @@ import { JobType, JobResult } from '../queue/background-job-queue.interface';
 @Processor('ai-jobs')
 @Injectable()
 export class AIProcessingProcessor {
+  constructor(
+    private readonly socketGateway: SocketGateway,
+  ) {}
   
   @Process(JobType.WEB_RESEARCH)
   async handleWebResearch(job: Job): Promise<JobResult> {
@@ -19,12 +23,19 @@ export class AIProcessingProcessor {
       await job.progress(10);
       
       // TODO: Implement actual web research logic
-      const { query, maxResults } = job.data.payload;
+      const { query, maxResults, sessionId } = job.data.payload;
       
       await job.progress(50);
       
       // Simulate processing
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const results: any[] = [];
+      
+      // Notify via WebSocket if sessionId is provided
+      if (sessionId) {
+        this.socketGateway.notifyResearchComplete(sessionId, results);
+      }
       
       await job.progress(100);
       
@@ -32,7 +43,7 @@ export class AIProcessingProcessor {
         success: true,
         data: {
           query,
-          results: [],
+          results,
           timestamp: new Date().toISOString(),
         },
         processingTimeMs: 2000,
@@ -54,7 +65,7 @@ export class AIProcessingProcessor {
       await job.progress(10);
       
       // TODO: Implement actual template generation logic
-      const { requirements, context } = job.data.payload;
+      const { requirements, context, sessionId } = job.data.payload;
       
       await job.progress(30);
       
@@ -71,6 +82,11 @@ export class AIProcessingProcessor {
           confidence: 0.85,
         },
       };
+      
+      // Notify via WebSocket if sessionId is provided
+      if (sessionId) {
+        this.socketGateway.notifyTemplateGenerated(sessionId, generatedTemplate);
+      }
       
       await job.progress(100);
       
@@ -99,7 +115,7 @@ export class AIProcessingProcessor {
       await job.progress(10);
       
       // TODO: Implement actual requirement analysis logic
-      const { conversation, context } = job.data.payload;
+      const { conversation, context, sessionId } = job.data.payload;
       
       await job.progress(40);
       
@@ -116,6 +132,11 @@ export class AIProcessingProcessor {
           confidence: 0.9,
         },
       ];
+      
+      // Notify via WebSocket if sessionId is provided
+      if (sessionId) {
+        this.socketGateway.notifyRequirementsExtracted(sessionId, extractedRequirements);
+      }
       
       await job.progress(100);
       

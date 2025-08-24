@@ -101,8 +101,8 @@ export class InterviewSession {
       throw new Error('Valid user ID is required');
     }
 
-    if (this.expiresAt <= this.createdAt) {
-      throw new Error('Expiration date must be after creation date');
+    if (this.expiresAt < this.createdAt) {
+      throw new Error('Expiration date must be after or equal to creation date');
     }
 
     if (this.isExpired() && this.status === SessionStatus.ACTIVE) {

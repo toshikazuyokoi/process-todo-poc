@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { RealtimeModule } from './gateways/realtime.module';
 import { ProcessTemplateRepository } from './repositories/process-template.repository';
@@ -12,6 +13,8 @@ import { NotificationRepository } from './repositories/notification.repository';
 import { BusinessDayService } from '@domain/services/business-day.service';
 import { ReplanDomainService } from '@domain/services/replan-domain.service';
 import { IHolidayRepository } from '@domain/repositories/holiday.repository.interface';
+import { AIConfigService } from './ai/ai-config.service';
+import { AIRateLimitService } from './ai/ai-rate-limit.service';
 
 const repositories = [
   ProcessTemplateRepository,
@@ -73,9 +76,14 @@ const domainServices = [
   },
 ];
 
+const aiServices = [
+  AIConfigService,
+  AIRateLimitService,
+];
+
 @Module({
-  imports: [PrismaModule, RealtimeModule],
-  providers: [...repositories, ...domainServices],
-  exports: [...repositories, BusinessDayService, ReplanDomainService, RealtimeModule],
+  imports: [PrismaModule, RealtimeModule, ConfigModule],
+  providers: [...repositories, ...domainServices, ...aiServices],
+  exports: [...repositories, BusinessDayService, ReplanDomainService, RealtimeModule, ...aiServices],
 })
 export class InfrastructureModule {}

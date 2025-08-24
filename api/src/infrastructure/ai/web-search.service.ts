@@ -182,8 +182,12 @@ export class WebSearchService {
 
   async extractContent(url: string): Promise<string> {
     try {
-      // In production, this would use a web scraping service or library
-      // For now, return a mock response
+      // TODO: Implement content extraction using a web scraping library such as 'cheerio' or 'node-readability'.
+      // Suggested plan:
+      // 1. Fetch the HTML content of the URL using HttpService or axios.
+      // 2. Use 'cheerio' to parse the HTML and extract the main article/content.
+      // 3. Return the extracted text content.
+      // For now, return a mock response.
       this.logger.warn('Content extraction not fully implemented. Using mock data.');
       return `Content from ${url}`;
     } catch (error) {

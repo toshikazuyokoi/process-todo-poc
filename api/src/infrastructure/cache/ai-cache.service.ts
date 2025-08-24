@@ -266,6 +266,45 @@ export class AICacheService {
   }
 
   /**
+   * Cache conversation for a session
+   */
+  async cacheConversation(sessionId: string, conversation: any[]): Promise<void> {
+    const key = this.keyGenerator.generateSessionKey(sessionId, 'conversation');
+    await this.set(key, conversation, { ttl: 3600, tags: ['session', 'conversation'] });
+  }
+
+  /**
+   * Get cached conversation
+   */
+  async getCachedConversation(sessionId: string): Promise<any[] | null> {
+    const key = this.keyGenerator.generateSessionKey(sessionId, 'conversation');
+    return this.get<any[]>(key);
+  }
+
+  /**
+   * Cache session data
+   */
+  async cacheSession(session: any): Promise<void> {
+    const key = this.keyGenerator.generateSessionKey(session.sessionId || session.getSessionIdString(), 'data');
+    await this.set(key, session, { ttl: 3600, tags: ['session'] });
+  }
+
+  /**
+   * Get cached session
+   */
+  async getCachedSession(sessionId: string): Promise<any | null> {
+    const key = this.keyGenerator.generateSessionKey(sessionId, 'data');
+    return this.get(key);
+  }
+
+  /**
+   * Clear session cache
+   */
+  async clearSessionCache(sessionId: string): Promise<void> {
+    await this.invalidateSession(sessionId);
+  }
+
+  /**
    * Get cache statistics
    */
   getStatistics(): CacheStatistics {

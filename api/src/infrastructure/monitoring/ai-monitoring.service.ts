@@ -380,6 +380,13 @@ export class AIMonitoringService {
   }
 
   /**
+   * Log usage (alias for logAIRequest for compatibility)
+   */
+  logUsage(userId: number, tokens: number, cost: number): void {
+    this.logAIRequest(userId, 'general', tokens, cost);
+  }
+
+  /**
    * Log AI request with metrics
    */
   logAIRequest(userId: number, action: string, tokens: number, cost: number): void {

@@ -1,4 +1,6 @@
 import { SessionStatus } from '../enums/session-status.enum';
+
+export { SessionStatus };
 import { SessionId } from '../value-objects/session-id.vo';
 import { ConversationMessage } from './conversation-message.entity';
 import { ProcessRequirement } from './process-requirement.entity';
@@ -9,6 +11,7 @@ import { ProcessRequirement } from './process-requirement.entity';
 export interface SessionContext {
   industry?: string;
   processType?: string;
+  goal?: string;  // Added for compatibility
   complexity?: 'simple' | 'medium' | 'complex' | 'very_complex';
   teamSize?: number;
   duration?: string;
@@ -16,6 +19,7 @@ export interface SessionContext {
   region?: string;
   budget?: number;
   timeline?: string;
+  additionalContext?: any;
 }
 
 /**

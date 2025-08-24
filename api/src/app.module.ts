@@ -23,6 +23,7 @@ import { AIConfigModule } from './config/ai-config.module';
 import { QueueModule } from './infrastructure/queue/queue.module';
 import { ProcessorsModule } from './infrastructure/processors/processors.module';
 import { WebSocketModule } from './infrastructure/websocket/websocket.module';
+import { AIAgentModule } from './application/usecases/ai-agent/ai-agent.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { WebSocketModule } from './infrastructure/websocket/websocket.module';
     QueueModule,
     ProcessorsModule,
     WebSocketModule,
+    AIAgentModule,
     ProcessTemplateModule,
     CaseModule,
     StepModule,

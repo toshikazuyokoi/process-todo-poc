@@ -21,9 +21,7 @@ export class OpenAIService implements AIClientInterface {
   private rateLimitMap: Map<number, { count: number; resetTime: Date }> = new Map();
 
   constructor(private readonly configService: ConfigService) {
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+      throw new Error('OPENAI_API_KEY environment variable is required. Please set it in your configuration.');
     }
 
     this.openai = new OpenAI({

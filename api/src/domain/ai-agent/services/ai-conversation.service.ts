@@ -1,13 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SessionContext } from '../entities/interview-session.entity';
-import { ConversationMessageDto, AIResponse } from '../types';
-
-export interface ConversationSession {
-  sessionId: string;
-  context: SessionContext;
-  conversation?: ConversationMessageDto[];
-  conversationHistory?: ConversationMessageDto[];
-}
+import { ConversationMessageDto, AIResponse, ConversationSession } from '../types';
 
 @Injectable()
 export class AIConversationService {

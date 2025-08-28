@@ -95,6 +95,23 @@ export class StartInterviewSessionUseCase {
 
   private async checkRateLimit(userId: number): Promise<void> {
     const limit = this.configService.getSessionRateLimit();
+    if (!limit || !limit.maxRequestsPerDay) {
+      // デフォルト値を使用
+      const defaultLimit = 5;
+      const canProceed = await this.rateLimitService.checkRateLimit(
+        userId,
+        defaultLimit,
+      );
+
+      if (!canProceed) {
+        throw new DomainException(
+          `Rate limit exceeded. Maximum ${defaultLimit} sessions per day.`,
+          'RATE_LIMIT_EXCEEDED',
+        );
+      }
+      return;
+    }
+
     const canProceed = await this.rateLimitService.checkRateLimit(
       userId,
       limit.maxRequestsPerDay,
@@ -116,13 +133,15 @@ export class StartInterviewSessionUseCase {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 hours
 
-    // Create conversation message entity
-    const welcomeConversationMessage = ConversationMessageMapper.createAssistantMessage(
-      welcomeMessage,
-      0.95,  // High confidence for welcome message
-      undefined,  // No token count for initial message
-      [],  // No suggested questions yet
-    );
+    // Create conversation message entity only if welcomeMessage is provided
+    const welcomeConversationMessage = welcomeMessage && welcomeMessage.trim()
+      ? ConversationMessageMapper.createAssistantMessage(
+          welcomeMessage,
+          0.95,  // High confidence for welcome message
+          undefined,  // No token count for initial message
+          [],  // No suggested questions yet
+        )
+      : null;
 
     const session = new InterviewSession({
       sessionId,
@@ -134,7 +153,7 @@ export class StartInterviewSessionUseCase {
         goal: input.goal,
         ...input.additionalContext,
       },
-      conversation: [welcomeConversationMessage],
+      conversation: welcomeConversationMessage ? [welcomeConversationMessage] : [],
       extractedRequirements: [],
       createdAt: now,
       updatedAt: now,

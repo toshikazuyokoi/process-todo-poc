@@ -1,57 +1,41 @@
-// Simple debug test script
-const { PrismaClient } = require('@prisma/client');
+// Debug script to understand the mock issue
+const testFile = `
+describe('Debug Test', () => {
+  it('should test mock return', async () => {
+    const mockCacheRepository = {
+      findByQuery: jest.fn(),
+      storeBatch: jest.fn(),
+    };
 
-const prisma = new PrismaClient();
+    const mockCachedResults = [
+      {
+        id: 'cache-1',
+        query: 'agile development best practices',
+        title: 'Agile Manifesto Principles',
+        content: 'Core principles of agile development',
+        description: 'Core principles of agile development',
+        url: 'https://agilemanifesto.org',
+        relevance: 0.9,
+        source: 'web',
+        author: 'Agile Alliance',
+        publishedAt: new Date('2023-06-01'),
+        tags: ['agile'],
+        citations: [],
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    ];
 
-async function testBusinessDayCalculation() {
-  console.log('=== Testing Business Day Calculation ===');
-  
-  // Fetch holidays
-  const holidays = await prisma.holiday.findMany({
-    where: {
-      countryCode: 'JP',
-      date: {
-        gte: new Date('2025-01-01'),
-        lte: new Date('2025-12-31')
-      }
-    }
+    mockCacheRepository.findByQuery.mockResolvedValue(mockCachedResults);
+    
+    const result = await mockCacheRepository.findByQuery('test', {});
+    
+    console.log('Mock returned:', JSON.stringify(result, null, 2));
+    console.log('Result length:', result.length);
+    console.log('Result is array:', Array.isArray(result));
+    console.log('First item:', result[0]);
   });
-  
-  console.log(`Found ${holidays.length} holidays in 2025`);
-  
-  // Test a simple date calculation
-  const startDate = new Date('2025-12-31');
-  console.log('Start date:', startDate.toISOString());
-  
-  // Add 5 days (should skip weekends)
-  const result = new Date(startDate);
-  let daysAdded = 0;
-  while (daysAdded < 5) {
-    result.setDate(result.getDate() + 1);
-    const dayOfWeek = result.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      daysAdded++;
-    }
-  }
-  
-  console.log('After adding 5 business days:', result.toISOString());
-  console.log('Year:', result.getFullYear());
-  
-  // Test with dependencies
-  const templates = await prisma.stepTemplate.findMany({
-    where: { processId: 1 },
-    orderBy: { seq: 'asc' }
-  });
-  
-  console.log('\n=== Step Templates ===');
-  templates.forEach(t => {
-    console.log(`${t.id}: ${t.name} (${t.basis}, offset: ${t.offsetDays}, deps: ${JSON.stringify(t.dependsOnJson)})`);
-  });
-  
-  await prisma.$disconnect();
-}
-
-testBusinessDayCalculation().catch(e => {
-  console.error(e);
-  process.exit(1);
 });
+`;
+
+console.log('Testing mock behavior...');

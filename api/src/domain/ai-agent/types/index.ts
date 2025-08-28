@@ -30,8 +30,7 @@ export { SessionContext } from '../entities/interview-session.entity';
 export interface ConversationSession {
   sessionId: string;
   context: any;
-  conversation: ConversationMessageDto[];
-  suggestedQuestions?: string[];
+  conversationHistory: ConversationMessageDto[];
 }
 
 export interface ConversationProgress {

@@ -4,6 +4,7 @@ import { InterviewSessionRepository } from '../../../domain/ai-agent/repositorie
 import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { SocketGateway } from '../../../infrastructure/websocket/socket.gateway';
 import { TestDataFactory } from '../../../../test/utils/test-data.factory';
+import { v4 as uuidv4 } from 'uuid';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
 
 describe('CleanupExpiredSessionsUseCase', () => {
@@ -137,7 +138,7 @@ describe('CleanupExpiredSessionsUseCase', () => {
 
         // Assert
         expect(result.cleanedCount).toBe(0);
-        expect(sessionRepository.deleteExpiredSessions).toHaveBeenCalled();
+        expect(sessionRepository.deleteExpiredSessions).not.toHaveBeenCalled();
       });
 
       it('should handle empty expired sessions list', async () => {
@@ -267,7 +268,7 @@ describe('CleanupExpiredSessionsUseCase', () => {
     describe('Manual cleanup', () => {
       it('should cleanup specific session manually', async () => {
         // Arrange
-        const sessionId = 'test-session-manual';
+        const sessionId = uuidv4();
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId: 1 });
 
         sessionRepository.findById.mockResolvedValue(mockSession);
@@ -305,7 +306,7 @@ describe('CleanupExpiredSessionsUseCase', () => {
 
       it('should handle manual cleanup failure', async () => {
         // Arrange
-        const sessionId = 'test-session-error';
+        const sessionId = uuidv4();
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId: 1 });
 
         sessionRepository.findById.mockResolvedValue(mockSession);

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { InterviewSessionRepository } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
@@ -12,6 +12,8 @@ export interface EndSessionInput {
 
 @Injectable()
 export class EndInterviewSessionUseCase {
+  private readonly logger = new Logger(EndInterviewSessionUseCase.name);
+
   constructor(
     @Inject('InterviewSessionRepository')
     private readonly sessionRepository: InterviewSessionRepository,
@@ -41,8 +43,23 @@ export class EndInterviewSessionUseCase {
       return; // Already ended, nothing to do
     }
 
-    // Complete the session
-    session.complete();
+    // Handle EXPIRED sessions - just return without processing
+    if (currentStatus === SessionStatus.EXPIRED) {
+      this.logger.warn(`Session ${input.sessionId} is already expired, cannot complete`);
+      return;
+    }
+
+    // Handle PAUSED sessions - can be completed directly
+    if (currentStatus === SessionStatus.PAUSED) {
+      // PAUSED sessions can be completed, but we need to update status directly
+      // to avoid the isActive() check in complete() method
+      const sessionEntity = session as any; // Access private properties
+      sessionEntity.status = SessionStatus.COMPLETED;
+      sessionEntity.updatedAt = new Date();
+    } else {
+      // ACTIVE sessions use the normal complete() method
+      session.complete();
+    }
 
     // Save updated session
     await this.sessionRepository.save(session);

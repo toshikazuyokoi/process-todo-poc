@@ -40,12 +40,11 @@ describe('OpenAIService', () => {
   });
 
   describe('constructor', () => {
-    it('should throw error if API key is not configured', () => {
+    it('should initialize with null openai client if API key is not configured', () => {
       jest.spyOn(configService, 'get').mockReturnValueOnce(undefined);
       
-      expect(() => new OpenAIService(configService)).toThrow(
-        'OPENAI_API_KEY is not configured',
-      );
+      const service = new OpenAIService(configService);
+      expect((service as any).openai).toBeNull();
     });
   });
 

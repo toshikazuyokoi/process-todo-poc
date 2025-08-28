@@ -1,3 +1,29 @@
+// Mock CacheModule before any imports
+jest.mock('@nestjs/cache-manager', () => ({
+  CacheModule: {
+    registerAsync: jest.fn(() => ({
+      module: class MockCacheModule {},
+      providers: [
+        {
+          provide: 'CACHE_MANAGER',
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(true),
+            del: jest.fn().mockResolvedValue(1),
+            reset: jest.fn().mockResolvedValue(true),
+            wrap: jest.fn().mockImplementation(async (key, fn) => fn()),
+            store: {
+              keys: jest.fn().mockResolvedValue([]),
+              ttl: jest.fn().mockResolvedValue(-1),
+            },
+          },
+        },
+      ],
+      exports: ['CACHE_MANAGER'],
+    })),
+  },
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
@@ -24,6 +50,29 @@ describe('CommentController Integration Tests - Comment Flow', () => {
     })
     .overrideGuard(JwtAuthGuard)
     .useClass(MockJwtAuthGuard)
+    // REDIS_CLIENTのモック追加
+    .overrideProvider('REDIS_CLIENT')
+    .useValue({
+      incr: jest.fn().mockResolvedValue(1),
+      expire: jest.fn().mockResolvedValue(true),
+      get: jest.fn().mockResolvedValue(null),
+      del: jest.fn().mockResolvedValue(1),
+    })
+    .overrideProvider('OpenAIService')
+    .useValue({
+      generateResponse: jest.fn(),
+      generateTemplate: jest.fn(),
+      extractEntities: jest.fn(),
+      classifyIntent: jest.fn(),
+    })
+    .overrideProvider('ProcessAnalysisService')
+    .useValue({
+      analyzeRequirements: jest.fn(),
+      extractRequirements: jest.fn(),
+      calculateConversationProgress: jest.fn(),
+      categorizeProcess: jest.fn(),
+      assessComplexity: jest.fn(),
+    })
     .compile();
 
     app = moduleFixture.createNestApplication();

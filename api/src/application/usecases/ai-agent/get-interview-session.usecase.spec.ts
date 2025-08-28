@@ -5,6 +5,7 @@ import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { TestDataFactory } from '../../../../test/utils/test-data.factory';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('GetInterviewSessionUseCase', () => {
   let useCase: GetInterviewSessionUseCase;
@@ -54,7 +55,7 @@ describe('GetInterviewSessionUseCase', () => {
     describe('正常系', () => {
       it('should retrieve session from cache when available', async () => {
         // Arrange
-        const sessionId = 'test-session-123';
+        const sessionId = uuidv4();
         const userId = 1;
         const cachedSession = {
           sessionId,
@@ -89,7 +90,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should retrieve session from database when not in cache', async () => {
         // Arrange
-        const sessionId = 'test-session-456';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ 
           sessionId, 
@@ -117,7 +118,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should map entity to DTO correctly', async () => {
         // Arrange
-        const sessionId = 'test-session-789';
+        const sessionId = uuidv4();
         const userId = 2;
         const mockSession = TestDataFactory.createMockSession({ 
           sessionId, 
@@ -150,7 +151,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should handle both entity and cached plain object formats', async () => {
         // Arrange
-        const sessionId = 'test-session-plain';
+        const sessionId = uuidv4();
         const userId = 3;
         const plainCachedSession = {
           sessionId,
@@ -199,7 +200,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should throw error when session not found', async () => {
         // Arrange
-        const sessionId = 'non-existent-session';
+        const sessionId = uuidv4();
         const userId = 1;
 
         cacheService.getCachedSession.mockResolvedValue(null);
@@ -213,7 +214,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should throw error when user does not own session from cache', async () => {
         // Arrange
-        const sessionId = 'test-session-123';
+        const sessionId = uuidv4();
         const userId = 1;
         const differentUserId = 999;
         const cachedSession = {
@@ -239,7 +240,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should throw error when user does not own session from database', async () => {
         // Arrange
-        const sessionId = 'test-session-456';
+        const sessionId = uuidv4();
         const userId = 1;
         const differentUserId = 999;
         const mockSession = TestDataFactory.createMockSession({ 
@@ -260,7 +261,7 @@ describe('GetInterviewSessionUseCase', () => {
     describe('Caching behavior', () => {
       it('should cache session after retrieving from database', async () => {
         // Arrange
-        const sessionId = 'test-session-cache';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -277,7 +278,7 @@ describe('GetInterviewSessionUseCase', () => {
 
       it('should not query database when cache hit occurs', async () => {
         // Arrange
-        const sessionId = 'test-session-cached';
+        const sessionId = uuidv4();
         const userId = 1;
         const cachedSession = {
           sessionId,

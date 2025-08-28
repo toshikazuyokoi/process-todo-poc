@@ -2,25 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
-
-export interface WebResearchCache {
-  id?: number;
-  query: string;
-  queryType: string;
-  results: any[];
-  metadata?: Record<string, any>;
-  expiresAt: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export interface WebResearchCacheRepository {
-  save(cache: WebResearchCache): Promise<WebResearchCache>;
-  findByQuery(query: string, queryType: string): Promise<WebResearchCache | null>;
-  findValid(query: string, queryType: string): Promise<WebResearchCache | null>;
-  deleteExpired(): Promise<number>;
-  delete(id: number): Promise<void>;
-}
+import {
+  WebResearchCacheRepository,
+  ResearchResult,
+  ResearchQueryOptions,
+} from '../../../domain/ai-agent/repositories/web-research-cache.repository.interface';
 
 @Injectable()
 export class PrismaWebResearchCacheRepository implements WebResearchCacheRepository {
@@ -33,235 +19,222 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
     return crypto.createHash('sha256').update(input).digest('hex');
   }
 
-  async save(cache: WebResearchCache): Promise<WebResearchCache> {
-    try {
-      const data = this.toDbModel(cache);
-      const queryHash = this.createQueryHash(`${cache.query}:${cache.queryType}`);
-      
-      const saved = await this.prisma.aIWebResearchCache.upsert({
-        where: {
-          queryHash,
-        },
-        update: {
-          ...data,
-          hitCount: { increment: 1 },
-          lastAccessedAt: new Date(),
-        },
-        create: data,
-      });
-
-      return this.fromDbModel(saved);
-    } catch (error) {
-      this.logger.error('Failed to save web research cache', error);
-      throw new Error('Failed to save web research cache');
-    }
-  }
-
+  /**
+   * Find cached research results by query
+   * This is one of only 2 methods actually used in the codebase
+   */
   async findByQuery(
     query: string,
-    queryType: string,
-  ): Promise<WebResearchCache | null> {
+    options?: ResearchQueryOptions,
+  ): Promise<ResearchResult[]> {
     try {
-      // Create hash from query and type for unique lookup
-      const queryHash = this.createQueryHash(`${query}:${queryType}`);
-      const cache = await this.prisma.aIWebResearchCache.findUnique({
+      // Search for caches containing the query text
+      const caches = await this.prisma.aIWebResearchCache.findMany({
         where: {
-          queryHash,
+          queryText: { contains: query },
+          expiresAt: { gt: new Date() }, // Only valid caches
         },
+        take: options?.limit || 20,
+        skip: options?.offset || 0,
+        orderBy: { lastAccessedAt: 'desc' },
       });
 
-      return cache ? this.fromDbModel(cache) : null;
+      // Convert cached data to ResearchResult array
+      const results: ResearchResult[] = [];
+      for (const cache of caches) {
+        const cacheResults = cache.results as any[];
+        if (Array.isArray(cacheResults)) {
+          results.push(...cacheResults.map(r => this.toResearchResult(r, cache)));
+        }
+      }
+
+      // Update hit count for accessed caches
+      if (caches.length > 0) {
+        await this.prisma.aIWebResearchCache.updateMany({
+          where: { id: { in: caches.map(c => c.id) } },
+          data: {
+            hitCount: { increment: 1 },
+            lastAccessedAt: new Date(),
+          },
+        });
+      }
+
+      return results;
     } catch (error) {
       this.logger.error(`Failed to find cache by query: ${query}`, error);
-      return null;
+      return []; // Return empty array on error for safety
     }
   }
 
-  async findValid(
-    query: string,
-    queryType: string,
-  ): Promise<WebResearchCache | null> {
+  /**
+   * Store multiple research results in cache
+   * This is one of only 2 methods actually used in the codebase
+   */
+  async storeBatch(
+    results: Array<Omit<ResearchResult, 'id' | 'createdAt'>>,
+  ): Promise<ResearchResult[]> {
     try {
-      const queryHash = this.createQueryHash(`${query}:${queryType}`);
-      const cache = await this.prisma.aIWebResearchCache.findFirst({
-        where: {
-          queryHash,
-          expiresAt: {
-            gt: new Date(),
+      const stored: ResearchResult[] = [];
+      
+      // Group results by query
+      const groupedByQuery = new Map<string, typeof results>();
+      for (const result of results) {
+        const key = result.query;
+        if (!groupedByQuery.has(key)) {
+          groupedByQuery.set(key, []);
+        }
+        groupedByQuery.get(key)!.push(result);
+      }
+      
+      // Store each query group in cache
+      for (const [query, queryResults] of groupedByQuery) {
+        const queryHash = this.createQueryHash(query);
+        
+        const cache = await this.prisma.aIWebResearchCache.upsert({
+          where: { queryHash },
+          update: {
+            results: queryResults as Prisma.JsonArray,
+            lastAccessedAt: new Date(),
+            hitCount: { increment: 1 },
+            expiresAt: queryResults[0].expiresAt,
           },
-        },
-      });
-
-      return cache ? this.fromDbModel(cache) : null;
+          create: {
+            queryHash,
+            queryText: query,
+            searchParameters: {} as Prisma.JsonValue,
+            results: queryResults as Prisma.JsonArray,
+            expiresAt: queryResults[0].expiresAt,
+            createdAt: new Date(),
+            lastAccessedAt: new Date(),
+            hitCount: 1,
+          },
+        });
+        
+        // Convert stored results back to ResearchResult format
+        const cacheResults = cache.results as any[];
+        stored.push(...cacheResults.map(r => this.toResearchResult(r, cache)));
+      }
+      
+      return stored;
     } catch (error) {
-      this.logger.error(`Failed to find valid cache for query: ${query}`, error);
-      return null;
+      this.logger.error('Failed to store batch results', error);
+      throw error; // Let the use case handle the error
     }
+  }
+
+  /**
+   * Convert database cache item to ResearchResult format
+   */
+  private toResearchResult(item: any, cache: any): ResearchResult {
+    return {
+      id: item.id || `${cache.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      query: cache.queryText,
+      url: item.url || '',
+      title: item.title || '',
+      content: item.content || item.description || '',
+      summary: item.summary,
+      relevanceScore: item.relevance || item.relevanceScore || 0.5,
+      source: item.source || 'web',
+      metadata: {
+        author: item.author,
+        publishedDate: item.publishedAt ? new Date(item.publishedAt) : undefined,
+        lastModified: item.lastModified ? new Date(item.lastModified) : undefined,
+        tags: item.tags || [],
+        language: item.language,
+      },
+      createdAt: cache.createdAt,
+      expiresAt: cache.expiresAt,
+    };
+  }
+
+  // ============================================================================
+  // UNUSED METHODS - Not implemented as they are not used in the codebase
+  // ============================================================================
+
+  async store(result: Omit<ResearchResult, 'id' | 'createdAt'>): Promise<ResearchResult> {
+    throw new Error('Method not implemented: store() is not required for current use cases. Use storeBatch() instead.');
+  }
+
+  async findById(id: string): Promise<ResearchResult | null> {
+    throw new Error('Method not implemented: findById() is not required for current use cases');
+  }
+
+  async findSimilarQueries(query: string, threshold?: number): Promise<string[]> {
+    throw new Error('Method not implemented: findSimilarQueries() is not required for current use cases');
+  }
+
+  async findByUrl(url: string): Promise<ResearchResult[]> {
+    throw new Error('Method not implemented: findByUrl() is not required for current use cases');
+  }
+
+  async findBySource(
+    source: ResearchResult['source'],
+    options?: { limit?: number; offset?: number; minRelevance?: number },
+  ): Promise<ResearchResult[]> {
+    throw new Error('Method not implemented: findBySource() is not required for current use cases');
+  }
+
+  async isCached(query: string): Promise<boolean> {
+    throw new Error('Method not implemented: isCached() is not required for current use cases');
+  }
+
+  async getCacheStatistics(): Promise<{
+    totalEntries: number;
+    activeEntries: number;
+    expiredEntries: number;
+    hitRate: number;
+    averageRelevance: number;
+    topQueries: Array<{ query: string; count: number }>;
+    topSources: Array<{ source: string; count: number }>;
+  }> {
+    throw new Error('Method not implemented: getCacheStatistics() is not required for current use cases');
+  }
+
+  async updateRelevance(id: string, relevanceScore: number): Promise<boolean> {
+    throw new Error('Method not implemented: updateRelevance() is not required for current use cases');
+  }
+
+  async extendExpiration(id: string, days: number): Promise<boolean> {
+    throw new Error('Method not implemented: extendExpiration() is not required for current use cases');
   }
 
   async deleteExpired(): Promise<number> {
-    try {
-      const result = await this.prisma.aIWebResearchCache.deleteMany({
-        where: {
-          expiresAt: {
-            lt: new Date(),
-          },
-        },
-      });
-
-      this.logger.debug(`Deleted ${result.count} expired cache entries`);
-      return result.count;
-    } catch (error) {
-      this.logger.error('Failed to delete expired cache entries', error);
-      return 0;
-    }
+    throw new Error('Method not implemented: deleteExpired() is not required for current use cases');
   }
 
-  async delete(id: number): Promise<void> {
-    try {
-      await this.prisma.aIWebResearchCache.delete({
-        where: { id },
-      });
-    } catch (error) {
-      this.logger.error(`Failed to delete cache: ${id}`, error);
-      throw new Error('Failed to delete cache');
-    }
+  async delete(id: string): Promise<boolean> {
+    throw new Error('Method not implemented: delete() is not required for current use cases');
   }
 
-  async findRecent(limit: number = 10): Promise<WebResearchCache[]> {
-    try {
-      const caches = await this.prisma.aIWebResearchCache.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
-
-      return caches.map(c => this.fromDbModel(c));
-    } catch (error) {
-      this.logger.error('Failed to find recent cache entries', error);
-      return [];
-    }
+  async deleteByQuery(query: string): Promise<number> {
+    throw new Error('Method not implemented: deleteByQuery() is not required for current use cases');
   }
 
-  async findByQueryType(queryType: string): Promise<WebResearchCache[]> {
-    try {
-      // Note: queryType field doesn't exist in schema, using queryText field as workaround
-      const caches = await this.prisma.aIWebResearchCache.findMany({
-        where: { 
-          queryText: {
-            contains: queryType,
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      return caches.map(c => this.fromDbModel(c));
-    } catch (error) {
-      this.logger.error(`Failed to find cache by query type: ${queryType}`, error);
-      return [];
-    }
+  async clear(): Promise<void> {
+    throw new Error('Method not implemented: clear() is not required for current use cases');
   }
 
-  async invalidate(query: string, queryType: string): Promise<void> {
-    try {
-      const queryHash = this.createQueryHash(`${query}:${queryType}`);
-      await this.prisma.aIWebResearchCache.update({
-        where: {
-          queryHash,
-        },
-        data: {
-          expiresAt: new Date(), // Set to current time to invalidate
-        },
-      });
-    } catch (error) {
-      this.logger.error(`Failed to invalidate cache for query: ${query}`, error);
-      // Silently fail as cache invalidation is not critical
-    }
+  async getTopResults(limit?: number): Promise<ResearchResult[]> {
+    throw new Error('Method not implemented: getTopResults() is not required for current use cases');
   }
 
-  async getStatistics(): Promise<Record<string, any>> {
-    try {
-      const [total, valid, expired] = await Promise.all([
-        this.prisma.aIWebResearchCache.count(),
-        this.prisma.aIWebResearchCache.count({
-          where: {
-            expiresAt: {
-              gt: new Date(),
-            },
-          },
-        }),
-        this.prisma.aIWebResearchCache.count({
-          where: {
-            expiresAt: {
-              lte: new Date(),
-            },
-          },
-        }),
-      ]);
-
-      const hitRate = total > 0 ? (valid / total) * 100 : 0;
-
-      return {
-        total,
-        valid,
-        expired,
-        hitRate: Math.round(hitRate * 100) / 100,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get cache statistics', error);
-      return {
-        total: 0,
-        valid: 0,
-        expired: 0,
-        hitRate: 0,
-      };
-    }
+  async getRecentQueries(limit?: number): Promise<Array<{
+    query: string;
+    count: number;
+    lastAccessed: Date;
+  }>> {
+    throw new Error('Method not implemented: getRecentQueries() is not required for current use cases');
   }
 
-  async clearAll(): Promise<void> {
-    try {
-      await this.prisma.aIWebResearchCache.deleteMany({});
-      this.logger.debug('Cleared all cache entries');
-    } catch (error) {
-      this.logger.error('Failed to clear all cache entries', error);
-      throw new Error('Failed to clear cache');
-    }
+  async markAsUsed(id: string): Promise<void> {
+    throw new Error('Method not implemented: markAsUsed() is not required for current use cases');
   }
 
-  private toDbModel(cache: WebResearchCache): any {
-    const expiresAt = cache.expiresAt || new Date(Date.now() + this.defaultTTL);
-    const queryHash = this.createQueryHash(`${cache.query}:${cache.queryType}`);
-
-    return {
-      queryHash,
-      queryText: cache.query,
-      searchParameters: {
-        queryType: cache.queryType,
-        ...(cache.metadata || {}),
-      } as Prisma.JsonValue,
-      results: cache.results as Prisma.JsonArray,
-      sourceReliability: cache.metadata?.sourceReliability as Prisma.JsonValue || null,
-      expiresAt,
-      createdAt: cache.createdAt || new Date(),
-      lastAccessedAt: new Date(),
-      hitCount: 1,
-    };
-  }
-
-  private fromDbModel(data: any): WebResearchCache {
-    const searchParams = data.searchParameters as any || {};
-    return {
-      id: data.id,
-      query: data.queryText,
-      queryType: searchParams.queryType || 'general',
-      results: data.results as any[],
-      metadata: {
-        ...searchParams,
-        sourceReliability: data.sourceReliability,
-        hitCount: data.hitCount,
-      } as Record<string, any>,
-      expiresAt: data.expiresAt,
-      createdAt: data.createdAt,
-      updatedAt: data.lastAccessedAt,
-    };
+  async getUsageStats(id: string): Promise<{
+    accessCount: number;
+    lastAccessed: Date;
+    firstAccessed: Date;
+  }> {
+    throw new Error('Method not implemented: getUsageStats() is not required for current use cases');
   }
 }

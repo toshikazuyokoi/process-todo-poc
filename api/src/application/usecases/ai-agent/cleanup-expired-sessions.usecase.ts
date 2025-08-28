@@ -66,12 +66,16 @@ export class CleanupExpiredSessionsUseCase {
         }
       }
 
-      // Delete expired sessions from database
-      const deletedCount = await this.sessionRepository.deleteExpiredSessions();
-
-      this.logger.log(
-        `Cleanup completed. Expired: ${cleanedCount}, Deleted: ${deletedCount}`,
-      );
+      // Delete expired sessions from database only if there were sessions to clean
+      let deletedCount = 0;
+      if (cleanedCount > 0) {
+        deletedCount = await this.sessionRepository.deleteExpiredSessions();
+        this.logger.log(
+          `Cleanup completed. Expired: ${cleanedCount}, Deleted: ${deletedCount}`,
+        );
+      } else {
+        this.logger.log('No expired sessions found to cleanup');
+      }
 
       return { cleanedCount };
     } catch (error) {

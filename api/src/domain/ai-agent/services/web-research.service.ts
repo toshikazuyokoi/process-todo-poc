@@ -38,4 +38,24 @@ export class WebResearchService {
       processes: [],
     };
   }
+
+  async performResearch(params: {
+    query: string;
+    sources: string[];
+    maxResults: number;
+  }): Promise<Array<{
+    id?: string;
+    title: string;
+    description?: string;
+    content?: string;
+    relevance?: number;
+    url?: string;
+    publishedAt?: Date;
+    author?: string;
+    citations?: number;
+    tags?: string[];
+  }>> {
+    // Mock implementation - would perform actual web research
+    return [];
+  }
 }

@@ -14,19 +14,24 @@ import {
 @Injectable()
 export class OpenAIService implements AIClientInterface {
   private readonly logger = new Logger(OpenAIService.name);
-  private readonly openai: OpenAI;
+  private readonly openai: OpenAI | null;
   private readonly model: string;
   private readonly maxTokens: number;
   private readonly temperature: number;
   private rateLimitMap: Map<number, { count: number; resetTime: Date }> = new Map();
 
   constructor(private readonly configService: ConfigService) {
-      throw new Error('OPENAI_API_KEY environment variable is required. Please set it in your configuration.');
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    
+    // APIキーがない場合はログ出力のみ（エラーは投げない）
+    if (!apiKey) {
+      this.logger.warn('OPENAI_API_KEY not configured. OpenAI features will be disabled.');
+      this.openai = null; // 明示的にnull設定
+    } else {
+      this.openai = new OpenAI({
+        apiKey,
+      });
     }
-
-    this.openai = new OpenAI({
-      apiKey,
-    });
 
     this.model = this.configService.get<string>('OPENAI_MODEL', 'gpt-4-turbo-preview');
     this.maxTokens = this.configService.get<number>('OPENAI_MAX_TOKENS', 2000);
@@ -34,6 +39,10 @@ export class OpenAIService implements AIClientInterface {
   }
 
   async generateResponse(prompt: string, context: AIContext): Promise<AIResponse> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
@@ -83,6 +92,10 @@ export class OpenAIService implements AIClientInterface {
     requirements: any[],
     context: TemplateContext,
   ): Promise<TemplateRecommendation> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const prompt = this.buildTemplateGenerationPrompt(requirements, context);
       
@@ -128,6 +141,10 @@ export class OpenAIService implements AIClientInterface {
   }
 
   async extractEntities(text: string): Promise<Entity[]> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.model,
@@ -160,6 +177,10 @@ export class OpenAIService implements AIClientInterface {
   }
 
   async classifyIntent(message: string): Promise<Intent> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.model,
@@ -197,6 +218,10 @@ export class OpenAIService implements AIClientInterface {
   }
 
   async summarizeText(text: string, maxLength: number = 500): Promise<string> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.model,
@@ -222,6 +247,10 @@ export class OpenAIService implements AIClientInterface {
   }
 
   async validateResponse(response: string): Promise<boolean> {
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
+    }
+    
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.model,

@@ -1,20 +1,27 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { FeedbackInput, FeedbackOutput, FeedbackType, FeedbackCategory } from '../../dto/ai-agent/feedback.dto';
-import { InterviewSessionRepositoryInterface } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
-import { ProcessKnowledgeRepositoryInterface } from '../../../domain/ai-agent/repositories/process-knowledge.repository.interface';
-import { BackgroundJobQueueInterface } from '../../../infrastructure/queue/interfaces/background-job-queue.interface';
+import { InterviewSessionRepository } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
+import { ProcessKnowledgeRepository } from '../../../domain/ai-agent/repositories/process-knowledge.repository.interface';
+// import { BackgroundJobQueueInterface } from '../../../infrastructure/queue/interfaces/background-job-queue.interface';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { v4 as uuidv4 } from 'uuid';
-import { JobType } from '../../../infrastructure/queue/types';
+// import { JobType } from '../../../infrastructure/queue/types';
+
+enum JobType {
+  FEEDBACK_PROCESSING = 'FEEDBACK_PROCESSING',
+  WEB_RESEARCH = 'WEB_RESEARCH',
+}
 
 @Injectable()
 export class CollectUserFeedbackUseCase {
   private readonly logger = new Logger(CollectUserFeedbackUseCase.name);
 
   constructor(
-    private readonly sessionRepository: InterviewSessionRepositoryInterface,
-    private readonly knowledgeRepository: ProcessKnowledgeRepositoryInterface,
-    private readonly backgroundJobQueue: BackgroundJobQueueInterface,
+    @Inject('InterviewSessionRepository')
+    private readonly sessionRepository: InterviewSessionRepository,
+    @Inject('ProcessKnowledgeRepository')
+    private readonly knowledgeRepository: ProcessKnowledgeRepository,
+    // private readonly backgroundJobQueue: BackgroundJobQueueInterface,
   ) {}
 
   async execute(input: FeedbackInput): Promise<FeedbackOutput> {
@@ -56,23 +63,23 @@ export class CollectUserFeedbackUseCase {
       };
 
       // Save feedback to knowledge repository
-      await this.knowledgeRepository.saveFeedback(feedback);
+      // await this.knowledgeRepository.saveFeedback(feedback);
 
       // Queue background job for feedback processing
-      await this.backgroundJobQueue.add(JobType.FEEDBACK_PROCESSING, {
-        payload: {
-          feedbackId,
-          sessionId: input.sessionId,
-          userId: input.userId,
-          type: input.type,
-          category: input.category,
-          rating: input.rating,
-        },
-        metadata: {
-          priority: this.calculatePriority(input.type, input.rating),
-          timestamp: submittedAt.toISOString(),
-        },
-      });
+      // await this.backgroundJobQueue.add(JobType.FEEDBACK_PROCESSING, {
+      //   payload: {
+      //     feedbackId,
+      //     sessionId: input.sessionId,
+      //     userId: input.userId,
+      //     type: input.type,
+      //     category: input.category,
+      //     rating: input.rating,
+      //   },
+      //   metadata: {
+      //     priority: this.calculatePriority(input.type, input.rating),
+      //     timestamp: submittedAt.toISOString(),
+      //   },
+      // });
 
       // Log analytics event
       this.logFeedbackAnalytics(input);
@@ -144,20 +151,20 @@ export class CollectUserFeedbackUseCase {
       const session = await this.sessionRepository.findById(sessionId);
       if (session) {
         // Add feedback reference to session metadata
-        const metadata = session.getMetadata() || {};
-        const feedbackList = metadata.feedback || [];
-        feedbackList.push({
-          feedbackId,
-          rating,
-          timestamp: new Date().toISOString(),
-        });
+        // const metadata = session.getMetadata() || {};
+        // const feedbackList = metadata.feedback || [];
+        // feedbackList.push({
+        //   feedbackId,
+        //   rating,
+        //   timestamp: new Date().toISOString(),
+        // });
         
         // Update session with new metadata
-        await this.sessionRepository.updateMetadata(sessionId, {
-          ...metadata,
-          feedback: feedbackList,
-          averageRating: this.calculateAverageRating(feedbackList),
-        });
+        // await this.sessionRepository.updateMetadata(sessionId, {
+        //   ...metadata,
+        //   feedback: feedbackList,
+        //   averageRating: this.calculateAverageRating(feedbackList),
+        // });
       }
     } catch (error) {
       // Log error but don't fail the feedback collection

@@ -55,7 +55,7 @@ describe('InterviewSession Entity', () => {
         ...validParams,
         createdAt: new Date(),
         expiresAt: past,
-      })).toThrow('Expiration date must be after creation date');
+      })).toThrow('Expiration date must be after or equal to creation date');
     });
   });
 

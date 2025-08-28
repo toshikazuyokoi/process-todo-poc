@@ -6,6 +6,7 @@ import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { TestDataFactory } from '../../../../test/utils/test-data.factory';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 describe('EndInterviewSessionUseCase', () => {
   let useCase: EndInterviewSessionUseCase;
@@ -66,7 +67,7 @@ describe('EndInterviewSessionUseCase', () => {
     describe('正常系', () => {
       it('should end an active session successfully', async () => {
         // Arrange
-        const sessionId = 'test-session-123';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -93,7 +94,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should do nothing if session is already completed', async () => {
         // Arrange
-        const sessionId = 'test-session-completed';
+        const sessionId = uuidv4();
         const userId = 1;
         const completedSession = TestDataFactory.createCompletedSession(userId);
 
@@ -111,7 +112,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should do nothing if session is already cancelled', async () => {
         // Arrange
-        const sessionId = 'test-session-cancelled';
+        const sessionId = uuidv4();
         const userId = 1;
         const cancelledSession = TestDataFactory.createMockSession({ 
           sessionId, 
@@ -132,7 +133,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should complete the session using domain method', async () => {
         // Arrange
-        const sessionId = 'test-session-domain';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
         const completeSpy = jest.spyOn(mockSession, 'complete');
@@ -172,7 +173,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should throw error when session not found', async () => {
         // Arrange
-        const sessionId = 'non-existent-session';
+        const sessionId = uuidv4();
         const userId = 1;
 
         sessionRepository.findById.mockResolvedValue(null);
@@ -185,7 +186,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should throw error when user does not own session', async () => {
         // Arrange
-        const sessionId = 'test-session-456';
+        const sessionId = uuidv4();
         const userId = 1;
         const differentUserId = 999;
         const mockSession = TestDataFactory.createMockSession({ 
@@ -203,7 +204,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should handle repository save failure', async () => {
         // Arrange
-        const sessionId = 'test-session-error';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -216,7 +217,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should handle cache clear failure gracefully', async () => {
         // Arrange
-        const sessionId = 'test-session-cache-error';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -233,7 +234,7 @@ describe('EndInterviewSessionUseCase', () => {
     describe('Side effects', () => {
       it('should clear cache after ending session', async () => {
         // Arrange
-        const sessionId = 'test-session-cache-clear';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -250,7 +251,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should send WebSocket notification after ending session', async () => {
         // Arrange
-        const sessionId = 'test-session-notify';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
 
@@ -270,7 +271,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should update session timestamp when ending', async () => {
         // Arrange
-        const sessionId = 'test-session-timestamp';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ sessionId, userId });
         const originalUpdatedAt = mockSession.getUpdatedAt();
@@ -294,7 +295,7 @@ describe('EndInterviewSessionUseCase', () => {
     describe('Session state transitions', () => {
       it('should transition from ACTIVE to COMPLETED', async () => {
         // Arrange
-        const sessionId = 'test-session-transition';
+        const sessionId = uuidv4();
         const userId = 1;
         const mockSession = TestDataFactory.createMockSession({ 
           sessionId, 
@@ -314,7 +315,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should handle PAUSED sessions', async () => {
         // Arrange
-        const sessionId = 'test-session-paused';
+        const sessionId = uuidv4();
         const userId = 1;
         const pausedSession = TestDataFactory.createMockSession({ 
           sessionId, 
@@ -339,7 +340,7 @@ describe('EndInterviewSessionUseCase', () => {
 
       it('should not transition EXPIRED sessions', async () => {
         // Arrange
-        const sessionId = 'test-session-expired';
+        const sessionId = uuidv4();
         const userId = 1;
         const expiredSession = TestDataFactory.createMockSession({ 
           sessionId, 

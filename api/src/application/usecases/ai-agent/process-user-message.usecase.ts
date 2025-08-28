@@ -48,6 +48,10 @@ export class ProcessUserMessageUseCase {
     try {
       aiResponse = await this.processMessage(session, input.message);
     } catch (error) {
+      // DomainExceptionは再スロー
+      if (error instanceof DomainException) {
+        throw error;
+      }
       aiResponse = await this.handleOpenAIError(error, session, input.message);
     }
 
@@ -101,9 +105,19 @@ export class ProcessUserMessageUseCase {
     });
 
     // 12. Calculate conversation progress
+    // Convert conversation entities to simple format for analysis service
+    const conversationForAnalysis = session.getConversation().map(msg => {
+      const content = msg.getContent();
+      return {
+        role: msg.getRole() as 'user' | 'assistant',
+        content: typeof content === 'string' ? content : JSON.stringify(content),
+        timestamp: msg.getTimestamp(),
+      };
+    });
+    
     const conversationProgress = await this.analysisService.calculateConversationProgress(
-      session.getConversation(),
-      session.getExtractedRequirements(),
+      conversationForAnalysis,
+      session.getExtractedRequirements() as any,
     );
 
     return {
@@ -189,8 +203,7 @@ export class ProcessUserMessageUseCase {
     const conversationSession = {
       sessionId: session.getSessionIdString(),
       context: session.getContext(),
-      conversation: conversationDtos,
-      conversationHistory: conversationDtos, // Add this for AIConversationService compatibility
+      conversationHistory: conversationDtos,
     };
 
     const result = await this.conversationService.processMessage(conversationSession, message);
@@ -198,7 +211,7 @@ export class ProcessUserMessageUseCase {
     // Convert result to AIResponse
     return {
       content: result.response,
-      suggestedQuestions: [],
+      suggestedQuestions: [], // AI service doesn't return suggestions yet
       confidence: 0.85,
       tokenCount: 100,
       estimatedCost: 0.001,

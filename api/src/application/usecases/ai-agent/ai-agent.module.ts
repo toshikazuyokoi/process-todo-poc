@@ -8,6 +8,11 @@ import { ProcessUserMessageUseCase } from './process-user-message.usecase';
 import { GetConversationHistoryUseCase } from './get-conversation-history.usecase';
 import { CleanupExpiredSessionsUseCase } from './cleanup-expired-sessions.usecase';
 import { CollectUserFeedbackUseCase } from './collect-user-feedback.usecase';
+import { GenerateTemplateRecommendationsUseCase } from './generate-template-recommendations.usecase';
+import { FinalizeTemplateCreationUseCase } from './finalize-template-creation.usecase';
+import { SearchBestPracticesUseCase } from './search-best-practices.usecase';
+import { SearchComplianceRequirementsUseCase } from './search-compliance-requirements.usecase';
+import { SearchProcessBenchmarksUseCase } from './search-process-benchmarks.usecase';
 import { DomainModule } from '../../../domain/domain.module';
 import { InfrastructureModule } from '../../../infrastructure/infrastructure.module';
 import { WebSocketModule } from '../../../infrastructure/websocket/websocket.module';
@@ -34,6 +39,11 @@ import { QueueModule } from '../../../infrastructure/queue/queue.module';
     GetConversationHistoryUseCase,
     CleanupExpiredSessionsUseCase,
     CollectUserFeedbackUseCase,
+    GenerateTemplateRecommendationsUseCase,
+    FinalizeTemplateCreationUseCase,
+    SearchBestPracticesUseCase,
+    SearchComplianceRequirementsUseCase,
+    SearchProcessBenchmarksUseCase,
   ],
   exports: [
     StartInterviewSessionUseCase,
@@ -43,6 +53,11 @@ import { QueueModule } from '../../../infrastructure/queue/queue.module';
     GetConversationHistoryUseCase,
     CleanupExpiredSessionsUseCase,
     CollectUserFeedbackUseCase,
+    GenerateTemplateRecommendationsUseCase,
+    FinalizeTemplateCreationUseCase,
+    SearchBestPracticesUseCase,
+    SearchComplianceRequirementsUseCase,
+    SearchProcessBenchmarksUseCase,
   ],
 })
 export class AIAgentModule {}

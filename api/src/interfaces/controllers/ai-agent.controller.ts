@@ -30,6 +30,29 @@ import { ProcessUserMessageUseCase } from '../../application/usecases/ai-agent/p
 import { GetConversationHistoryUseCase } from '../../application/usecases/ai-agent/get-conversation-history.usecase';
 import { CollectUserFeedbackUseCase } from '../../application/usecases/ai-agent/collect-user-feedback.usecase';
 import { SubmitFeedbackDto, FeedbackResponseDto } from '../../application/dto/ai-agent/feedback.dto';
+import { GenerateTemplateRecommendationsUseCase } from '../../application/usecases/ai-agent/generate-template-recommendations.usecase';
+import { FinalizeTemplateCreationUseCase } from '../../application/usecases/ai-agent/finalize-template-creation.usecase';
+import { SearchBestPracticesUseCase } from '../../application/usecases/ai-agent/search-best-practices.usecase';
+import { SearchComplianceRequirementsUseCase } from '../../application/usecases/ai-agent/search-compliance-requirements.usecase';
+import { SearchProcessBenchmarksUseCase } from '../../application/usecases/ai-agent/search-process-benchmarks.usecase';
+import { 
+  GenerateTemplateDto, 
+  GenerateTemplateResponseDto,
+  FinalizeTemplateDto,
+  FinalizeTemplateResponseDto,
+} from '../../application/dto/ai-agent/template-recommendation.dto';
+import {
+  SearchBestPracticesDto,
+  SearchBestPracticesResponseDto,
+} from '../../application/dto/ai-agent/best-practices.dto';
+import {
+  SearchComplianceRequirementsDto,
+  SearchComplianceRequirementsResponseDto,
+} from '../../application/dto/ai-agent/compliance-requirements.dto';
+import {
+  SearchProcessBenchmarksDto,
+  SearchProcessBenchmarksResponseDto,
+} from '../../application/dto/ai-agent/process-benchmarks.dto';
 
 @ApiTags('AI Agent')
 @ApiBearerAuth()
@@ -43,6 +66,11 @@ export class AIAgentController {
     private readonly processMessageUseCase: ProcessUserMessageUseCase,
     private readonly getConversationUseCase: GetConversationHistoryUseCase,
     private readonly collectFeedbackUseCase: CollectUserFeedbackUseCase,
+    private readonly generateTemplateUseCase: GenerateTemplateRecommendationsUseCase,
+    private readonly finalizeTemplateUseCase: FinalizeTemplateCreationUseCase,
+    private readonly searchBestPracticesUseCase: SearchBestPracticesUseCase,
+    private readonly searchComplianceUseCase: SearchComplianceRequirementsUseCase,
+    private readonly searchBenchmarksUseCase: SearchProcessBenchmarksUseCase,
   ) {}
 
   @Post('sessions')
@@ -232,6 +260,153 @@ export class AIAgentController {
       rating: dto.rating,
       message: dto.message,
       metadata: dto.metadata,
+    });
+
+    return result;
+  }
+
+  @Post('sessions/:sessionId/generate-template')
+  @ApiOperation({ summary: 'Generate template recommendations for a session' })
+  @ApiParam({
+    name: 'sessionId',
+    description: 'Session ID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Template recommendations generated successfully',
+    type: GenerateTemplateResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid request or insufficient conversation data',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Session not found',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async generateTemplate(
+    @Request() req: any,
+    @Param('sessionId') sessionId: string,
+    @Body() dto: GenerateTemplateDto,
+  ): Promise<GenerateTemplateResponseDto> {
+    const result = await this.generateTemplateUseCase.execute({
+      sessionId,
+      userId: req.user.id,
+      preferences: dto.preferences,
+    });
+
+    return result;
+  }
+
+  @Post('sessions/:sessionId/finalize-template')
+  @ApiOperation({ summary: 'Finalize and save a template from recommendations' })
+  @ApiParam({
+    name: 'sessionId',
+    description: 'Session ID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Template finalized successfully',
+    type: FinalizeTemplateResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid template data',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Session or template not found',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async finalizeTemplate(
+    @Request() req: any,
+    @Param('sessionId') sessionId: string,
+    @Body() dto: FinalizeTemplateDto,
+  ): Promise<FinalizeTemplateResponseDto> {
+    const result = await this.finalizeTemplateUseCase.execute({
+      sessionId,
+      userId: req.user.id,
+      templateId: dto.templateId,
+      modifications: dto.modifications,
+      notes: dto.notes,
+    });
+
+    return result;
+  }
+
+  @Post('knowledge/best-practices/search')
+  @ApiOperation({ summary: 'Search for best practices' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Best practices retrieved successfully',
+    type: SearchBestPracticesResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters',
+  })
+  async searchBestPractices(
+    @Request() req: any,
+    @Body() dto: SearchBestPracticesDto,
+  ): Promise<SearchBestPracticesResponseDto> {
+    const result = await this.searchBestPracticesUseCase.execute({
+      userId: req.user.id,
+      query: dto.query,
+      filters: dto.filters,
+      limit: dto.limit,
+    });
+
+    return result;
+  }
+
+  @Get('research/compliance')
+  @ApiOperation({ summary: 'Search compliance requirements' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Compliance requirements retrieved successfully',
+    type: SearchComplianceRequirementsResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters or missing required filters',
+  })
+  async searchCompliance(
+    @Request() req: any,
+    @Query() dto: SearchComplianceRequirementsDto,
+  ): Promise<SearchComplianceRequirementsResponseDto> {
+    const result = await this.searchComplianceUseCase.execute({
+      userId: req.user.id,
+      query: dto.query,
+      filters: dto.filters,
+      limit: dto.limit,
+    });
+
+    return result;
+  }
+
+  @Get('research/benchmarks')
+  @ApiOperation({ summary: 'Search process benchmarks' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Process benchmarks retrieved successfully',
+    type: SearchProcessBenchmarksResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid search parameters or missing required filters',
+  })
+  async searchBenchmarks(
+    @Request() req: any,
+    @Query() dto: SearchProcessBenchmarksDto,
+  ): Promise<SearchProcessBenchmarksResponseDto> {
+    const result = await this.searchBenchmarksUseCase.execute({
+      userId: req.user.id,
+      query: dto.query,
+      filters: dto.filters,
+      limit: dto.limit,
     });
 
     return result;

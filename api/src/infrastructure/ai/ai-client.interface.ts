@@ -29,7 +29,7 @@ export interface AIResponse {
 export interface TemplateContext {
   industry: string;
   processType: string;
-  complexity: 'low' | 'medium' | 'high';
+  complexity: 'simple' | 'medium' | 'complex' | 'low' | 'high';
   constraints?: string[];
   preferences?: Record<string, any>;
 }

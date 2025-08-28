@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ComplexityLevel } from '../entities/process-analysis.entity';
 
 @Injectable()
 export class KnowledgeBaseService {
@@ -40,5 +41,25 @@ export class KnowledgeBaseService {
     return {
       related: [],
     };
+  }
+
+  async getRelatedTemplates(params: {
+    industry?: string;
+    processType?: string;
+    category?: string;
+    complexity?: ComplexityLevel;
+    query?: string;
+  }): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    industry?: string;
+    processType?: string;
+    complexity?: ComplexityLevel;
+    tags?: string[];
+    createdAt?: Date;
+  }>> {
+    // Mock implementation - would search knowledge base
+    return [];
   }
 }

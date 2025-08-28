@@ -1,5 +1,6 @@
 import { InterviewSession, SessionStatus } from '../../src/domain/ai-agent/entities/interview-session.entity';
 import { SessionId } from '../../src/domain/ai-agent/value-objects/session-id.vo';
+import { ConversationMessage } from '../../src/domain/ai-agent/entities/conversation-message.entity';
 import { ConversationMessageDto, AIResponse, ProcessRequirement } from '../../src/domain/ai-agent/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -39,6 +40,25 @@ export class TestDataFactory {
     };
   }
 
+  static createMockConversationMessageEntity(
+    role: 'user' | 'assistant' | 'system' = 'user',
+    content?: string,
+  ): ConversationMessage {
+    const messageContent = content || `Test ${role} message`;
+    const messageId = uuidv4();
+    
+    switch (role) {
+      case 'user':
+        return ConversationMessage.createUserMessage(messageId, messageContent, { intent: 'test' });
+      case 'assistant':
+        return ConversationMessage.createAssistantMessage(messageId, messageContent, {});
+      case 'system':
+        return ConversationMessage.createSystemMessage(messageId, messageContent);
+      default:
+        return ConversationMessage.createUserMessage(messageId, messageContent, { intent: 'test' });
+    }
+  }
+
   static createMockAIResponse(overrides?: Partial<AIResponse>): AIResponse {
     return {
       content: overrides?.content || 'This is an AI response',
@@ -68,11 +88,11 @@ export class TestDataFactory {
 
   static createMockStartSessionInput(overrides?: Partial<any>) {
     return {
-      userId: overrides?.userId || 1,
-      industry: overrides?.industry || 'software_development',
-      processType: overrides?.processType || 'project_management',
-      goal: overrides?.goal || 'Create efficient development process',
-      additionalContext: overrides?.additionalContext || {},
+      userId: overrides?.userId !== undefined ? overrides.userId : 1,
+      industry: overrides?.industry !== undefined ? overrides.industry : 'software_development',
+      processType: overrides?.processType !== undefined ? overrides.processType : 'project_management',
+      goal: overrides?.goal !== undefined ? overrides.goal : 'Create efficient development process',
+      additionalContext: overrides?.additionalContext !== undefined ? overrides.additionalContext : {},
     };
   }
 
@@ -80,7 +100,7 @@ export class TestDataFactory {
     return {
       sessionId: overrides?.sessionId || uuidv4(),
       userId: overrides?.userId || 1,
-      message: overrides?.message || 'Test user message',
+      message: overrides?.message !== undefined ? overrides.message : 'Test user message',
       metadata: overrides?.metadata || {},
     };
   }
@@ -93,12 +113,7 @@ export class TestDataFactory {
         processType: 'project_management',
         goal: 'Create efficient development process',
       },
-      conversation: [],
-      suggestedQuestions: [
-        'What is your team size?',
-        'What is your timeline?',
-        'What are your main challenges?',
-      ],
+      conversationHistory: [],
     };
   }
 

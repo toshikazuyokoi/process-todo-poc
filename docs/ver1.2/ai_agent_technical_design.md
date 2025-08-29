@@ -518,6 +518,35 @@ export class AIMonitoringService {
 }
 ```
 
+## バリデーション戦略
+
+### レイヤー別責務
+
+1. **DTOレベル（既存）**
+   - 型検証（@IsString, @IsNumber など）
+   - 必須項目チェック（@IsNotEmpty）
+   - 文字列長制限（@MaxLength）
+   - 数値範囲検証（@Min, @Max）
+
+2. **Validatorレベル（新規・最小実装）**
+   - ビジネスルール検証
+   - システム制限値チェック（VALIDATION_CONSTANTS使用）
+   - 複合条件検証（将来実装）
+
+### 実装方針
+
+- **最小限実装**: `ai_agent_enums_types.md`の定数を使用した制限値チェックのみ
+- **拡張性確保**: BaseValidatorクラスにより将来の拡張に対応
+- **保守性重視**: DTOとの重複を避け、明確な責務分離
+
+### Validator実装詳細
+
+| Validator | 検証内容 | 使用定数 |
+|-----------|---------|---------|
+| ai-session.validator.ts | アクティブセッション数制限 | maxConcurrentSessions (AIConfigService) |
+| ai-message.validator.ts | セッション内要件数上限 | MAX_REQUIREMENTS_PER_SESSION |
+| ai-template.validator.ts | テンプレート内ステップ数上限、信頼度スコア下限 | MAX_STEPS_PER_TEMPLATE, MIN_CONFIDENCE_SCORE |
+
 ## 関連ドキュメント
 
 - **[ai_agent_template_creation_improvement.md](ai_agent_template_creation_improvement.md)** - 概要・要件定義

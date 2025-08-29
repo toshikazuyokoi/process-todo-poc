@@ -30,6 +30,16 @@ export class DeleteProcessTypeUseCase {
    * @throws DomainException if validation fails
    */
   private validateInput(id: string): void {
+    // Check for null or undefined
+    if (id === null || id === undefined) {
+      throw new DomainException('Process type ID is required');
+    }
+
+    // Check if ID is a string
+    if (typeof id !== 'string') {
+      throw new DomainException('Process type ID must be a string');
+    }
+
     if (!id || id.trim().length === 0) {
       throw new DomainException('Process type ID is required');
     }

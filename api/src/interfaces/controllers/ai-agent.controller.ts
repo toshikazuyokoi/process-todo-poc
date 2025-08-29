@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Delete,
+  Put,
   Body,
   Param,
   UseGuards,
@@ -93,9 +94,15 @@ import {
   BulkUpdateResultDto,
 } from '../../application/dto/knowledge-base/best-practices.dto';
 
+// Guards and Decorators
+import { AIRateLimitGuard } from '../guards/ai-rate-limit.guard';
+import { AIFeatureFlagGuard, FeatureFlag } from '../../infrastructure/security/ai-feature-flag.guard';
+import { AuditLog, AuditAction } from '../../infrastructure/monitoring/ai-audit-log.decorator';
+
 @ApiTags('AI Agent')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AIRateLimitGuard, AIFeatureFlagGuard)
+@FeatureFlag('ai_agent')  // AI機能全体のフィーチャーフラグ
 @Controller('api/ai-agent')
 export class AIAgentController {
   constructor(
@@ -135,6 +142,13 @@ export class AIAgentController {
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
     description: 'Rate limit exceeded',
+  })
+  @AuditLog({
+    action: AuditAction.SESSION_CREATE,
+    resourceType: 'InterviewSession',
+    description: 'AI interview session started',
+    includeRequest: true,
+    includeResponse: false,
   })
   async startSession(
     @Request() req: any,
@@ -183,6 +197,13 @@ export class AIAgentController {
     status: HttpStatus.NOT_FOUND,
     description: 'Session not found',
   })
+  @AuditLog({
+    action: AuditAction.ACCESS_GRANTED,
+    resourceType: 'InterviewSession',
+    description: 'Session details accessed',
+    includeRequest: false,
+    includeResponse: false,
+  })
   async getSession(
     @Request() req: any,
     @Param('sessionId') sessionId: string,
@@ -206,6 +227,14 @@ export class AIAgentController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Session not found',
+  })
+  @AuditLog({
+    action: AuditAction.SESSION_DELETE,
+    resourceType: 'InterviewSession',
+    resourceId: ':sessionId',
+    description: 'AI interview session ended',
+    includeRequest: false,
+    includeResponse: false,
   })
   async endSession(
     @Request() req: any,
@@ -232,6 +261,15 @@ export class AIAgentController {
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
     description: 'Rate limit exceeded',
+  })
+  @AuditLog({
+    action: AuditAction.AI_GENERATE_RESPONSE,
+    resourceType: 'AIResponse',
+    resourceId: ':sessionId',
+    description: 'AI response generated for user message',
+    includeRequest: true,
+    includeResponse: false,
+    sensitiveFields: ['metadata'],
   })
   async sendMessage(
     @Request() req: any,
@@ -271,6 +309,14 @@ export class AIAgentController {
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
     description: 'Session not found',
+  })
+  @AuditLog({
+    action: AuditAction.ACCESS_GRANTED,
+    resourceType: 'ConversationHistory',
+    resourceId: ':sessionId',
+    description: 'Conversation history accessed',
+    includeRequest: false,
+    includeResponse: false,
   })
   async getMessages(
     @Request() req: any,
@@ -338,6 +384,15 @@ export class AIAgentController {
     description: 'Session not found',
   })
   @HttpCode(HttpStatus.CREATED)
+  @FeatureFlag('ai_template_generation')
+  @AuditLog({
+    action: AuditAction.AI_GENERATE_TEMPLATE,
+    resourceType: 'TemplateRecommendation',
+    resourceId: ':sessionId',
+    description: 'AI template recommendations generated',
+    includeRequest: true,
+    includeResponse: false,
+  })
   async generateTemplate(
     @Request() req: any,
     @Param('sessionId') sessionId: string,
@@ -373,6 +428,15 @@ export class AIAgentController {
     description: 'Session or template not found',
   })
   @HttpCode(HttpStatus.CREATED)
+  @FeatureFlag('ai_template_generation')
+  @AuditLog({
+    action: AuditAction.TEMPLATE_APPROVE,
+    resourceType: 'ProcessTemplate',
+    resourceId: ':sessionId',
+    description: 'Template finalized and saved',
+    includeRequest: true,
+    includeResponse: false,
+  })
   async finalizeTemplate(
     @Request() req: any,
     @Param('sessionId') sessionId: string,
@@ -400,6 +464,14 @@ export class AIAgentController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid search parameters',
   })
+  @FeatureFlag('ai_web_research')
+  @AuditLog({
+    action: AuditAction.AI_WEB_SEARCH,
+    resourceType: 'BestPractices',
+    description: 'Best practices search performed',
+    includeRequest: true,
+    includeResponse: false,
+  })
   async searchBestPractices(
     @Request() req: any,
     @Body() dto: SearchBestPracticesDto,
@@ -425,6 +497,14 @@ export class AIAgentController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid search parameters or missing required filters',
   })
+  @FeatureFlag('ai_web_research')
+  @AuditLog({
+    action: AuditAction.AI_WEB_SEARCH,
+    resourceType: 'ComplianceRequirements',
+    description: 'Compliance requirements search performed',
+    includeRequest: true,
+    includeResponse: false,
+  })
   async searchCompliance(
     @Request() req: any,
     @Query() dto: SearchComplianceRequirementsDto,
@@ -449,6 +529,14 @@ export class AIAgentController {
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid search parameters or missing required filters',
+  })
+  @FeatureFlag('ai_web_research')
+  @AuditLog({
+    action: AuditAction.AI_WEB_SEARCH,
+    resourceType: 'ProcessBenchmarks',
+    description: 'Process benchmarks search performed',
+    includeRequest: true,
+    includeResponse: false,
   })
   async searchBenchmarks(
     @Request() req: any,

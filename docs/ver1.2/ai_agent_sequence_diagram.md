@@ -235,6 +235,8 @@ sequenceDiagram
     participant Monitoring as AIMonitoringService
     participant ExceptionFilter as AIExceptionFilter
     
+    Note over ExceptionFilter: GlobalExceptionFilterを継承<br/>ロガー名を'AIExceptionFilter'に変更
+    
     Client->>Controller: POST /api/ai-agent/sessions/{id}/messages
     Controller->>UseCase: execute(input)
     
@@ -265,21 +267,25 @@ sequenceDiagram
 
 ### StartInterviewSessionUseCase.execute()
 1. **validateInput()** - 入力データ検証
-2. **checkRateLimit()** - レート制限チェック
+2. **checkRateLimit()** - レート制限チェック（AIRateLimitService使用）
 3. **initializeSession()** - セッション初期化
 4. **createSession()** - セッションエンティティ作成
 5. **save()** - データベース保存
 6. **cacheConversation()** - キャッシュ保存
 
+※ AIRateLimitGuardはパススルー実装のため、実際のレート制限はUseCase層で実施
+
 ### ProcessUserMessageUseCase.execute()
 1. **validateInput()** - 入力データ検証
-2. **checkRateLimit()** - レート制限チェック
+2. **checkRateLimit()** - レート制限チェック（AIRateLimitService使用）
 3. **findById()** - セッション取得
 4. **processMessage()** - AI応答生成
 5. **extractRequirements()** - 要件抽出
 6. **updateSession()** - セッション更新
 7. **updateConversation()** - 会話履歴更新
 8. **logUsage()** - 利用統計記録
+
+※ AIRateLimitGuardはパススルー実装のため、実際のレート制限はUseCase層で実施
 
 ### GenerateTemplateRecommendationsUseCase.execute()
 1. **validateInput()** - 入力データ検証

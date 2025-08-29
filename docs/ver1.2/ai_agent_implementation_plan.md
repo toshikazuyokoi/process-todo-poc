@@ -530,11 +530,11 @@ api/src/interfaces/controllers/
 └── ai-agent.controller.ts
 
 api/src/interfaces/guards/
-├── ai-rate-limit.guard.ts
-└── ai-feature-flag.guard.ts
+└── ai-rate-limit.guard.ts  ※パススルー実装（実際のレート制限はUseCase層で実施）
 
-api/src/interfaces/decorators/
-└── ai-audit-log.decorator.ts
+※以下は既存実装を使用:
+- ai-feature-flag.guard.ts → infrastructure/security/ai-feature-flag.guard.ts
+- ai-audit-log.decorator.ts → infrastructure/monitoring/ai-audit-log.decorator.ts
 ```
 
 **修正ファイル**:
@@ -544,9 +544,9 @@ api/src/app.module.ts
 
 **作業内容**:
 - [ ] AIエージェントController実装（13エンドポイント）
-- [ ] レート制限ガード実装
-- [ ] 機能フラグガード実装
-- [ ] 監査ログデコレーター実装
+- [ ] レート制限ガード実装（パススルー、実際の制限はUseCase層）
+- [ ] 既存の機能フラグガード統合（infrastructure/security）
+- [ ] 既存の監査ログデコレーター統合（infrastructure/monitoring）
 - [ ] OpenAPI仕様書生成
 
 #### Task 3.2: バリデーション・エラーハンドリング
@@ -561,14 +561,19 @@ api/src/interfaces/validators/
 └── template-generation.validator.ts
 
 api/src/interfaces/filters/
-└── ai-exception.filter.ts
+└── ai-exception.filter.ts  ※GlobalExceptionFilterを最小限に拡張
 ```
 
 **作業内容**:
-- [ ] カスタムバリデーター実装
-- [ ] AI固有例外フィルター実装
-- [ ] エラーレスポンス標準化
-- [ ] バリデーションメッセージ多言語化
+- [ ] カスタムバリデーター実装（最小実装）
+  - `ai-session.validator.ts`: セッション制限値検証（maxConcurrentSessions）
+  - `ai-message.validator.ts`: 要件数上限検証（MAX_REQUIREMENTS_PER_SESSION）
+  - `ai-template.validator.ts`: ステップ数上限検証（MAX_STEPS_PER_TEMPLATE）
+  ※ DTOの構造検証を補完するビジネスルール検証のみ実装
+  ※ 将来の拡張ポイントとして基盤クラスを用意
+- [ ] AI例外フィルター実装（GlobalExceptionFilter継承、ロガー名変更のみ）
+- [ ] エラーレスポンス標準化（既存GlobalExceptionFilterの機能活用）
+- [ ] バリデーションメッセージ多言語化（将来実装）
 
 ### Week 13: フロントエンド実装開始
 

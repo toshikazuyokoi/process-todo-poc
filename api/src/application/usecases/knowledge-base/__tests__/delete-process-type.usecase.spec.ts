@@ -181,18 +181,28 @@ describe('DeleteProcessTypeUseCase', () => {
       it('should handle concurrent delete attempts for the same ID', async () => {
         // Arrange
         const id = 'proc-001';
-        let callCount = 0;
+        let isDeleting = false;
+        let isDeleted = false;
         
         knowledgeBaseManagerService.deleteProcessType.mockImplementation(async () => {
-          callCount++;
-          if (callCount === 1) {
-            // First call succeeds
-            await new Promise(resolve => setTimeout(resolve, 10));
-            return undefined;
-          } else {
-            // Subsequent calls fail (already deleted)
+          if (isDeleted) {
+            // Already deleted
             throw new Error('Process type not found');
           }
+          if (isDeleting) {
+            // Wait for the first deletion to complete
+            await new Promise(resolve => setTimeout(resolve, 20));
+            // Check again after waiting
+            if (isDeleted) {
+              throw new Error('Process type not found');
+            }
+          }
+          isDeleting = true;
+          // Simulate deletion time
+          await new Promise(resolve => setTimeout(resolve, 10));
+          isDeleted = true;
+          isDeleting = false;
+          return undefined;
         });
 
         // Act
@@ -200,8 +210,17 @@ describe('DeleteProcessTypeUseCase', () => {
         const promise2 = useCase.execute(id);
 
         // Assert
-        await expect(promise1).resolves.toBeUndefined();
-        await expect(promise2).rejects.toThrow('Process type not found');
+        const results = await Promise.allSettled([promise1, promise2]);
+        
+        // One should succeed, one should fail
+        const successes = results.filter(r => r.status === 'fulfilled');
+        const failures = results.filter(r => r.status === 'rejected');
+        
+        expect(successes).toHaveLength(1);
+        expect(failures).toHaveLength(1);
+        if (failures[0].status === 'rejected') {
+          expect(failures[0].reason.message).toBe('Process type not found');
+        }
       });
 
       it('should handle concurrent deletes for different IDs', async () => {

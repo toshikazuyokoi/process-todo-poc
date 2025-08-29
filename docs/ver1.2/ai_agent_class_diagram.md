@@ -51,6 +51,128 @@ class AIAgentController {
 
 ### Application Layer (Use Cases)
 
+#### Knowledge Base Management Use Cases
+
+##### GetIndustryTemplatesUseCase
+```
+class GetIndustryTemplatesUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: GetIndustryTemplatesQueryDto): Promise<IndustryTemplatesResponseDto>
+  - validateInput(input: GetIndustryTemplatesQueryDto): void
+}
+```
+
+##### CreateIndustryTemplateUseCase
+```
+class CreateIndustryTemplateUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: CreateIndustryTemplateDto): Promise<IndustryTemplateDto>
+  - validateInput(input: CreateIndustryTemplateDto): void
+}
+```
+
+##### UpdateIndustryTemplateUseCase
+```
+class UpdateIndustryTemplateUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(id: string, input: UpdateIndustryTemplateDto): Promise<IndustryTemplateDto>
+  - validateInput(id: string, input: UpdateIndustryTemplateDto): void
+}
+```
+
+##### DeleteIndustryTemplateUseCase
+```
+class DeleteIndustryTemplateUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(id: string): Promise<void>
+  - validateInput(id: string): void
+}
+```
+
+##### GetProcessTypesUseCase
+```
+class GetProcessTypesUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: GetProcessTypesQueryDto): Promise<ProcessTypesResponseDto>
+  - validateInput(input: GetProcessTypesQueryDto): void
+}
+```
+
+##### CreateProcessTypeUseCase
+```
+class CreateProcessTypeUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: CreateProcessTypeDto): Promise<ProcessTypeTemplateDto>
+  - validateInput(input: CreateProcessTypeDto): void
+}
+```
+
+##### UpdateProcessTypeUseCase
+```
+class UpdateProcessTypeUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(id: string, input: UpdateProcessTypeDto): Promise<ProcessTypeTemplateDto>
+  - validateInput(id: string, input: UpdateProcessTypeDto): void
+}
+```
+
+##### DeleteProcessTypeUseCase
+```
+class DeleteProcessTypeUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(id: string): Promise<void>
+  - validateInput(id: string): void
+}
+```
+
+##### GetBestPracticesUseCase
+```
+class GetBestPracticesUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: GetBestPracticesQueryDto): Promise<BestPracticesResponseDto>
+  - validateInput(input: GetBestPracticesQueryDto): void
+}
+```
+
+##### CreateBestPracticeUseCase
+```
+class CreateBestPracticeUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: CreateBestPracticeDto): Promise<BestPracticeDto>
+  - validateInput(input: CreateBestPracticeDto): void
+}
+```
+
+##### UpdateBestPracticeUseCase
+```
+class UpdateBestPracticeUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(id: string, input: UpdateBestPracticeDto): Promise<BestPracticeDto>
+  - validateInput(id: string, input: UpdateBestPracticeDto): void
+}
+```
+
+##### BulkUpdateBestPracticesUseCase
+```
+class BulkUpdateBestPracticesUseCase {
+  - knowledgeBaseManagerService: KnowledgeBaseManagerService
+  
+  + execute(input: BulkUpdateBestPracticesDto): Promise<BulkUpdateResultDto>
+  - validateInput(input: BulkUpdateBestPracticesDto): void
+}
+```
+
 #### StartInterviewSessionUseCase
 ```
 class StartInterviewSessionUseCase {
@@ -209,6 +331,33 @@ class InformationValidationService {
   + verifyInformation(claim: string, sources: string[]): Promise<VerificationResult>
   - analyzeSourceMetadata(metadata: SourceMetadata): SourceReliability
   - calculateConsensusScore(sources: ResearchResult[]): number
+}
+```
+
+#### KnowledgeBaseManagerService
+```
+class KnowledgeBaseManagerService {
+  - processKnowledgeRepository: ProcessKnowledgeRepository
+  - prismaService: PrismaService
+  - logger: Logger
+  
+  + getIndustryTemplates(query: GetIndustryTemplatesQuery): Promise<IndustryTemplate[]>
+  + createIndustryTemplate(data: CreateIndustryTemplateData): Promise<IndustryTemplate>
+  + updateIndustryTemplate(id: string, data: UpdateIndustryTemplateData): Promise<IndustryTemplate>
+  + deleteIndustryTemplate(id: string): Promise<void>
+  + getProcessTypes(query: GetProcessTypesQuery): Promise<ProcessTypeTemplate[]>
+  + createProcessType(data: CreateProcessTypeData): Promise<ProcessTypeTemplate>
+  + updateProcessType(id: string, data: UpdateProcessTypeData): Promise<ProcessTypeTemplate>
+  + deleteProcessType(id: string): Promise<void>
+  + getBestPractices(query: GetBestPracticesQuery): Promise<BestPractice[]>
+  + createBestPractice(data: CreateBestPracticeData): Promise<BestPractice>
+  + updateBestPractice(id: string, data: UpdateBestPracticeData): Promise<BestPractice>
+  + bulkUpdateBestPractices(updates: BulkUpdateData[]): Promise<void>
+  + syncKnowledgeBase(): Promise<SyncResult>
+  - validateIndustryTemplate(data: any): boolean
+  - validateProcessType(data: any): boolean
+  - validateBestPractice(data: any): boolean
+  - logOperation(operation: string, result: any): void
 }
 ```
 

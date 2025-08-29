@@ -494,6 +494,72 @@ interface QueueStats {
 }
 ```
 
+### 知識ベース管理関連型
+
+#### IndustryTemplate
+```typescript
+interface IndustryTemplate {
+  id: string;
+  name: string;
+  commonProcesses: string[];
+  typicalStakeholders: string[];
+  regulatoryRequirements: string[];
+  standardDurations: Record<string, number>;
+}
+```
+
+#### ProcessTypeTemplate
+```typescript
+interface ProcessTypeTemplate {
+  id: string;
+  name: string;
+  category: ProcessCategory;
+  phases: ProcessPhase[];
+  commonDeliverables: string[];
+  riskFactors: string[];
+}
+```
+
+#### ProcessPhase
+```typescript
+interface ProcessPhase {
+  name: string;
+  description: string;
+  typicalDuration: number;
+  requiredRoles: string[];
+  deliverables: string[];
+  dependencies: string[];
+  parallelizable: boolean;
+}
+```
+
+#### KnowledgeBaseQuery
+```typescript
+interface KnowledgeBaseQuery {
+  industry?: string;
+  processType?: string;
+  category?: string;
+  isActive?: boolean;
+  minConfidence?: number;
+  limit?: number;
+  offset?: number;
+  search?: string;
+  tags?: string[];
+}
+```
+
+#### SyncResult
+```typescript
+interface SyncResult {
+  synchronized: number;
+  added: number;
+  updated: number;
+  deleted: number;
+  errors: string[];
+  timestamp: Date;
+}
+```
+
 ### エラー・通知関連型
 
 #### ErrorInfo

@@ -210,8 +210,25 @@ GET    /api/ai-agent/research/compliance         // コンプライアンス要�
 GET    /api/ai-agent/research/benchmarks         // ベンチマーク情報検索
 
 // 知識ベース管理
-GET    /api/ai-agent/knowledge/industries        // 業界情報取得
-GET    /api/ai-agent/knowledge/process-types     // プロセス種別取得
+// Industry Templates (業界テンプレート)
+GET    /api/ai-agent/knowledge/industries        // 業界テンプレート一覧取得
+POST   /api/ai-agent/knowledge/industries        // 業界テンプレート作成
+PUT    /api/ai-agent/knowledge/industries/:id    // 業界テンプレート更新
+DELETE /api/ai-agent/knowledge/industries/:id    // 業界テンプレート削除
+
+// Process Types (プロセス種別)
+GET    /api/ai-agent/knowledge/process-types     // プロセス種別一覧取得
+POST   /api/ai-agent/knowledge/process-types     // プロセス種別作成
+PUT    /api/ai-agent/knowledge/process-types/:id // プロセス種別更新
+DELETE /api/ai-agent/knowledge/process-types/:id // プロセス種別削除
+
+// Best Practices (ベストプラクティス)
+GET    /api/ai-agent/knowledge/best-practices    // ベストプラクティス一覧取得
+POST   /api/ai-agent/knowledge/best-practices    // ベストプラクティス作成
+PUT    /api/ai-agent/knowledge/best-practices/:id // ベストプラクティス更新
+POST   /api/ai-agent/knowledge/best-practices/bulk-update // ベストプラクティス一括更新
+
+// Feedback
 POST   /api/ai-agent/knowledge/feedback          // フィードバック送信
 ```
 
@@ -229,8 +246,18 @@ POST   /api/ai-agent/knowledge/feedback          // フィードバック送信
 | `GET /api/ai-agent/research/best-practices` | AIAgentController.searchBestPractices | SearchBestPracticesUseCase | WebResearchService | WebResearchCacheRepository<br/>WebSearchService |
 | `GET /api/ai-agent/research/compliance` | AIAgentController.searchCompliance | SearchComplianceRequirementsUseCase | WebResearchService | WebResearchCacheRepository<br/>WebSearchService |
 | `GET /api/ai-agent/research/benchmarks` | AIAgentController.searchBenchmarks | SearchProcessBenchmarksUseCase | WebResearchService | WebResearchCacheRepository<br/>WebSearchService |
-| `GET /api/ai-agent/knowledge/industries` | AIAgentController.getIndustries | GetIndustryTemplatesUseCase | KnowledgeBaseService | ProcessKnowledgeRepository |
-| `GET /api/ai-agent/knowledge/process-types` | AIAgentController.getProcessTypes | GetProcessTypesUseCase | KnowledgeBaseService | ProcessKnowledgeRepository |
+| `GET /api/ai-agent/knowledge/industries` | AIAgentController.getIndustries | GetIndustryTemplatesUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `POST /api/ai-agent/knowledge/industries` | AIAgentController.createIndustryTemplate | CreateIndustryTemplateUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `PUT /api/ai-agent/knowledge/industries/:id` | AIAgentController.updateIndustryTemplate | UpdateIndustryTemplateUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `DELETE /api/ai-agent/knowledge/industries/:id` | AIAgentController.deleteIndustryTemplate | DeleteIndustryTemplateUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `GET /api/ai-agent/knowledge/process-types` | AIAgentController.getProcessTypes | GetProcessTypesUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `POST /api/ai-agent/knowledge/process-types` | AIAgentController.createProcessType | CreateProcessTypeUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `PUT /api/ai-agent/knowledge/process-types/:id` | AIAgentController.updateProcessType | UpdateProcessTypeUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `DELETE /api/ai-agent/knowledge/process-types/:id` | AIAgentController.deleteProcessType | DeleteProcessTypeUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `GET /api/ai-agent/knowledge/best-practices` | AIAgentController.getBestPractices | GetBestPracticesUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `POST /api/ai-agent/knowledge/best-practices` | AIAgentController.createBestPractice | CreateBestPracticeUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `PUT /api/ai-agent/knowledge/best-practices/:id` | AIAgentController.updateBestPractice | UpdateBestPracticeUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
+| `POST /api/ai-agent/knowledge/best-practices/bulk-update` | AIAgentController.bulkUpdateBestPractices | BulkUpdateBestPracticesUseCase | KnowledgeBaseManagerService | ProcessKnowledgeRepository |
 | `POST /api/ai-agent/knowledge/feedback` | AIAgentController.submitFeedback | CollectUserFeedbackUseCase | - | TemplateGenerationHistoryRepository |
 
 ### データフロー詳細

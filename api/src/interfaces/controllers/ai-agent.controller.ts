@@ -54,6 +54,45 @@ import {
   SearchProcessBenchmarksResponseDto,
 } from '../../application/dto/ai-agent/process-benchmarks.dto';
 
+// Knowledge Base Management Use Cases
+import { GetIndustryTemplatesUseCase } from '../../application/usecases/knowledge-base/get-industry-templates.usecase';
+import { CreateIndustryTemplateUseCase } from '../../application/usecases/knowledge-base/create-industry-template.usecase';
+import { UpdateIndustryTemplateUseCase } from '../../application/usecases/knowledge-base/update-industry-template.usecase';
+import { DeleteIndustryTemplateUseCase } from '../../application/usecases/knowledge-base/delete-industry-template.usecase';
+import { GetProcessTypesUseCase } from '../../application/usecases/knowledge-base/get-process-types.usecase';
+import { CreateProcessTypeUseCase } from '../../application/usecases/knowledge-base/create-process-type.usecase';
+import { UpdateProcessTypeUseCase } from '../../application/usecases/knowledge-base/update-process-type.usecase';
+import { DeleteProcessTypeUseCase } from '../../application/usecases/knowledge-base/delete-process-type.usecase';
+import { GetBestPracticesUseCase } from '../../application/usecases/knowledge-base/get-best-practices.usecase';
+import { CreateBestPracticeUseCase } from '../../application/usecases/knowledge-base/create-best-practice.usecase';
+import { UpdateBestPracticeUseCase } from '../../application/usecases/knowledge-base/update-best-practice.usecase';
+import { BulkUpdateBestPracticesUseCase } from '../../application/usecases/knowledge-base/bulk-update-best-practices.usecase';
+
+// Knowledge Base Management DTOs
+import {
+  GetIndustryTemplatesQueryDto,
+  IndustryTemplatesResponseDto,
+  CreateIndustryTemplateDto,
+  UpdateIndustryTemplateDto,
+  IndustryTemplateDto,
+} from '../../application/dto/knowledge-base/industry-templates.dto';
+import {
+  GetProcessTypesQueryDto,
+  ProcessTypesResponseDto,
+  CreateProcessTypeDto,
+  UpdateProcessTypeDto,
+  ProcessTypeTemplateDto,
+} from '../../application/dto/knowledge-base/process-types.dto';
+import {
+  GetBestPracticesQueryDto,
+  BestPracticesResponseDto,
+  CreateBestPracticeDto,
+  UpdateBestPracticeDto,
+  BulkUpdateBestPracticesDto,
+  BestPracticeDto,
+  BulkUpdateResultDto,
+} from '../../application/dto/knowledge-base/best-practices.dto';
+
 @ApiTags('AI Agent')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -71,6 +110,19 @@ export class AIAgentController {
     private readonly searchBestPracticesUseCase: SearchBestPracticesUseCase,
     private readonly searchComplianceUseCase: SearchComplianceRequirementsUseCase,
     private readonly searchBenchmarksUseCase: SearchProcessBenchmarksUseCase,
+    // Knowledge Base Management Use Cases
+    private readonly getIndustryTemplatesUseCase: GetIndustryTemplatesUseCase,
+    private readonly createIndustryTemplateUseCase: CreateIndustryTemplateUseCase,
+    private readonly updateIndustryTemplateUseCase: UpdateIndustryTemplateUseCase,
+    private readonly deleteIndustryTemplateUseCase: DeleteIndustryTemplateUseCase,
+    private readonly getProcessTypesUseCase: GetProcessTypesUseCase,
+    private readonly createProcessTypeUseCase: CreateProcessTypeUseCase,
+    private readonly updateProcessTypeUseCase: UpdateProcessTypeUseCase,
+    private readonly deleteProcessTypeUseCase: DeleteProcessTypeUseCase,
+    private readonly getBestPracticesUseCase: GetBestPracticesUseCase,
+    private readonly createBestPracticeUseCase: CreateBestPracticeUseCase,
+    private readonly updateBestPracticeUseCase: UpdateBestPracticeUseCase,
+    private readonly bulkUpdateBestPracticesUseCase: BulkUpdateBestPracticesUseCase,
   ) {}
 
   @Post('sessions')
@@ -410,5 +462,225 @@ export class AIAgentController {
     });
 
     return result;
+  }
+
+  // ==================== Knowledge Base Management Endpoints ====================
+
+  // Industry Templates
+  @Get('knowledge/industries')
+  @ApiOperation({ summary: 'Get industry templates' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Industry templates retrieved successfully',
+    type: IndustryTemplatesResponseDto,
+  })
+  async getIndustries(
+    @Request() req: any,
+    @Query() dto: GetIndustryTemplatesQueryDto,
+  ): Promise<IndustryTemplatesResponseDto> {
+    return await this.getIndustryTemplatesUseCase.execute(dto);
+  }
+
+  @Post('knowledge/industries')
+  @ApiOperation({ summary: 'Create a new industry template' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Industry template created successfully',
+    type: IndustryTemplateDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid template data',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createIndustryTemplate(
+    @Request() req: any,
+    @Body() dto: CreateIndustryTemplateDto,
+  ): Promise<IndustryTemplateDto> {
+    return await this.createIndustryTemplateUseCase.execute(dto);
+  }
+
+  @Put('knowledge/industries/:id')
+  @ApiOperation({ summary: 'Update an existing industry template' })
+  @ApiParam({ name: 'id', description: 'Industry template ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Industry template updated successfully',
+    type: IndustryTemplateDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Industry template not found',
+  })
+  async updateIndustryTemplate(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateIndustryTemplateDto,
+  ): Promise<IndustryTemplateDto> {
+    return await this.updateIndustryTemplateUseCase.execute(id, dto);
+  }
+
+  @Delete('knowledge/industries/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete an industry template' })
+  @ApiParam({ name: 'id', description: 'Industry template ID' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Industry template deleted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Industry template not found',
+  })
+  async deleteIndustryTemplate(
+    @Request() req: any,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.deleteIndustryTemplateUseCase.execute(id);
+  }
+
+  // Process Types
+  @Get('knowledge/process-types')
+  @ApiOperation({ summary: 'Get process types' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Process types retrieved successfully',
+    type: ProcessTypesResponseDto,
+  })
+  async getProcessTypes(
+    @Request() req: any,
+    @Query() dto: GetProcessTypesQueryDto,
+  ): Promise<ProcessTypesResponseDto> {
+    return await this.getProcessTypesUseCase.execute(dto);
+  }
+
+  @Post('knowledge/process-types')
+  @ApiOperation({ summary: 'Create a new process type' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Process type created successfully',
+    type: ProcessTypeTemplateDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid process type data',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createProcessType(
+    @Request() req: any,
+    @Body() dto: CreateProcessTypeDto,
+  ): Promise<ProcessTypeTemplateDto> {
+    return await this.createProcessTypeUseCase.execute(dto);
+  }
+
+  @Put('knowledge/process-types/:id')
+  @ApiOperation({ summary: 'Update an existing process type' })
+  @ApiParam({ name: 'id', description: 'Process type ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Process type updated successfully',
+    type: ProcessTypeTemplateDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Process type not found',
+  })
+  async updateProcessType(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateProcessTypeDto,
+  ): Promise<ProcessTypeTemplateDto> {
+    return await this.updateProcessTypeUseCase.execute(id, dto);
+  }
+
+  @Delete('knowledge/process-types/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a process type' })
+  @ApiParam({ name: 'id', description: 'Process type ID' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Process type deleted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Process type not found',
+  })
+  async deleteProcessType(
+    @Request() req: any,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.deleteProcessTypeUseCase.execute(id);
+  }
+
+  // Best Practices
+  @Get('knowledge/best-practices')
+  @ApiOperation({ summary: 'Get best practices' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Best practices retrieved successfully',
+    type: BestPracticesResponseDto,
+  })
+  async getBestPractices(
+    @Request() req: any,
+    @Query() dto: GetBestPracticesQueryDto,
+  ): Promise<BestPracticesResponseDto> {
+    return await this.getBestPracticesUseCase.execute(dto);
+  }
+
+  @Post('knowledge/best-practices')
+  @ApiOperation({ summary: 'Create a new best practice' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Best practice created successfully',
+    type: BestPracticeDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid best practice data',
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createBestPractice(
+    @Request() req: any,
+    @Body() dto: CreateBestPracticeDto,
+  ): Promise<BestPracticeDto> {
+    return await this.createBestPracticeUseCase.execute(dto);
+  }
+
+  @Put('knowledge/best-practices/:id')
+  @ApiOperation({ summary: 'Update an existing best practice' })
+  @ApiParam({ name: 'id', description: 'Best practice ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Best practice updated successfully',
+    type: BestPracticeDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Best practice not found',
+  })
+  async updateBestPractice(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() dto: UpdateBestPracticeDto,
+  ): Promise<BestPracticeDto> {
+    return await this.updateBestPracticeUseCase.execute(id, dto);
+  }
+
+  @Post('knowledge/best-practices/bulk-update')
+  @ApiOperation({ summary: 'Bulk update best practices' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Best practices updated successfully',
+    type: BulkUpdateResultDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Invalid bulk update data',
+  })
+  async bulkUpdateBestPractices(
+    @Request() req: any,
+    @Body() dto: BulkUpdateBestPracticesDto,
+  ): Promise<BulkUpdateResultDto> {
+    return await this.bulkUpdateBestPracticesUseCase.execute(dto);
   }
 }

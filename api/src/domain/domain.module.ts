@@ -5,6 +5,7 @@ import { TemplateRecommendationService } from './ai-agent/services/template-reco
 import { WebResearchService } from './ai-agent/services/web-research.service';
 import { KnowledgeBaseService } from './ai-agent/services/knowledge-base.service';
 import { InformationValidationService } from './ai-agent/services/information-validation.service';
+import { KnowledgeBaseManagerService } from './services/knowledge-base-manager.service';
 import { InfrastructureModule } from '../infrastructure/infrastructure.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { InfrastructureModule } from '../infrastructure/infrastructure.module';
     WebResearchService,
     KnowledgeBaseService,
     InformationValidationService,
+    KnowledgeBaseManagerService,
   ],
   exports: [
     AIConversationService,
@@ -24,6 +26,7 @@ import { InfrastructureModule } from '../infrastructure/infrastructure.module';
     WebResearchService,
     KnowledgeBaseService,
     InformationValidationService,
+    KnowledgeBaseManagerService,
   ],
 })
 export class DomainModule {}

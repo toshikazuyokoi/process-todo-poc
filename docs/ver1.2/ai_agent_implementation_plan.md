@@ -438,28 +438,55 @@ api/src/domain/services/
 **工数**: 4日
 **担当**: Backend Developer
 **対応エンドポイント**:
-- `GET /api/ai-agent/knowledge/industries`
-- `GET /api/ai-agent/knowledge/process-types`
+- Industry Templates (業界テンプレート)
+  - `GET /api/ai-agent/knowledge/industries` - 業界テンプレート一覧取得
+  - `POST /api/ai-agent/knowledge/industries` - 業界テンプレート作成
+  - `PUT /api/ai-agent/knowledge/industries/:id` - 業界テンプレート更新
+  - `DELETE /api/ai-agent/knowledge/industries/:id` - 業界テンプレート削除
+- Process Types (プロセス種別)
+  - `GET /api/ai-agent/knowledge/process-types` - プロセス種別一覧取得
+  - `POST /api/ai-agent/knowledge/process-types` - プロセス種別作成
+  - `PUT /api/ai-agent/knowledge/process-types/:id` - プロセス種別更新
+  - `DELETE /api/ai-agent/knowledge/process-types/:id` - プロセス種別削除
+- Best Practices (ベストプラクティス)
+  - `GET /api/ai-agent/knowledge/best-practices` - ベストプラクティス一覧取得
+  - `POST /api/ai-agent/knowledge/best-practices` - ベストプラクティス作成
+  - `PUT /api/ai-agent/knowledge/best-practices/:id` - ベストプラクティス更新
+  - `POST /api/ai-agent/knowledge/best-practices/bulk-update` - ベストプラクティス一括更新
 
 **新規作成ファイル**:
 ```
 api/src/application/usecases/knowledge-base/
 ├── get-industry-templates.usecase.ts
+├── create-industry-template.usecase.ts
+├── update-industry-template.usecase.ts
+├── delete-industry-template.usecase.ts
 ├── get-process-types.usecase.ts
-├── manage-industry-templates.usecase.ts
-├── manage-process-types.usecase.ts
-└── update-best-practices.usecase.ts
+├── create-process-type.usecase.ts
+├── update-process-type.usecase.ts
+├── delete-process-type.usecase.ts
+├── get-best-practices.usecase.ts
+├── create-best-practice.usecase.ts
+├── update-best-practice.usecase.ts
+└── bulk-update-best-practices.usecase.ts
 
 api/src/domain/services/
 └── knowledge-base-manager.service.ts
 ```
 
 **作業内容**:
-- [ ] 業界情報取得実装
-- [ ] プロセス種別取得実装
-- [ ] 業界テンプレート管理実装
-- [ ] プロセス種別管理実装
-- [ ] ベストプラクティス更新実装
+- [ ] 業界テンプレート取得ユースケース実装
+- [ ] 業界テンプレート作成ユースケース実装
+- [ ] 業界テンプレート更新ユースケース実装
+- [ ] 業界テンプレート削除ユースケース実装
+- [ ] プロセス種別取得ユースケース実装
+- [ ] プロセス種別作成ユースケース実装
+- [ ] プロセス種別更新ユースケース実装
+- [ ] プロセス種別削除ユースケース実装
+- [ ] ベストプラクティス取得ユースケース実装
+- [ ] ベストプラクティス作成ユースケース実装
+- [ ] ベストプラクティス更新ユースケース実装
+- [ ] ベストプラクティス一括更新ユースケース実装
 - [ ] 知識ベース同期機能実装
 
 #### Task 2.6: フィードバック・学習機能

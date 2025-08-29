@@ -13,6 +13,7 @@ import { FinalizeTemplateCreationUseCase } from './finalize-template-creation.us
 import { SearchBestPracticesUseCase } from './search-best-practices.usecase';
 import { SearchComplianceRequirementsUseCase } from './search-compliance-requirements.usecase';
 import { SearchProcessBenchmarksUseCase } from './search-process-benchmarks.usecase';
+import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { DomainModule } from '../../../domain/domain.module';
 import { InfrastructureModule } from '../../../infrastructure/infrastructure.module';
 import { WebSocketModule } from '../../../infrastructure/websocket/websocket.module';
@@ -29,6 +30,7 @@ import { QueueModule } from '../../../infrastructure/queue/queue.module';
     AICacheModule,
     MonitoringModule,
     QueueModule,
+    KnowledgeBaseModule,
   ],
   controllers: [AIAgentController],
   providers: [

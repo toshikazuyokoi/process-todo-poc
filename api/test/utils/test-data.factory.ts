@@ -172,4 +172,99 @@ export class TestDataFactory {
       status: SessionStatus.COMPLETED,
     });
   }
+
+  // Knowledge Base test data factories
+  static createMockIndustryTemplate(overrides?: Partial<any>) {
+    return {
+      id: overrides?.id || 'ind-001',
+      name: overrides?.name || 'Software Development',
+      commonProcesses: overrides?.commonProcesses || ['Agile Development', 'Waterfall', 'DevOps'],
+      typicalStakeholders: overrides?.typicalStakeholders || ['Product Manager', 'Developer', 'QA Engineer', 'Designer'],
+      regulatoryRequirements: overrides?.regulatoryRequirements || ['GDPR', 'SOC 2', 'ISO 27001'],
+      standardDurations: overrides?.standardDurations || { 
+        planning: 40,
+        development: 160,
+        testing: 80,
+        deployment: 20,
+      },
+    };
+  }
+
+  static createMockProcessType(overrides?: Partial<any>) {
+    return {
+      id: overrides?.id || 'proc-001',
+      name: overrides?.name || 'Scrum Development Process',
+      category: overrides?.category || 'development',
+      phases: overrides?.phases || [
+        {
+          name: 'Sprint Planning',
+          description: 'Plan the work for the upcoming sprint',
+          typicalDuration: 4,
+          requiredRoles: ['Product Owner', 'Scrum Master', 'Development Team'],
+          deliverables: ['Sprint Backlog', 'Sprint Goal'],
+          dependencies: ['Product Backlog'],
+          parallelizable: false,
+        },
+        {
+          name: 'Sprint Execution',
+          description: 'Execute the planned work',
+          typicalDuration: 80,
+          requiredRoles: ['Development Team', 'Scrum Master'],
+          deliverables: ['Working Software Increment', 'Updated Burndown Chart'],
+          dependencies: ['Sprint Backlog'],
+          parallelizable: true,
+        },
+      ],
+      commonDeliverables: overrides?.commonDeliverables || ['Sprint Backlog', 'Product Increment', 'Sprint Review Report'],
+      riskFactors: overrides?.riskFactors || ['Scope Creep', 'Technical Debt', 'Resource Availability'],
+    };
+  }
+
+  static createMockBestPractice(overrides?: Partial<any>) {
+    return {
+      id: overrides?.id || 'bp-001',
+      title: overrides?.title || 'Daily Standup Meetings',
+      description: overrides?.description || 'Conduct daily synchronization meetings to align team members',
+      category: overrides?.category || 'efficiency',
+      applicableProcessTypes: overrides?.applicableProcessTypes || ['scrum', 'agile', 'kanban'],
+      tags: overrides?.tags || ['agile', 'communication', 'team-sync'],
+      confidenceScore: overrides?.confidenceScore !== undefined ? overrides.confidenceScore : 0.85,
+      expectedImpact: overrides?.expectedImpact || 'Improved team communication and early issue detection',
+      implementationGuidelines: overrides?.implementationGuidelines || [
+        'Keep meetings to 15 minutes',
+        'Focus on what was done, what will be done, and blockers',
+        'Stand during the meeting to keep it short',
+      ],
+      prerequisites: overrides?.prerequisites || ['Team commitment', 'Fixed daily time slot'],
+      risks: overrides?.risks || ['Meeting fatigue if not managed properly'],
+      metrics: overrides?.metrics || ['Team velocity', 'Blocker resolution time'],
+    };
+  }
+
+  static createMockProcessKnowledge(overrides?: Partial<any>) {
+    return {
+      id: overrides?.id || 1,
+      category: overrides?.category || 'best_practice',
+      industry: overrides?.industry || 'software',
+      processType: overrides?.processType || 'development',
+      title: overrides?.title || 'Test Knowledge',
+      description: overrides?.description || 'Test knowledge description',
+      content: overrides?.content || { detail: 'Test content detail' },
+      tags: overrides?.tags || ['test', 'mock'],
+      confidenceScore: overrides?.confidenceScore !== undefined ? overrides.confidenceScore : 0.75,
+      source: overrides?.source || 'test-source',
+      sourceUrl: overrides?.sourceUrl || 'https://test.example.com',
+      isActive: overrides?.isActive !== undefined ? overrides.isActive : true,
+      createdAt: overrides?.createdAt || new Date(),
+      updatedAt: overrides?.updatedAt || new Date(),
+    };
+  }
+
+  static createMockBulkUpdateResult(overrides?: Partial<any>) {
+    return {
+      totalUpdated: overrides?.totalUpdated !== undefined ? overrides.totalUpdated : 5,
+      updatedIds: overrides?.updatedIds || ['bp-001', 'bp-002', 'bp-003', 'bp-004', 'bp-005'],
+      failures: overrides?.failures || [],
+    };
+  }
 }

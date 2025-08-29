@@ -88,8 +88,8 @@ export class KnowledgeBaseService {
           content: item.description || '',
           relevance: Math.min(relevance, 1),
           category: item.category,
-          industry: item.industry,
-          processType: item.processType,
+          industry: item.industry ?? undefined,
+          processType: item.processType ?? undefined,
           confidence: item.confidenceScore?.toNumber(),
         };
       });
@@ -317,8 +317,8 @@ export class KnowledgeBaseService {
         id: `template-${template.id}`,
         name: template.title || '',
         description: template.description || '',
-        industry: template.industry,
-        processType: template.processType,
+        industry: template.industry ?? undefined,
+        processType: template.processType ?? undefined,
         complexity: (template.content as any)?.complexity,
         tags: (template.content as any)?.tags || [],
         confidence: template.confidenceScore?.toNumber(),

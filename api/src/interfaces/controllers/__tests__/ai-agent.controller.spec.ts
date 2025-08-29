@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AIAgentController } from '../ai-agent.controller';
-import { HttpStatus } from '@nestjs/common';
+import { HttpStatus, ExecutionContext } from '@nestjs/common';
 import { StartInterviewSessionUseCase } from '../../../application/usecases/ai-agent/start-interview-session.usecase';
 import { GetInterviewSessionUseCase } from '../../../application/usecases/ai-agent/get-interview-session.usecase';
 import { EndInterviewSessionUseCase } from '../../../application/usecases/ai-agent/end-interview-session.usecase';
@@ -12,6 +12,18 @@ import { FinalizeTemplateCreationUseCase } from '../../../application/usecases/a
 import { SearchBestPracticesUseCase } from '../../../application/usecases/ai-agent/search-best-practices.usecase';
 import { SearchComplianceRequirementsUseCase } from '../../../application/usecases/ai-agent/search-compliance-requirements.usecase';
 import { SearchProcessBenchmarksUseCase } from '../../../application/usecases/ai-agent/search-process-benchmarks.usecase';
+import { AIRateLimitGuard } from '../../guards/ai-rate-limit.guard';
+import { AIFeatureFlagGuard } from '../../../infrastructure/security/ai-feature-flag.guard';
+import { APP_GUARD } from '@nestjs/core';
+
+// Mock Guards
+const mockAIRateLimitGuard = {
+  canActivate: jest.fn().mockReturnValue(true),
+};
+
+const mockAIFeatureFlagGuard = {
+  canActivate: jest.fn().mockReturnValue(true),
+};
 
 describe('AIAgentController', () => {
   let controller: AIAgentController;
@@ -104,8 +116,22 @@ describe('AIAgentController', () => {
             execute: jest.fn(),
           },
         },
+        // Guards
+        {
+          provide: AIRateLimitGuard,
+          useValue: mockAIRateLimitGuard,
+        },
+        {
+          provide: AIFeatureFlagGuard,
+          useValue: mockAIFeatureFlagGuard,
+        },
       ],
-    }).compile();
+    })
+      .overrideGuard(AIRateLimitGuard)
+      .useValue(mockAIRateLimitGuard)
+      .overrideGuard(AIFeatureFlagGuard)
+      .useValue(mockAIFeatureFlagGuard)
+      .compile();
 
     controller = module.get<AIAgentController>(AIAgentController);
     startInterviewUseCase = module.get(StartInterviewSessionUseCase);

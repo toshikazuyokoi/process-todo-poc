@@ -31,14 +31,8 @@ export class UpdateBestPracticeUseCase {
       title: input.title,
       description: input.description,
       category: input.category,
-      applicableProcessTypes: input.applicableProcessTypes,
       tags: input.tags,
-      confidenceScore: input.confidenceScore,
-      expectedImpact: input.expectedImpact,
-      implementationGuidelines: input.implementationGuidelines,
-      prerequisites: input.prerequisites,
-      risks: input.risks,
-      metrics: input.metrics,
+      confidence: input.confidence,
     });
 
     // Return as DTO
@@ -61,14 +55,8 @@ export class UpdateBestPracticeUseCase {
     if (!input.title && 
         !input.description &&
         !input.category &&
-        !input.applicableProcessTypes && 
         !input.tags && 
-        input.confidenceScore === undefined &&
-        !input.expectedImpact &&
-        !input.implementationGuidelines &&
-        !input.prerequisites &&
-        !input.risks &&
-        !input.metrics) {
+        input.confidence === undefined) {
       throw new DomainException('At least one field must be provided for update');
     }
 
@@ -105,29 +93,6 @@ export class UpdateBestPracticeUseCase {
       }
     }
 
-    // Validate applicable process types if provided
-    if (input.applicableProcessTypes !== undefined) {
-      if (!Array.isArray(input.applicableProcessTypes)) {
-        throw new DomainException('Applicable process types must be an array');
-      }
-
-      if (input.applicableProcessTypes.length === 0) {
-        throw new DomainException('At least one applicable process type is required');
-      }
-
-      if (input.applicableProcessTypes.length > 50) {
-        throw new DomainException('Cannot have more than 50 applicable process types');
-      }
-
-      for (const processType of input.applicableProcessTypes) {
-        if (!processType || processType.trim().length === 0) {
-          throw new DomainException('Applicable process type cannot be empty');
-        }
-        if (processType.length > 100) {
-          throw new DomainException('Applicable process type must be less than 100 characters');
-        }
-      }
-    }
 
     // Validate tags if provided
     if (input.tags !== undefined) {
@@ -147,96 +112,15 @@ export class UpdateBestPracticeUseCase {
     }
 
     // Validate confidence score if provided
-    if (input.confidenceScore !== undefined) {
-      if (typeof input.confidenceScore !== 'number') {
+    if (input.confidence !== undefined) {
+      if (typeof input.confidence !== 'number') {
         throw new DomainException('Confidence score must be a number');
       }
 
-      if (input.confidenceScore < 0 || input.confidenceScore > 1) {
+      if (input.confidence < 0 || input.confidence > 1) {
         throw new DomainException('Confidence score must be between 0 and 1');
       }
     }
 
-    // Validate expected impact if provided
-    if (input.expectedImpact !== undefined) {
-      if (input.expectedImpact.length > 500) {
-        throw new DomainException('Expected impact must be less than 500 characters');
-      }
-    }
-
-    // Validate implementation guidelines if provided
-    if (input.implementationGuidelines !== undefined) {
-      if (!Array.isArray(input.implementationGuidelines)) {
-        throw new DomainException('Implementation guidelines must be an array');
-      }
-
-      if (input.implementationGuidelines.length === 0) {
-        throw new DomainException('At least one implementation guideline is required');
-      }
-
-      if (input.implementationGuidelines.length > 20) {
-        throw new DomainException('Cannot have more than 20 implementation guidelines');
-      }
-
-      for (const guideline of input.implementationGuidelines) {
-        if (!guideline || guideline.trim().length === 0) {
-          throw new DomainException('Implementation guideline cannot be empty');
-        }
-        if (guideline.length > 500) {
-          throw new DomainException('Implementation guideline must be less than 500 characters');
-        }
-      }
-    }
-
-    // Validate prerequisites if provided
-    if (input.prerequisites !== undefined) {
-      if (!Array.isArray(input.prerequisites)) {
-        throw new DomainException('Prerequisites must be an array');
-      }
-
-      if (input.prerequisites.length > 10) {
-        throw new DomainException('Cannot have more than 10 prerequisites');
-      }
-
-      for (const prerequisite of input.prerequisites) {
-        if (prerequisite && prerequisite.length > 200) {
-          throw new DomainException('Prerequisite must be less than 200 characters');
-        }
-      }
-    }
-
-    // Validate risks if provided
-    if (input.risks !== undefined) {
-      if (!Array.isArray(input.risks)) {
-        throw new DomainException('Risks must be an array');
-      }
-
-      if (input.risks.length > 10) {
-        throw new DomainException('Cannot have more than 10 risks');
-      }
-
-      for (const risk of input.risks) {
-        if (risk && risk.length > 200) {
-          throw new DomainException('Risk must be less than 200 characters');
-        }
-      }
-    }
-
-    // Validate metrics if provided
-    if (input.metrics !== undefined) {
-      if (!Array.isArray(input.metrics)) {
-        throw new DomainException('Metrics must be an array');
-      }
-
-      if (input.metrics.length > 10) {
-        throw new DomainException('Cannot have more than 10 metrics');
-      }
-
-      for (const metric of input.metrics) {
-        if (metric && metric.length > 200) {
-          throw new DomainException('Metric must be less than 200 characters');
-        }
-      }
-    }
   }
 }

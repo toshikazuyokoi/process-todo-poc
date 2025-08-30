@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsArray, IsOptional, IsNumber, ValidateNested, Min, Max } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { KnowledgeBaseQueryDto } from './knowledge-base-common.dto';
+import { KnowledgeBaseQueryDto, BestPracticeDto as BestPracticeDtoClass } from './knowledge-base-common.dto';
 
 // Re-export BestPracticeDto from common DTOs
 export { BestPracticeDto } from './knowledge-base-common.dto';
@@ -55,11 +55,11 @@ export class GetBestPracticesQueryDto extends KnowledgeBaseQueryDto {
 export class BestPracticesResponseDto {
   @ApiProperty({
     description: 'List of best practices',
-    type: [BestPracticeDto],
+    type: [BestPracticeDtoClass],
   })
   @ValidateNested({ each: true })
-  @Type(() => BestPracticeDto)
-  bestPractices: BestPracticeDto[];
+  @Type(() => BestPracticeDtoClass)
+  bestPractices: BestPracticeDtoClass[];
 
   @ApiProperty({
     description: 'Total number of best practices available',

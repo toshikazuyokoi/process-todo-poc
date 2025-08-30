@@ -518,6 +518,160 @@ export class AIMonitoringService {
 }
 ```
 
+## WebSocket/リアルタイム通信設計
+
+### WebSocket通信アーキテクチャ
+
+```mermaid
+graph TB
+    subgraph "Client"
+        A[Socket.IO Client]
+        B[WebSocket Connection]
+    end
+    
+    subgraph "Server"
+        C[SocketGateway]
+        D[SocketAuthGuard]
+        E[Session Rooms]
+        F[Event Handlers]
+    end
+    
+    subgraph "Events"
+        G[Session Events]
+        H[Message Events]
+        I[Template Events]
+        J[Research Events]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    C --> F
+    F --> G
+    F --> H
+    F --> I
+    F --> J
+```
+
+### WebSocket名前空間
+
+```typescript
+// AI Agent専用名前空間
+namespace: '/ai-agent'
+```
+
+### イベント構造
+
+#### クライアント → サーバー
+
+| イベント名 | 説明 | ペイロード |
+|-----------|------|-----------|
+| join-session | セッションルームへの参加 | `{sessionId: string}` |
+| leave-session | セッションルームからの離脱 | `{sessionId: string}` |
+| ai:message:typing:indicator | タイピングインジケーター送信 | `WsTypingIndicatorDto` |
+| ai:session:status:request | セッションステータス要求 | `WsRequestSessionStatusDto` |
+
+#### サーバー → クライアント
+
+| イベント名 | 説明 | ペイロード |
+|-----------|------|-----------|
+| connected | 接続確認 | `{socketId: string, userId: number, timestamp: Date}` |
+| session-joined | セッション参加確認 | `{sessionId: string, timestamp: Date}` |
+| session-left | セッション離脱確認 | `{sessionId: string, timestamp: Date}` |
+| ai:session:status | セッションステータス変更 | `WsSessionStatusDto` |
+| ai:message:typing | タイピング状態通知 | `WsTypingIndicatorDto` |
+| ai:message:received | AIメッセージ受信 | `WsMessageNotificationDto` |
+| ai:template:progress | テンプレート生成進捗 | `WsTemplateProgressDto` |
+| ai:template:completed | テンプレート生成完了 | `WsTemplateCompletedDto` |
+| ai:research:progress | リサーチ進捗 | `WsResearchProgressDto` |
+| ai-notification | 汎用通知 | `AINotification` |
+| error | エラー通知 | `WsErrorNotificationDto` |
+
+### 認証・認可
+
+#### JWT認証フロー
+
+```typescript
+// 1. ハンドシェイク時の認証
+client.handshake.auth.token // 優先度1
+client.handshake.query.token // 優先度2
+client.handshake.headers.authorization // 優先度3 (Bearer token)
+
+// 2. トークン検証
+jwtService.verifyAsync(token, { secret: JWT_SECRET })
+
+// 3. ユーザー情報の格納
+client.data.userId = payload.sub
+client.data.email = payload.email
+client.data.roles = payload.roles
+```
+
+### セッション管理
+
+#### セッションルーム構造
+
+```typescript
+interface AISessionRoom {
+  sessionId: string      // セッションID
+  userId: number        // セッション所有者
+  sockets: Set<string>  // 接続中のソケットID群
+}
+```
+
+#### 内部データ構造
+
+```typescript
+// セッションルーム管理
+sessionRooms: Map<string, AISessionRoom>
+
+// ユーザー別ソケット管理
+userSockets: Map<number, Set<string>>
+
+// ソケット→ユーザーマッピング
+socketToUser: Map<string, number>
+```
+
+### エラーハンドリング
+
+#### WebSocketエラー種別
+
+| エラータイプ | コード | 説明 | リトライ可能 |
+|-------------|--------|------|-------------|
+| 認証エラー | UNAUTHORIZED | トークン無効・期限切れ | No |
+| セッションエラー | SESSION_NOT_FOUND | セッション不存在 | No |
+| アクセスエラー | UNAUTHORIZED_ACCESS | セッション所有権なし | No |
+| 通信エラー | NETWORK_ERROR | ネットワーク障害 | Yes |
+| サーバーエラー | UNKNOWN_ERROR | 予期しないエラー | Yes |
+
+### パフォーマンス最適化
+
+#### 接続管理
+
+- **ハートビート**: 30秒間隔（Socket.IO標準）
+- **再接続**: 自動再接続（最大5回、指数バックオフ）
+- **タイムアウト**: 60秒（セッションタイムアウトと同期）
+
+#### イベント配信最適化
+
+- **ルームベース配信**: セッション単位でのイベント配信
+- **ユーザーベース配信**: 複数デバイス対応
+- **選択的配信**: 必要なクライアントのみへの配信
+
+### セキュリティ対策
+
+#### 接続セキュリティ
+
+- **CORS設定**: フロントエンドURLのみ許可
+- **認証必須**: SocketAuthGuardによる全接続の認証
+- **セッション検証**: 所有権確認による不正アクセス防止
+
+#### データ保護
+
+- **ペイロード検証**: DTOによる入力検証
+- **サイズ制限**: メッセージサイズ上限設定
+- **レート制限**: 接続数・メッセージ数制限（将来実装）
+
 ## バリデーション戦略
 
 ### レイヤー別責務

@@ -327,6 +327,202 @@ sequenceDiagram
     end
 ```
 
+### 7. WebSocket接続・認証フロー
+
+```mermaid
+sequenceDiagram
+    participant Client as Socket.IO Client
+    participant Gateway as SocketGateway
+    participant Guard as SocketAuthGuard
+    participant JWT as JwtService
+    participant Config as ConfigService
+    
+    Client->>Gateway: connect(/ai-agent)
+    Gateway->>Gateway: handleConnection(client)
+    
+    Gateway->>Guard: canActivate(context)
+    Guard->>Guard: extractToken(client)
+    
+    alt Token from auth object
+        Guard->>Guard: client.handshake.auth.token
+    else Token from query
+        Guard->>Guard: client.handshake.query.token  
+    else Token from headers
+        Guard->>Guard: client.handshake.headers.authorization
+    end
+    
+    Guard->>Config: get('JWT_SECRET')
+    Config-->>Guard: secret
+    
+    Guard->>JWT: verifyAsync(token, {secret})
+    
+    alt Token Valid
+        JWT-->>Guard: payload
+        Guard->>Guard: client.data.userId = payload.sub
+        Guard->>Guard: client.data.email = payload.email
+        Guard->>Guard: client.data.roles = payload.roles
+        Guard-->>Gateway: true
+        
+        Gateway->>Gateway: extractUserId(client)
+        Gateway->>Gateway: socketToUser.set(client.id, userId)
+        Gateway->>Gateway: userSockets.add(userId, client.id)
+        Gateway->>Client: emit('connected', {socketId, userId, timestamp})
+    else Token Invalid
+        JWT-->>Guard: Error
+        Guard-->>Gateway: false (WsException)
+        Gateway->>Client: disconnect()
+    end
+```
+
+### 8. WebSocketセッション参加フロー
+
+```mermaid
+sequenceDiagram
+    participant Client as Socket.IO Client
+    participant Gateway as SocketGateway
+    participant UseCase as GetInterviewSessionUseCase
+    participant Repository as InterviewSessionRepository
+    
+    Client->>Gateway: emit('join-session', {sessionId})
+    Gateway->>Gateway: handleJoinSession(data, client)
+    
+    Gateway->>Gateway: socketToUser.get(client.id)
+    Gateway->>Gateway: userId = extractUserId(client)
+    
+    alt User not authenticated
+        Gateway->>Client: emit('error', {message: 'Unauthorized'})
+    else User authenticated
+        Gateway->>Gateway: sessionRooms.get(sessionId)
+        
+        alt Session room not exists
+            Gateway->>Gateway: sessionRooms.set(sessionId, {sessionId, userId, sockets})
+        end
+        
+        Gateway->>Gateway: room.userId === userId?
+        
+        alt User owns session
+            Gateway->>Gateway: room.sockets.add(client.id)
+            Gateway->>Gateway: client.join(`session:${sessionId}`)
+            Gateway->>Client: emit('session-joined', {sessionId, timestamp})
+        else User doesn't own session
+            Gateway->>Client: emit('error', {message: 'Unauthorized session access'})
+        end
+    end
+```
+
+### 9. タイピングインジケーターフロー
+
+```mermaid
+sequenceDiagram
+    participant ClientA as Client A
+    participant Gateway as SocketGateway
+    participant Room as Session Room
+    participant ClientB as Client B
+    
+    ClientA->>Gateway: emit('ai:message:typing:indicator', WsTypingIndicatorDto)
+    Gateway->>Gateway: handleTypingIndicator(data, client)
+    
+    Gateway->>Gateway: socketToUser.get(client.id)
+    
+    alt User not authenticated
+        Gateway->>ClientA: emit('error', {message: 'Unauthorized'})
+    else User authenticated
+        Gateway->>Gateway: sessionRooms.get(data.sessionId)
+        
+        alt Session exists and user owns it
+            Gateway->>Room: client.to(`session:${sessionId}`)
+            Room->>ClientB: emit('ai:message:typing', {
+            Note right of ClientB: sessionId,<br/>isTyping,<br/>estimatedTime,<br/>stage,<br/>timestamp
+            Room->>ClientB: })
+        else Session not exists or user doesn't own
+            Gateway->>ClientA: emit('error', {message: 'Unauthorized session access'})
+        end
+    end
+```
+
+### 10. セッションステータス要求フロー
+
+```mermaid
+sequenceDiagram
+    participant Client as Socket.IO Client
+    participant Gateway as SocketGateway
+    participant UseCase as GetInterviewSessionUseCase
+    participant Repository as InterviewSessionRepository
+    participant Exception as DomainException
+    
+    Client->>Gateway: emit('ai:session:status:request', {sessionId})
+    Gateway->>Gateway: handleStatusRequest(data, client)
+    
+    Gateway->>Gateway: socketToUser.get(client.id)
+    
+    alt User not authenticated
+        Gateway->>Client: emit('error', {code: 'UNKNOWN_ERROR', message: 'Unauthorized'})
+    else User authenticated
+        Gateway->>UseCase: execute({sessionId, userId})
+        
+        alt Session found
+            UseCase->>Repository: findById(sessionId)
+            Repository-->>UseCase: InterviewSession
+            UseCase-->>Gateway: SessionResponseDto
+            
+            Gateway->>Gateway: mapToWsSessionStatusDto(response)
+            Gateway->>Client: emit('ai:session:status', WsSessionStatusDto)
+        else DomainException thrown
+            UseCase->>Exception: new DomainException('Session not found', 'SESSION_NOT_FOUND')
+            Exception-->>Gateway: DomainException
+            
+            Gateway->>Client: emit('error', {
+            Note right of Client: code: 'SESSION_NOT_FOUND',<br/>message: 'Session not found',<br/>details: {sessionId}
+            Gateway->>Client: })
+        else General error
+            UseCase-->>Gateway: Error
+            Gateway->>Client: emit('error', {code: 'UNKNOWN_ERROR', message})
+        end
+    end
+```
+
+### 11. AI処理進捗通知フロー
+
+```mermaid
+sequenceDiagram
+    participant UseCase as GenerateTemplateUseCase
+    participant Service as TemplateRecommendationService
+    participant Gateway as SocketGateway
+    participant Room as Session Room
+    participant Client as Socket.IO Client
+    
+    UseCase->>Service: generateTemplate(requirements, analysis)
+    
+    Service->>Gateway: broadcastProgress(sessionId, 10, 'Analyzing requirements')
+    Gateway->>Gateway: sendToSession(sessionId, notification)
+    Gateway->>Room: server.to(`session:${sessionId}`)
+    Room->>Client: emit('ai-notification', {
+    Note right of Client: type: 'progress',<br/>sessionId,<br/>data: {progress: 10, message},<br/>timestamp
+    Room->>Client: })
+    
+    Service->>Service: analyzeRequirements()
+    
+    Service->>Gateway: broadcastProgress(sessionId, 40, 'Researching best practices')
+    Gateway->>Room: server.to(`session:${sessionId}`)
+    Room->>Client: emit('ai-notification', {type: 'progress', ...})
+    
+    Service->>Service: researchBestPractices()
+    
+    Service->>Gateway: broadcastProgress(sessionId, 70, 'Generating template')
+    Gateway->>Room: server.to(`session:${sessionId}`)
+    Room->>Client: emit('ai-notification', {type: 'progress', ...})
+    
+    Service->>Service: generateTemplateSteps()
+    
+    Service->>Gateway: broadcastTemplateGenerated(sessionId, template)
+    Gateway->>Room: server.to(`session:${sessionId}`)
+    Room->>Client: emit('ai-notification', {
+    Note right of Client: type: 'template',<br/>sessionId,<br/>data: template,<br/>timestamp
+    Room->>Client: })
+    
+    Service-->>UseCase: TemplateRecommendation
+```
+
 ---
 
 **本シーケンス図は実装チームが参照する詳細設計図です。次のステップでクラス図へのフィードバックを行い、設計の整合性を確保します。**

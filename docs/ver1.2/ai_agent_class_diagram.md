@@ -674,6 +674,34 @@ classDiagram
         +generateTemplate() TemplateRecommendation
     }
     
+    %% WebSocket Infrastructure Layer
+    class SocketGateway {
+        -server: Server
+        -sessionRooms: Map
+        -userSockets: Map
+        -socketToUser: Map
+        +handleConnection() void
+        +handleDisconnect() void
+        +handleJoinSession() void
+        +handleLeaveSession() void
+        +handleTypingIndicator() void
+        +handleStatusRequest() void
+        +sendToSession() void
+        +sendToUser() void
+        +broadcastConversationUpdate() void
+        +broadcastStatusChange() void
+        +notifySessionStatusChanged() void
+        +notifyError() void
+    }
+    
+    class SocketAuthGuard {
+        -jwtService: JwtService
+        -configService: ConfigService
+        +canActivate() boolean
+        -extractToken() string
+        -validateToken() any
+    }
+    
     %% Relationships
     AIAgentController --> StartInterviewSessionUseCase
     AIAgentController --> ProcessUserMessageUseCase
@@ -696,6 +724,174 @@ classDiagram
     
     InterviewSession --> ConversationMessage
     InterviewSession --> ProcessRequirement
+    
+    %% WebSocket Relationships
+    SocketGateway --> GetInterviewSessionUseCase
+    SocketGateway --> SocketAuthGuard
+```
+
+### Infrastructure Layer (WebSocket)
+
+#### SocketGateway
+```
+class SocketGateway {
+  - server: Server
+  - logger: Logger
+  - sessionRooms: Map<string, AISessionRoom>
+  - userSockets: Map<number, Set<string>>
+  - socketToUser: Map<string, number>
+  - getSessionUseCase: GetInterviewSessionUseCase
+  
+  + afterInit(server: Server): void
+  + handleConnection(client: Socket): Promise<void>
+  + handleDisconnect(client: Socket): Promise<void>
+  + handleJoinSession(data: {sessionId: string}, client: Socket): Promise<void>
+  + handleLeaveSession(data: {sessionId: string}, client: Socket): Promise<void>
+  + handleTypingIndicator(data: WsTypingIndicatorDto, client: Socket): Promise<void>
+  + handleStatusRequest(data: WsRequestSessionStatusDto, client: Socket): Promise<void>
+  + sendToSession(sessionId: string, notification: AINotification): void
+  + sendToUser(userId: number, event: string, data: any): void
+  + broadcastConversationUpdate(sessionId: string, message: any): void
+  + broadcastStatusChange(sessionId: string, status: string): void
+  + broadcastProgress(sessionId: string, progress: number, message: string): void
+  + broadcastTemplateGenerated(sessionId: string, template: any): void
+  + broadcastError(sessionId: string, error: string): void
+  + notifyResearchComplete(sessionId: string, results: any[]): void
+  + notifyTemplateGenerated(sessionId: string, template: any): void
+  + notifyRequirementsExtracted(sessionId: string, requirements: any[]): void
+  + notifySessionStatusChanged(sessionId: string, status: string): void
+  + notifyError(sessionId: string, error: any): void
+  + getSessionStats(sessionId: string): object
+  + getActiveSessions(): string[]
+  + isUserConnected(userId: number): boolean
+  - extractUserId(client: Socket): number | null
+}
+```
+
+#### SocketAuthGuard
+```
+class SocketAuthGuard {
+  - logger: Logger
+  - jwtService: JwtService
+  - configService: ConfigService
+  
+  + canActivate(context: ExecutionContext): Promise<boolean>
+  - extractToken(client: Socket): string | null
+  - validateToken(token: string): Promise<any>
+  + static validateRole(client: Socket, requiredRole: string): boolean
+  + static validatePermission(client: Socket, permission: string): boolean
+  + static getUserId(client: Socket): number | null
+  + static validateOwnership(client: Socket, resourceType: string, resourceId: string | number, checkOwnership: Function): Promise<boolean>
+}
+```
+
+### WebSocket DTOs
+
+#### WsSessionStatusDto
+```
+class WsSessionStatusDto {
+  + sessionId: string
+  + status: SessionStatus
+  + reason?: string
+  + timestamp: string
+}
+```
+
+#### WsMessageNotificationDto
+```
+class WsMessageNotificationDto {
+  + sessionId: string
+  + messageId: string
+  + role: MessageRole
+  + content: string
+  + metadata?: MessageMetadata
+  + timestamp: string
+}
+```
+
+#### WsTypingIndicatorDto
+```
+class WsTypingIndicatorDto {
+  + sessionId: string
+  + isTyping: boolean
+  + estimatedTime?: number
+  + stage?: 'thinking' | 'researching' | 'analyzing' | 'generating'
+}
+```
+
+#### WsTemplateProgressDto
+```
+class WsTemplateProgressDto {
+  + sessionId: string
+  + stage: 'analyzing' | 'researching' | 'generating' | 'validating' | 'finalizing'
+  + progress: number
+  + message: string
+  + estimatedTimeRemaining?: number
+  + timestamp: string
+}
+```
+
+#### WsTemplateCompletedDto
+```
+class WsTemplateCompletedDto {
+  + sessionId: string
+  + templateId: string
+  + success: boolean
+  + message?: string
+  + timestamp: string
+}
+```
+
+#### WsRequestSessionStatusDto
+```
+class WsRequestSessionStatusDto {
+  + sessionId: string
+}
+```
+
+#### WsErrorNotificationDto
+```
+class WsErrorNotificationDto {
+  + sessionId: string
+  + code: string
+  + message: string
+  + details?: Record<string, any>
+  + retryable: boolean
+  + timestamp: string
+}
+```
+
+#### WsResearchProgressDto
+```
+class WsResearchProgressDto {
+  + sessionId: string
+  + stage: 'querying' | 'analyzing' | 'validating'
+  + progress: number
+  + sourcesAnalyzed: number
+  + currentSource?: string
+  + timestamp: string
+}
+```
+
+### WebSocket Supporting Types
+
+#### AISessionRoom
+```
+class AISessionRoom {
+  + sessionId: string
+  + userId: number
+  + sockets: Set<string>
+}
+```
+
+#### AINotification
+```
+class AINotification {
+  + type: 'message' | 'status' | 'progress' | 'error' | 'template'
+  + sessionId: string
+  + data: any
+  + timestamp: Date
+}
 ```
 
 ---

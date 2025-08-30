@@ -586,7 +586,260 @@ interface ConversationSummary {
 }
 ```
 
+### WebSocketイベント関連型
+
+#### BaseEvent
+```typescript
+interface BaseEvent {
+  sessionId: string;
+  timestamp: Date;
+}
+```
+
+#### BaseUserEvent
+```typescript
+interface BaseUserEvent extends BaseEvent {
+  userId: number;
+}
+```
+
+#### AISessionCreatedEvent
+```typescript
+interface AISessionCreatedEvent extends BaseUserEvent {
+  context: SessionContext;
+  expiresAt: Date;
+}
+```
+
+#### AISessionStatusChangedEvent
+```typescript
+interface AISessionStatusChangedEvent extends BaseEvent {
+  status: SessionStatus;
+  reason?: string;
+}
+```
+
+#### AISessionEndedEvent
+```typescript
+interface AISessionEndedEvent extends BaseEvent {
+  reason: 'user_request' | 'timeout' | 'error' | 'completed';
+  summary?: ConversationSummary;
+}
+```
+
+#### AIMessageReceivedEvent
+```typescript
+interface AIMessageReceivedEvent extends BaseEvent {
+  messageId: string;
+  role: MessageRole;
+  content: string;
+  metadata?: MessageMetadata;
+}
+```
+
+#### AITypingIndicatorEvent
+```typescript
+interface AITypingIndicatorEvent extends BaseEvent {
+  isTyping: boolean;
+  estimatedTime?: number;
+  stage?: 'thinking' | 'researching' | 'analyzing' | 'generating';
+}
+```
+
+#### AIRequirementsUpdatedEvent
+```typescript
+interface AIRequirementsUpdatedEvent extends BaseEvent {
+  requirements: ProcessRequirement[];
+  extractedCount: number;
+  confidence: number;
+}
+```
+
+#### AITemplateProgressEvent
+```typescript
+interface AITemplateProgressEvent extends BaseEvent {
+  stage: 'analyzing' | 'researching' | 'generating' | 'validating' | 'finalizing';
+  progress: number;
+  message: string;
+  estimatedTimeRemaining?: number;
+}
+```
+
+#### AITemplateCompletedEvent
+```typescript
+interface AITemplateCompletedEvent extends BaseEvent {
+  templateId: string;
+  template: TemplateRecommendation;
+  generationTime: number;
+  confidence: number;
+}
+```
+
+#### AIResearchProgressEvent
+```typescript
+interface AIResearchProgressEvent extends BaseEvent {
+  stage: 'querying' | 'analyzing' | 'validating';
+  progress: number;
+  sourcesAnalyzed: number;
+  currentSource?: string;
+}
+```
+
+#### AIResearchCompletedEvent
+```typescript
+interface AIResearchCompletedEvent extends BaseEvent {
+  results: ResearchResult[];
+  totalSources: number;
+  processingTime: number;
+}
+```
+
+#### AIErrorEvent
+```typescript
+interface AIErrorEvent extends BaseEvent {
+  error: ErrorInfo;
+  retryable: boolean;
+  suggestion?: string;
+}
+```
+
+### WebSocket DTO型
+
+#### WsSessionStatusDto
+```typescript
+interface WsSessionStatusDto {
+  sessionId: string;
+  status: SessionStatus;
+  reason?: string;
+  timestamp: string;
+}
+```
+
+#### WsMessageNotificationDto
+```typescript
+interface WsMessageNotificationDto {
+  sessionId: string;
+  messageId: string;
+  role: MessageRole;
+  content: string;
+  metadata?: MessageMetadata;
+  timestamp: string;
+}
+```
+
+#### WsTypingIndicatorDto
+```typescript
+interface WsTypingIndicatorDto {
+  sessionId: string;
+  isTyping: boolean;
+  estimatedTime?: number;
+  stage?: 'thinking' | 'researching' | 'analyzing' | 'generating';
+}
+```
+
+#### WsTemplateProgressDto
+```typescript
+interface WsTemplateProgressDto {
+  sessionId: string;
+  stage: 'analyzing' | 'researching' | 'generating' | 'validating' | 'finalizing';
+  progress: number;
+  message: string;
+  estimatedTimeRemaining?: number;
+  timestamp: string;
+}
+```
+
+#### WsTemplateCompletedDto
+```typescript
+interface WsTemplateCompletedDto {
+  sessionId: string;
+  templateId: string;
+  success: boolean;
+  message?: string;
+  timestamp: string;
+}
+```
+
+#### WsRequestSessionStatusDto
+```typescript
+interface WsRequestSessionStatusDto {
+  sessionId: string;
+}
+```
+
+#### WsErrorNotificationDto
+```typescript
+interface WsErrorNotificationDto {
+  sessionId: string;
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+  retryable: boolean;
+  timestamp: string;
+}
+```
+
+#### WsResearchProgressDto
+```typescript
+interface WsResearchProgressDto {
+  sessionId: string;
+  stage: 'querying' | 'analyzing' | 'validating';
+  progress: number;
+  sourcesAnalyzed: number;
+  currentSource?: string;
+  timestamp: string;
+}
+```
+
 ## 定数定義
+
+### WebSocketイベント名定数
+```typescript
+const SESSION_EVENTS = {
+  CREATED: 'ai:session:created',
+  STATUS_CHANGED: 'ai:session:status',
+  STATUS_REQUEST: 'ai:session:status:request',
+  ENDED: 'ai:session:ended',
+  ERROR: 'ai:session:error',
+} as const;
+
+const MESSAGE_EVENTS = {
+  RECEIVED: 'ai:message:received',
+  SENT: 'ai:message:sent',
+  TYPING: 'ai:message:typing',
+  TYPING_INDICATOR: 'ai:message:typing:indicator',
+  ERROR: 'ai:message:error',
+} as const;
+
+const TEMPLATE_EVENTS = {
+  GENERATION_STARTED: 'ai:template:generation:started',
+  PROGRESS: 'ai:template:progress',
+  COMPLETED: 'ai:template:completed',
+  ERROR: 'ai:template:error',
+} as const;
+
+const RESEARCH_EVENTS = {
+  STARTED: 'ai:research:started',
+  PROGRESS: 'ai:research:progress',
+  RESULT: 'ai:research:result',
+  COMPLETED: 'ai:research:completed',
+  ERROR: 'ai:research:error',
+} as const;
+
+const REQUIREMENT_EVENTS = {
+  EXTRACTED: 'ai:requirement:extracted',
+  UPDATED: 'ai:requirement:updated',
+  VALIDATED: 'ai:requirement:validated',
+  ERROR: 'ai:requirement:error',
+} as const;
+
+type SessionEventName = typeof SESSION_EVENTS[keyof typeof SESSION_EVENTS];
+type MessageEventName = typeof MESSAGE_EVENTS[keyof typeof MESSAGE_EVENTS];
+type TemplateEventName = typeof TEMPLATE_EVENTS[keyof typeof TEMPLATE_EVENTS];
+type ResearchEventName = typeof RESEARCH_EVENTS[keyof typeof RESEARCH_EVENTS];
+type RequirementEventName = typeof REQUIREMENT_EVENTS[keyof typeof REQUIREMENT_EVENTS];
+type AIEventName = SessionEventName | MessageEventName | TemplateEventName | ResearchEventName | RequirementEventName;
+```
 
 ### AI設定定数
 ```typescript

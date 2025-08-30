@@ -6,7 +6,7 @@ import {
   WebResearchCacheRepository,
   ResearchResult,
   ResearchQueryOptions,
-} from '../../../domain/ai-agent/repositories/web-research-cache.repository.interface';
+} from '../../domain/ai-agent/repositories/web-research-cache.repository.interface';
 
 @Injectable()
 export class PrismaWebResearchCacheRepository implements WebResearchCacheRepository {
@@ -90,10 +90,21 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
       for (const [query, queryResults] of groupedByQuery) {
         const queryHash = this.createQueryHash(query);
         
+        // Convert Date objects to ISO strings for JSON storage
+        const jsonSafeResults = queryResults.map(r => ({
+          ...r,
+          expiresAt: r.expiresAt.toISOString(),
+          metadata: r.metadata ? {
+            ...r.metadata,
+            publishedDate: r.metadata.publishedDate?.toISOString(),
+            lastModified: r.metadata.lastModified?.toISOString(),
+          } : undefined
+        }));
+        
         const cache = await this.prisma.aIWebResearchCache.upsert({
           where: { queryHash },
           update: {
-            results: queryResults as Prisma.JsonArray,
+            results: jsonSafeResults as unknown as Prisma.JsonArray,
             lastAccessedAt: new Date(),
             hitCount: { increment: 1 },
             expiresAt: queryResults[0].expiresAt,
@@ -101,8 +112,8 @@ export class PrismaWebResearchCacheRepository implements WebResearchCacheReposit
           create: {
             queryHash,
             queryText: query,
-            searchParameters: {} as Prisma.JsonValue,
-            results: queryResults as Prisma.JsonArray,
+            searchParameters: undefined,
+            results: jsonSafeResults as unknown as Prisma.JsonArray,
             expiresAt: queryResults[0].expiresAt,
             createdAt: new Date(),
             lastAccessedAt: new Date(),

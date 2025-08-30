@@ -12,6 +12,17 @@ import {
 import { Logger, UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { SocketAuthGuard } from './socket-auth.guard';
+import { GetInterviewSessionUseCase } from '../../application/usecases/ai-agent/get-interview-session.usecase';
+import { DomainException } from '../../domain/exceptions/domain.exception';
+import { 
+  SESSION_EVENTS, 
+  MESSAGE_EVENTS 
+} from '../../interfaces/events/event-names';
+import {
+  WsTypingIndicatorDto,
+  WsRequestSessionStatusDto,
+  WsSessionStatusDto,
+} from '../../interfaces/dto/websocket';
 
 export interface AISessionRoom {
   sessionId: string;
@@ -43,6 +54,10 @@ export class SocketGateway
   private sessionRooms: Map<string, AISessionRoom> = new Map();
   private userSockets: Map<number, Set<string>> = new Map();
   private socketToUser: Map<string, number> = new Map();
+
+  constructor(
+    private readonly getSessionUseCase: GetInterviewSessionUseCase,
+  ) {}
 
   afterInit(server: Server) {
     this.logger.log('AI Agent WebSocket Gateway initialized');
@@ -369,6 +384,95 @@ export class SocketGateway
    */
   isUserConnected(userId: number): boolean {
     return this.userSockets.has(userId);
+  }
+
+  /**
+   * Handle typing indicator from client
+   * Broadcasts typing status to other clients in the same session
+   */
+  @SubscribeMessage(MESSAGE_EVENTS.TYPING_INDICATOR)
+  async handleTypingIndicator(
+    @MessageBody() data: WsTypingIndicatorDto,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const userId = this.socketToUser.get(client.id);
+      if (!userId) {
+        throw new WsException('Unauthorized');
+      }
+
+      const room = this.sessionRooms.get(data.sessionId);
+      if (!room || room.userId !== userId) {
+        throw new WsException('Unauthorized session access');
+      }
+
+      // Broadcast to other clients in the same session
+      client.to(`session:${data.sessionId}`).emit(MESSAGE_EVENTS.TYPING, {
+        sessionId: data.sessionId,
+        isTyping: data.isTyping,
+        estimatedTime: data.estimatedTime,
+        stage: data.stage,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.debug(`Typing indicator for session ${data.sessionId}: ${data.isTyping}`);
+    } catch (error) {
+      this.logger.error('Typing indicator error', error);
+      client.emit('error', {
+        message: error.message || 'Failed to send typing indicator',
+      });
+    }
+  }
+
+  /**
+   * Handle session status request from client
+   * Returns the current status of the session from the database
+   */
+  @SubscribeMessage(SESSION_EVENTS.STATUS_REQUEST)
+  async handleStatusRequest(
+    @MessageBody() data: WsRequestSessionStatusDto,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    try {
+      const userId = this.socketToUser.get(client.id);
+      if (!userId) {
+        throw new WsException('Unauthorized');
+      }
+
+      // Get actual session status from the use case
+      const session = await this.getSessionUseCase.execute({
+        sessionId: data.sessionId,
+        userId: userId,
+      });
+
+      // Send status back to the requesting client
+      const response: WsSessionStatusDto = {
+        sessionId: session.sessionId,
+        status: session.status as any, // SessionResponseDto uses string, WsSessionStatusDto expects SessionStatus enum
+        reason: undefined,
+        timestamp: new Date().toISOString(),
+      };
+
+      client.emit(SESSION_EVENTS.STATUS_CHANGED, response);
+      
+      this.logger.debug(`Status request for session ${data.sessionId}: ${session.status}`);
+    } catch (error) {
+      this.logger.error('Status request error', error);
+      
+      // Send appropriate error response
+      if (error instanceof DomainException) {
+        client.emit('error', {
+          code: error.code || 'SESSION_ERROR',
+          message: error.message,
+          details: error.details,
+        });
+      } else {
+        client.emit('error', {
+          code: 'UNKNOWN_ERROR',
+          message: error.message || 'Failed to get session status',
+        });
+      }
+    }
   }
 
   private extractUserId(client: Socket): number | null {

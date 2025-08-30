@@ -28,22 +28,21 @@ export class GetBestPracticesUseCase {
     // Get best practices from service
     const result = await this.knowledgeBaseManagerService.getBestPractices({
       category: input.category,
-      applicableProcessTypes: input.applicableProcessTypes,
       search: input.search,
       tags: input.tags,
       isActive: input.isActive,
-      confidenceScoreMin: input.confidenceScoreMin,
+      minConfidence: input.minConfidence,
       limit: input.limit || 20,
       offset: input.offset || 0,
     });
 
     // Map to response DTO
     return {
-      practices: result.practices,
+      bestPractices: result.bestPractices,
       total: result.total,
       offset: input.offset || 0,
       limit: input.limit || 20,
-      availableTags: result.availableTags,
+      popularTags: result.popularTags,
     };
   }
 
@@ -67,9 +66,9 @@ export class GetBestPracticesUseCase {
       }
     }
 
-    // Validate confidenceScoreMin
-    if (input.confidenceScoreMin !== undefined) {
-      if (input.confidenceScoreMin < 0 || input.confidenceScoreMin > 1) {
+    // Validate minConfidence
+    if (input.minConfidence !== undefined) {
+      if (input.minConfidence < 0 || input.minConfidence > 1) {
         throw new DomainException('Confidence score minimum must be between 0 and 1');
       }
     }
@@ -91,20 +90,6 @@ export class GetBestPracticesUseCase {
       throw new DomainException('Search query must be less than 200 characters');
     }
 
-    // Validate applicable process types array
-    if (input.applicableProcessTypes !== undefined) {
-      if (!Array.isArray(input.applicableProcessTypes)) {
-        throw new DomainException('Applicable process types must be an array');
-      }
-      if (input.applicableProcessTypes.length > 50) {
-        throw new DomainException('Cannot filter by more than 50 process types');
-      }
-      for (const processType of input.applicableProcessTypes) {
-        if (!processType || processType.length > 100) {
-          throw new DomainException('Process type must be less than 100 characters');
-        }
-      }
-    }
 
     // Validate tags array
     if (input.tags !== undefined) {

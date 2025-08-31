@@ -1,6 +1,9 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Mock Socket.IO client
+jest.mock('socket.io-client')
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3005/api'
 
@@ -26,6 +29,9 @@ jest.mock('next/navigation', () => ({
 
 // Mock fetch for tests
 global.fetch = jest.fn()
+
+// Mock scrollIntoView for jsdom
+Element.prototype.scrollIntoView = jest.fn()
 
 // Reset mocks between tests
 beforeEach(() => {

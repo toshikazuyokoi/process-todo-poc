@@ -14,7 +14,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock api-client to prevent interceptor errors
-jest.mock('@/app/lib/api-client', () => ({
+jest.mock('@/lib/api-client', () => ({
   apiClient: {
     get: jest.fn(),
     post: jest.fn(),

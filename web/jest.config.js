@@ -16,6 +16,7 @@ const customJestConfig = {
     '^@/types/(.*)$': '<rootDir>/app/types/$1',
     '^@/utils/(.*)$': '<rootDir>/app/utils/$1',
     '^@/(.*)$': '<rootDir>/app/$1',
+    '^socket\\.io-client$': '<rootDir>/__mocks__/socket.io-client.ts',
   },
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',

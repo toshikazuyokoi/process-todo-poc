@@ -101,7 +101,7 @@ export class AICacheService {
    */
   async deleteByPattern(pattern: string): Promise<number> {
     try {
-      const keys = await (this.cacheManager.store as any)?.keys?.() || [];
+      const keys = await (this.cacheManager.stores[0] as any)?.keys?.() || [];
       const matchingKeys = keys.filter((key: string) => 
         this.keyGenerator.matchesPattern(key, pattern)
       );
@@ -149,7 +149,7 @@ export class AICacheService {
    */
   async clear(): Promise<void> {
     try {
-      await this.cacheManager.reset();
+      await this.cacheManager.clear();
       this.resetStatistics();
       this.logger.debug('Cache cleared');
     } catch (error) {
@@ -283,10 +283,36 @@ export class AICacheService {
 
   /**
    * Cache session data
+   * セッションデータをプレーンオブジェクトとしてキャッシュ
    */
   async cacheSession(session: any): Promise<void> {
-    const key = this.keyGenerator.generateSessionKey(session.sessionId || session.getSessionIdString(), 'data');
-    await this.set(key, session, { ttl: 3600, tags: ['session'] });
+    let sessionData: any;
+    
+    // エンティティの場合はプレーンオブジェクトに変換
+    if (typeof session.getSessionIdString === 'function') {
+      sessionData = {
+        sessionId: session.getSessionIdString(),
+        userId: session.getUserId(),
+        status: session.getStatus(),
+        context: session.getContext(),
+        conversation: session.getConversation(),
+        extractedRequirements: session.getExtractedRequirements(),
+        generatedTemplate: session.getGeneratedTemplate(),
+        createdAt: session.getCreatedAt(),
+        updatedAt: session.getUpdatedAt(),
+        expiresAt: session.getExpiresAt(),
+      };
+    } else {
+      // すでにプレーンオブジェクトの場合
+      sessionData = session;
+    }
+    
+    if (!sessionData.sessionId) {
+      throw new Error('Unable to determine session ID for caching');
+    }
+    
+    const key = this.keyGenerator.generateSessionKey(sessionData.sessionId, 'data');
+    await this.set(key, sessionData, { ttl: 3600, tags: ['session'] });
   }
 
   /**

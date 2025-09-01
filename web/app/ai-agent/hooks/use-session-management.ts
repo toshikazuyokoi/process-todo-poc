@@ -34,6 +34,7 @@ export function useSessionManagement() {
 
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null);
+  const [isIdle, setIsIdle] = useState(true);
 
   /**
    * Get session by ID
@@ -58,21 +59,23 @@ export function useSessionManagement() {
    * Create new session
    */
   const createSessionMutation = useMutation({
-    mutationFn: async (context: SessionContext) => {
-      const { data } = await apiClient.post('/ai-agent/sessions', { context });
-      return data as AISession;
+    mutationFn: async (params: { industry: string; processType: string; goal: string; additionalContext?: any }) => {
+      setIsIdle(false);
+      const { data } = await apiClient.post('/api/ai-agent/sessions', params);
+      return data;
     },
-    onSuccess: (session) => {
+    onSuccess: (response) => {
       // Update state
-      setCurrentSessionId(session.id);
-      setSessionStatus(session.status);
+      setCurrentSessionId(response.sessionId);
+      setSessionStatus(response.status);
+      setIsIdle(false);
       
       // Cache the session
-      queryClient.setQueryData(['ai-session', session.id], session);
+      queryClient.setQueryData(['ai-session', response.sessionId], response);
       
       // Join WebSocket room
       if (isConnected) {
-        wsJoinSession(session.id);
+        wsJoinSession(response.sessionId);
       }
       
       addToast({ 
@@ -82,6 +85,7 @@ export function useSessionManagement() {
       });
     },
     onError: (error: any) => {
+      setIsIdle(true);  // Reset to idle state on error
       addToast({
         type: 'error',
         title: 'Failed to create session',
@@ -106,6 +110,7 @@ export function useSessionManagement() {
       // Clear state
       setCurrentSessionId(null);
       setSessionStatus(null);
+      setIsIdle(true);  // Reset to idle state
       
       // Remove from cache
       queryClient.removeQueries({ queryKey: ['ai-session', sessionId] });
@@ -234,6 +239,7 @@ export function useSessionManagement() {
       if (event.sessionId === currentSessionId) {
         setCurrentSessionId(null);
         setSessionStatus(null);
+        setIsIdle(true);  // Reset to idle state
         queryClient.removeQueries({ queryKey: ['ai-session', event.sessionId] });
         
         let message = 'Your session has ended.';
@@ -254,6 +260,7 @@ export function useSessionManagement() {
       if (event.sessionId === currentSessionId) {
         setCurrentSessionId(null);
         setSessionStatus(SessionStatus.EXPIRED);
+        setIsIdle(true);  // Reset to idle state
         queryClient.removeQueries({ queryKey: ['ai-session', event.sessionId] });
         
         addToast({
@@ -301,6 +308,7 @@ export function useSessionManagement() {
         if (data && data.id) {
           setCurrentSessionId(data.id);
           setSessionStatus(data.status);
+          setIsIdle(false);  // Not idle if session exists
           queryClient.setQueryData(['ai-session', data.id], data);
         }
       } catch (error) {
@@ -317,6 +325,7 @@ export function useSessionManagement() {
     currentSession,
     currentSessionId,
     sessionStatus,
+    isIdle,  // UI state for showing initial welcome
     isLoading: isLoadingSession || createSessionMutation.isPending || endSessionMutation.isPending,
     error: sessionError || createSessionMutation.error || endSessionMutation.error,
     

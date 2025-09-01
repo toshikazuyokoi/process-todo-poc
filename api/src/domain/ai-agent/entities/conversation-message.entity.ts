@@ -153,7 +153,11 @@ export class ConversationMessage {
       timestamp: this.timestamp.toISOString(),
       metadata: this.metadata ? {
         ...this.metadata,
-        confidence: this.metadata.confidence?.getValue(),
+        confidence: this.metadata.confidence 
+          ? (typeof this.metadata.confidence === 'object' && 'getValue' in this.metadata.confidence 
+            ? this.metadata.confidence.getValue() 
+            : this.metadata.confidence)
+          : undefined,
       } : undefined,
     };
   }

@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { AICacheService } from './ai-cache.service';
 import { CacheKeyGenerator } from './cache-key.generator';
-
-const { CacheModule } = require('@nestjs/cache-manager');
 
 @Module({
   imports: [

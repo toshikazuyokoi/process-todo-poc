@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificationBell } from '@/app/components/notifications/notification-bell'
 import { Button } from '@/app/components/ui/button'
-import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard, LogOut } from 'lucide-react'
+import { Home, FileText, BarChart3, Users, Settings, Search, CalendarDays, Columns, LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
 import { useAuth } from '@/app/contexts/auth-context'
 
 export function Header() {
@@ -79,6 +79,13 @@ export function Header() {
               >
                 <Search className="w-4 h-4" />
                 検索
+              </Link>
+              <Link
+                href="/ai-agent"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                AIエージェント
               </Link>
             </nav>
           </div>

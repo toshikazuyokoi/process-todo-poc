@@ -24,8 +24,9 @@ export class GetInterviewSessionUseCase {
     // Try to get from cache first
     const cachedSession = await this.cacheService.getCachedSession(input.sessionId);
     if (cachedSession) {
-      // Verify user owns the session
-      if (cachedSession.getUserId && cachedSession.getUserId() !== input.userId) {
+      // Verify user owns the session (handle both entity and plain object)
+      const userId = cachedSession.userId || (cachedSession.getUserId && cachedSession.getUserId());
+      if (userId !== input.userId) {
         throw new DomainException('Session not found or access denied', 'SESSION_NOT_FOUND');
       }
       return this.mapToDto(cachedSession);

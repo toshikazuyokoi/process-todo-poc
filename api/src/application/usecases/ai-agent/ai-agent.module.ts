@@ -15,11 +15,14 @@ import { SearchComplianceRequirementsUseCase } from './search-compliance-require
 import { SearchProcessBenchmarksUseCase } from './search-process-benchmarks.usecase';
 import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { DomainModule } from '../../../domain/domain.module';
+import { AI_CONVERSATION_RESPONDER } from '../../interfaces/ai-agent/ai-conversation-responder.interface';
+import { AIConversationService } from '../../../domain/ai-agent/services/ai-conversation.service';
 import { InfrastructureModule } from '../../../infrastructure/infrastructure.module';
 import { WebSocketModule } from '../../../infrastructure/websocket/websocket.module';
 import { AICacheModule } from '../../../infrastructure/cache/cache.module';
 import { MonitoringModule } from '../../../infrastructure/monitoring/monitoring.module';
 import { QueueModule } from '../../../infrastructure/queue/queue.module';
+import { FeatureFlagService, AIFeatureFlagGuard } from '../../../infrastructure/security/ai-feature-flag.guard';
 
 @Module({
   imports: [
@@ -34,6 +37,13 @@ import { QueueModule } from '../../../infrastructure/queue/queue.module';
   ],
   controllers: [AIAgentController],
   providers: [
+    // AI Agent helpers (PR1 stubs)
+    require('../../../application/services/ai-agent/prompt-builder.service').PromptBuilder,
+    require('../../../application/services/ai-agent/history-assembler.service').HistoryAssembler,
+    require('../../../application/services/ai-agent/llm-output-parser.service').LLMOutputParser,
+    require('../../../application/services/ai-agent/template-draft-mapper.service').TemplateDraftMapper,
+    FeatureFlagService,
+    AIFeatureFlagGuard,
     StartInterviewSessionUseCase,
     GetInterviewSessionUseCase,
     EndInterviewSessionUseCase,
@@ -46,6 +56,10 @@ import { QueueModule } from '../../../infrastructure/queue/queue.module';
     SearchBestPracticesUseCase,
     SearchComplianceRequirementsUseCase,
     SearchProcessBenchmarksUseCase,
+    {
+      provide: AI_CONVERSATION_RESPONDER,
+      useExisting: AIConversationService,
+    },
   ],
   exports: [
     StartInterviewSessionUseCase,

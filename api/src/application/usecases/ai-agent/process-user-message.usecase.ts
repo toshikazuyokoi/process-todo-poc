@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InterviewSessionRepository } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
-import { AIConversationService } from '../../../domain/ai-agent/services/ai-conversation.service';
+import { AI_CONVERSATION_RESPONDER, AIConversationResponder } from '../../interfaces/ai-agent/ai-conversation-responder.interface';
 import { ProcessAnalysisService } from '../../../domain/ai-agent/services/process-analysis.service';
 import { AIRateLimitService } from '../../../infrastructure/ai/ai-rate-limit.service';
 import { AIMonitoringService } from '../../../infrastructure/monitoring/ai-monitoring.service';
@@ -20,7 +20,8 @@ export class ProcessUserMessageUseCase {
   constructor(
     @Inject('InterviewSessionRepository')
     private readonly sessionRepository: InterviewSessionRepository,
-    private readonly conversationService: AIConversationService,
+    @Inject(AI_CONVERSATION_RESPONDER)
+    private readonly conversationService: AIConversationResponder,
     private readonly analysisService: ProcessAnalysisService,
     private readonly rateLimitService: AIRateLimitService,
     private readonly monitoringService: AIMonitoringService,

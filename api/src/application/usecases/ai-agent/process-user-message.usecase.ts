@@ -209,13 +209,13 @@ export class ProcessUserMessageUseCase {
 
     const result = await this.conversationService.processMessage(conversationSession, message);
     
-    // Convert result to AIResponse
+    // Convert result to AIResponse (use actual token count if provided)
     return {
       content: result.response,
-      suggestedQuestions: [], // AI service doesn't return suggestions yet
-      confidence: 0.85,
-      tokenCount: 100,
-      estimatedCost: 0.001,
+      suggestedQuestions: [],
+      confidence: undefined,
+      tokenCount: result.tokenCount ?? 0,
+      estimatedCost: result.estimatedCost ?? 0,
       error: false,
     };
   }
@@ -281,13 +281,11 @@ export class ProcessUserMessageUseCase {
 
   private createFallbackResponse(): AIResponse {
     return {
-      content: "I apologize, but I'm experiencing technical difficulties at the moment. Please try again in a few moments. If the issue persists, please contact support.",
-      suggestedQuestions: [
-        'Can we try that again?',
-        'What were we discussing?',
-        'Can you help me with something else?',
-      ],
+      content: '現在AI応答の生成で問題が発生しました。しばらくしてから再度お試しください。必要であれば、要件や前提条件をもう一度共有してください。',
+      suggestedQuestions: [],
       confidence: 0,
+      tokenCount: 0,
+      estimatedCost: 0,
       error: true,
     };
   }

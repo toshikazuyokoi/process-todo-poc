@@ -7,6 +7,7 @@ import { AIMonitoringService } from '../../../infrastructure/monitoring/ai-monit
 import { BackgroundJobQueueInterface } from '../../../infrastructure/queue/background-job-queue.interface';
 import { SocketGateway } from '../../../infrastructure/websocket/socket.gateway';
 import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
+import { AIAuditService } from '../../../infrastructure/monitoring/ai-audit.service';
 import { ProcessMessageInput, ProcessMessageOutput } from '../../dto/ai-agent/send-message.dto';
 import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
 import { InterviewSession, SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
@@ -30,6 +31,7 @@ export class ProcessUserMessageUseCase {
     private readonly backgroundJobQueue: BackgroundJobQueueInterface,
     private readonly socketGateway: SocketGateway,
     private readonly cacheService: AICacheService,
+    private readonly auditService: AIAuditService,
     private readonly parser: LLMOutputParser,
   ) {}
 
@@ -65,6 +67,21 @@ export class ProcessUserMessageUseCase {
     } else {
       this.monitoringService.logAIRequest(input.userId, 'structured_json_ok', aiResponse.tokenCount || 0, aiResponse.estimatedCost || 0);
     }
+
+    // Audit hash (no prompt/content persistence)
+    try {
+      const conversationForHash = session.getConversation().map(msg => ({
+        role: msg.getRole() as string,
+        content: typeof msg.getContent() === 'string' ? (msg.getContent() as string) : JSON.stringify(msg.getContent()),
+      }));
+      conversationForHash.push({ role: 'user', content: input.message });
+      conversationForHash.push({ role: 'assistant', content: aiResponse.content });
+      const hash = this.auditService.computeConversationHash(conversationForHash);
+      if (hash) {
+        this.monitoringService.logAIRequest(input.userId, 'audit_hash', 0, 0);
+      }
+    } catch {}
+
 
     // 6. Update conversation
     const userMessageEntity = ConversationMessageMapper.createUserMessage(

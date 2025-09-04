@@ -7,6 +7,11 @@ export interface SessionContextDto {
   additionalContext?: string;
 }
 
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface UsageDto {
   tokens: number;
   costUsd?: number;

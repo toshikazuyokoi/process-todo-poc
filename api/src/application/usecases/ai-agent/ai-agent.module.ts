@@ -17,6 +17,8 @@ import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { DomainModule } from '../../../domain/domain.module';
 import { AI_CONVERSATION_RESPONDER } from '../../interfaces/ai-agent/ai-conversation-responder.interface';
 import { AIConversationService } from '../../../domain/ai-agent/services/ai-conversation.service';
+import { OpenAIResponder } from '../../services/ai-agent/openai-responder.service';
+import { AIConfigService } from '../../../infrastructure/ai/ai-config.service';
 import { InfrastructureModule } from '../../../infrastructure/infrastructure.module';
 import { WebSocketModule } from '../../../infrastructure/websocket/websocket.module';
 import { AICacheModule } from '../../../infrastructure/cache/cache.module';
@@ -56,9 +58,14 @@ import { FeatureFlagService, AIFeatureFlagGuard } from '../../../infrastructure/
     SearchBestPracticesUseCase,
     SearchComplianceRequirementsUseCase,
     SearchProcessBenchmarksUseCase,
+    // DI切替: 現状は既定をモック（AIConversationService）にし、環境変数でOpenAIResponderへ
     {
       provide: AI_CONVERSATION_RESPONDER,
-      useExisting: AIConversationService,
+      useFactory: (aiConfig: AIConfigService, mock: AIConversationService, openai: OpenAIResponder) => {
+        const mode = process.env.AI_AGENT_MODE || 'mock';
+        return mode === 'openai' ? openai : mock;
+      },
+      inject: [AIConfigService, AIConversationService, OpenAIResponder],
     },
   ],
   exports: [

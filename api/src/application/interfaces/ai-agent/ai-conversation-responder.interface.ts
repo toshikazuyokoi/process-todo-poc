@@ -13,6 +13,8 @@ export interface ConversationProcessResult {
   response: string;
   requirementsExtracted: boolean;
   extractedRequirements?: any[];
+  tokenCount?: number;
+  estimatedCost?: number;
 }
 
 export interface AIConversationResponder {

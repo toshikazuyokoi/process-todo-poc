@@ -8,6 +8,7 @@ import { BackgroundJobQueueInterface } from '../../../infrastructure/queue/backg
 import { SocketGateway } from '../../../infrastructure/websocket/socket.gateway';
 import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { ProcessMessageInput, ProcessMessageOutput } from '../../dto/ai-agent/send-message.dto';
+import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
 import { InterviewSession, SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
 import { ConversationMessageDto, AIResponse, ProcessRequirement } from '../../../domain/ai-agent/types';
 import { ConversationMessageMapper } from '../../../domain/ai-agent/mappers/conversation-message.mapper';
@@ -29,6 +30,7 @@ export class ProcessUserMessageUseCase {
     private readonly backgroundJobQueue: BackgroundJobQueueInterface,
     private readonly socketGateway: SocketGateway,
     private readonly cacheService: AICacheService,
+    private readonly parser: LLMOutputParser,
   ) {}
 
   async execute(input: ProcessMessageInput): Promise<ProcessMessageOutput> {
@@ -54,6 +56,14 @@ export class ProcessUserMessageUseCase {
         throw error;
       }
       aiResponse = await this.handleOpenAIError(error, session, input.message);
+    }
+
+    // Parse structured JSON (log/monitor only; API response unchanged)
+    const parsed = this.parser.extractTemplateJson(aiResponse.content);
+    if (!parsed.ok) {
+      this.monitoringService.logAIError(input.userId, 'parse_structured_json', new Error((parsed.errors||[]).join(',')));
+    } else {
+      this.monitoringService.logAIRequest(input.userId, 'structured_json_ok', aiResponse.tokenCount || 0, aiResponse.estimatedCost || 0);
     }
 
     // 6. Update conversation

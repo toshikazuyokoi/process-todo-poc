@@ -2,11 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RealtimeGateway } from './realtime.gateway';
 import { Server, Socket } from 'socket.io';
 import { WsException } from '@nestjs/websockets';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 describe('RealtimeGateway', () => {
   let gateway: RealtimeGateway;
   let mockServer: Partial<Server>;
   let mockSocket: Partial<Socket>;
+  let mockJwtService: Partial<JwtService>;
+  let mockConfigService: Partial<ConfigService>;
 
   beforeEach(async () => {
     // Mock Server
@@ -33,8 +37,21 @@ describe('RealtimeGateway', () => {
       disconnect: jest.fn(),
     };
 
+    (mockSocket as any).data = {};
+
+    mockJwtService = {
+      verifyAsync: jest.fn().mockResolvedValue({ sub: 1, exp: Math.floor(Date.now() / 1000) + 3600 }),
+    };
+    mockConfigService = {
+      get: jest.fn().mockReturnValue('test-secret'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RealtimeGateway],
+      providers: [
+        RealtimeGateway,
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
     }).compile();
 
     gateway = module.get<RealtimeGateway>(RealtimeGateway);
@@ -52,10 +69,10 @@ describe('RealtimeGateway', () => {
   describe('handleConnection', () => {
     it('should accept connection with valid token', async () => {
       await gateway.handleConnection(mockSocket as Socket);
-      expect(mockSocket.emit).toHaveBeenCalledWith('connected', {
+      expect(mockSocket.emit).toHaveBeenCalledWith('connected', expect.objectContaining({
         message: 'Connected to realtime server',
         clientId: 'test-socket-id',
-      });
+      }));
     });
 
     it('should reject connection without token', async () => {

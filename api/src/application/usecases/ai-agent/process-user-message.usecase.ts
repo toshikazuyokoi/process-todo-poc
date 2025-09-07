@@ -70,10 +70,13 @@ export class ProcessUserMessageUseCase {
 
     // Audit hash (no prompt/content persistence)
     try {
-      const conversationForHash = session.getConversation().map(msg => ({
-        role: msg.getRole() as string,
-        content: typeof msg.getContent() === 'string' ? (msg.getContent() as string) : JSON.stringify(msg.getContent()),
-      }));
+      const conversationForHash = session.getConversation().map(msg => {
+        const c = msg.getContent() as unknown;
+        return {
+          role: msg.getRole() as string,
+          content: typeof c === 'string' ? c : JSON.stringify(c),
+        };
+      });
       conversationForHash.push({ role: 'user', content: input.message });
       conversationForHash.push({ role: 'assistant', content: aiResponse.content });
       const hash = this.auditService.computeConversationHash(conversationForHash);

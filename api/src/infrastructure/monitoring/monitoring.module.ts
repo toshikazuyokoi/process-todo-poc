@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AIMonitoringService } from './ai-monitoring.service';
 import { AuditLogService } from './ai-audit-log.decorator';
 import { MetricsService } from './metrics.service';
+import { AIAuditService } from './ai-audit.service';
 
 /**
  * Monitoring Module
@@ -27,11 +28,13 @@ import { MetricsService } from './metrics.service';
     AIMonitoringService,
     AuditLogService,
     MetricsService,
+    AIAuditService,
   ],
   exports: [
     AIMonitoringService,
     AuditLogService,
     MetricsService,
+    AIAuditService,
   ],
 })
 export class MonitoringModule {}

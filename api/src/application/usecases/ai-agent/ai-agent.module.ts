@@ -44,6 +44,7 @@ import { FeatureFlagService, AIFeatureFlagGuard } from '../../../infrastructure/
     require('../../../application/services/ai-agent/history-assembler.service').HistoryAssembler,
     require('../../../application/services/ai-agent/llm-output-parser.service').LLMOutputParser,
     require('../../../application/services/ai-agent/template-draft-mapper.service').TemplateDraftMapper,
+    OpenAIResponder,
     FeatureFlagService,
     AIFeatureFlagGuard,
     StartInterviewSessionUseCase,

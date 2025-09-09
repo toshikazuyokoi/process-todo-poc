@@ -1,21 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProcessUserMessageUseCase } from './process-user-message.usecase';
 import { InterviewSessionRepository } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
-import { AIConversationService } from '../../../domain/ai-agent/services/ai-conversation.service';
+import { AI_CONVERSATION_RESPONDER, AIConversationResponder } from '../../interfaces/ai-agent/ai-conversation-responder.interface';
 import { ProcessAnalysisService } from '../../../domain/ai-agent/services/process-analysis.service';
 import { AIRateLimitService } from '../../../infrastructure/ai/ai-rate-limit.service';
 import { AIMonitoringService } from '../../../infrastructure/monitoring/ai-monitoring.service';
+import { AIAuditService } from '../../../infrastructure/monitoring/ai-audit.service';
 import { BackgroundJobQueueInterface, JobType } from '../../../infrastructure/queue/background-job-queue.interface';
 import { SocketGateway } from '../../../infrastructure/websocket/socket.gateway';
 import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { TestDataFactory } from '../../../../test/utils/test-data.factory';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
+import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
 
 describe('ProcessUserMessageUseCase', () => {
   let useCase: ProcessUserMessageUseCase;
   let sessionRepository: jest.Mocked<InterviewSessionRepository>;
-  let conversationService: jest.Mocked<AIConversationService>;
+  let conversationService: jest.Mocked<AIConversationResponder>;
   let analysisService: jest.Mocked<ProcessAnalysisService>;
   let rateLimitService: jest.Mocked<AIRateLimitService>;
   let monitoringService: jest.Mocked<AIMonitoringService>;
@@ -45,10 +47,8 @@ describe('ProcessUserMessageUseCase', () => {
           },
         },
         {
-          provide: AIConversationService,
+          provide: AI_CONVERSATION_RESPONDER,
           useValue: {
-            initializeSession: jest.fn(),
-            generateWelcomeMessage: jest.fn(),
             processMessage: jest.fn(),
           },
         },
@@ -108,12 +108,19 @@ describe('ProcessUserMessageUseCase', () => {
             clearSessionCache: jest.fn(),
           },
         },
+        {
+          provide: AIAuditService,
+          useValue: {
+            computeConversationHash: jest.fn().mockReturnValue('hash'),
+          },
+        },
+        LLMOutputParser,
       ],
     }).compile();
 
     useCase = module.get<ProcessUserMessageUseCase>(ProcessUserMessageUseCase);
     sessionRepository = module.get('InterviewSessionRepository');
-    conversationService = module.get(AIConversationService);
+    conversationService = module.get(AI_CONVERSATION_RESPONDER);
     analysisService = module.get(ProcessAnalysisService);
     rateLimitService = module.get(AIRateLimitService);
     monitoringService = module.get(AIMonitoringService);

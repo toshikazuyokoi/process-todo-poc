@@ -4,9 +4,15 @@ import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
-import * as bcrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 
-jest.mock('bcrypt');
+jest.mock('bcrypt', () => ({
+  __esModule: true,
+  default: {
+    compare: jest.fn(),
+    hash: jest.fn(),
+  },
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -107,7 +113,7 @@ describe('AuthService', () => {
   describe('validateUser', () => {
     it('should return user when credentials are valid', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.compare as unknown as jest.Mock).mockResolvedValue(true);
       mockPrismaClient.user.update.mockResolvedValue(mockUser);
 
       const result = await service.validateUser('test@example.com', 'password');
@@ -148,7 +154,7 @@ describe('AuthService', () => {
 
     it('should increment failed login attempts on wrong password', async () => {
       mockUsersService.findByEmail.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (bcrypt.compare as unknown as jest.Mock).mockResolvedValue(false);
       mockPrismaClient.user.findUnique.mockResolvedValue(mockUser);
       mockPrismaClient.user.update.mockResolvedValue(mockUser);
 
@@ -200,7 +206,7 @@ describe('AuthService', () => {
 
     it('should create new user successfully', async () => {
       mockUsersService.findByEmail.mockResolvedValue(null);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashedpassword');
+      (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hashedpassword');
       
       const newUser = { ...mockUser, ...signupDto, id: 2 };
       mockPrismaClient.user.create.mockResolvedValue(newUser);
@@ -297,7 +303,7 @@ describe('AuthService', () => {
   describe('changePassword', () => {
     it('should change password successfully', async () => {
       mockUsersService.findById.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.compare as unknown as jest.Mock).mockResolvedValue(true);
       (bcrypt.hash as jest.Mock).mockResolvedValue('newhashed');
       mockPrismaClient.user.update.mockResolvedValue({});
       mockPrismaClient.refreshToken.updateMany.mockResolvedValue({});
@@ -315,7 +321,7 @@ describe('AuthService', () => {
 
     it('should throw UnauthorizedException for wrong old password', async () => {
       mockUsersService.findById.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      (bcrypt.compare as unknown as jest.Mock).mockResolvedValue(false);
 
       await expect(
         service.changePassword(1, 'wrongpassword', 'NewPassword123!')
@@ -324,7 +330,7 @@ describe('AuthService', () => {
 
     it('should throw BadRequestException for weak new password', async () => {
       mockUsersService.findById.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.compare as unknown as jest.Mock).mockResolvedValue(true);
 
       await expect(
         service.changePassword(1, 'oldpassword', 'weak')

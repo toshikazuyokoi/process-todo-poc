@@ -1,6 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import * as winston from 'winston';
-import * as DailyRotateFile from 'winston-daily-rotate-file';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import { format } from 'winston';
 
 @Injectable()
@@ -31,41 +31,44 @@ export class CustomLoggerService implements LoggerService {
       }),
     );
 
-    // ログファイルの設定
-    const fileRotateTransport = new DailyRotateFile({
-      filename: 'logs/application-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxSize: '20m',
-      maxFiles: '14d',
-      format: logFormat,
-    });
+    // テスト環境ではファイルローテートを無効化して安定化
+    const isTestEnv = process.env.NODE_ENV === 'test' || typeof process.env.JEST_WORKER_ID !== 'undefined';
 
-    const errorFileRotateTransport = new DailyRotateFile({
-      filename: 'logs/error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxSize: '20m',
-      maxFiles: '30d',
-      level: 'error',
-      format: logFormat,
-    });
+    const transports: winston.transport[] | any[] = [
+      new winston.transports.Console({ format: consoleFormat }),
+    ];
+
+    if (!isTestEnv) {
+      // ログファイルの設定（本番/開発のみ）
+      const fileRotateTransport = new (DailyRotateFile as any)({
+        filename: 'logs/application-%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        maxSize: '20m',
+        maxFiles: '14d',
+        format: logFormat,
+      });
+
+      const errorFileRotateTransport = new (DailyRotateFile as any)({
+        filename: 'logs/error-%DATE%.log',
+        datePattern: 'YYYY-MM-DD',
+        maxSize: '20m',
+        maxFiles: '30d',
+        level: 'error',
+        format: logFormat,
+      });
+
+      transports.push(fileRotateTransport, errorFileRotateTransport);
+    }
 
     // Winstonロガーの作成
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: logFormat,
-      defaultMeta: { 
+      defaultMeta: {
         service: 'process-todo-api',
         environment: process.env.NODE_ENV || 'development',
       },
-      transports: [
-        // コンソール出力
-        new winston.transports.Console({
-          format: consoleFormat,
-        }),
-        // ファイル出力
-        fileRotateTransport,
-        errorFileRotateTransport,
-      ],
+      transports,
     });
 
     // 本番環境では外部ログサービスに送信（例：CloudWatch, Datadog等）

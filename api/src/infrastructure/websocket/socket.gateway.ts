@@ -9,9 +9,10 @@ import {
   ConnectedSocket,
   WsException,
 } from '@nestjs/websockets';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
-import { SocketAuthGuard } from './socket-auth.guard';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { GetInterviewSessionUseCase } from '../../application/usecases/ai-agent/get-interview-session.usecase';
 import { DomainException } from '../../domain/exceptions/domain.exception';
 import { 
@@ -43,6 +44,10 @@ export interface AINotification {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   },
+  // Add Socket.io server options to prevent disconnection
+  pingInterval: 25000, // Send ping every 25 seconds
+  pingTimeout: 60000,  // Wait 60 seconds for pong before disconnecting
+  connectTimeout: 45000, // Connection timeout
 })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -57,13 +62,14 @@ export class SocketGateway
 
   constructor(
     private readonly getSessionUseCase: GetInterviewSessionUseCase,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   afterInit(server: Server) {
     this.logger.log('AI Agent WebSocket Gateway initialized');
   }
 
-  @UseGuards(SocketAuthGuard)
   async handleConnection(client: Socket) {
     try {
       const userId = this.extractUserId(client);
@@ -128,7 +134,7 @@ export class SocketGateway
     }
   }
 
-  @SubscribeMessage('join-session')
+  @SubscribeMessage(SESSION_EVENTS.JOIN)
   async handleJoinSession(
     @MessageBody() data: { sessionId: string },
     @ConnectedSocket() client: Socket,
@@ -176,7 +182,7 @@ export class SocketGateway
     }
   }
 
-  @SubscribeMessage('leave-session')
+  @SubscribeMessage(SESSION_EVENTS.LEAVE)
   async handleLeaveSession(
     @MessageBody() data: { sessionId: string },
     @ConnectedSocket() client: Socket,
@@ -476,15 +482,34 @@ export class SocketGateway
   }
 
   private extractUserId(client: Socket): number | null {
-    // Extract user ID from socket
-    // Priority: 1. From SocketAuthGuard (client.data), 2. From handshake
-    const userId = client.data?.userId ||
-                   client.handshake.auth?.userId || 
-                   client.handshake.query?.userId;
-    
-    if (!userId) return null;
-    
-    // Ensure we return a number
-    return typeof userId === 'number' ? userId : parseInt(userId as string, 10);
+    try {
+      // Get token from auth object
+      const token = client.handshake.auth?.token;
+      
+      if (!token) {
+        this.logger.warn('No token provided in handshake');
+        return null;
+      }
+      
+      // Validate token and extract user ID
+      const secret = this.configService.get<string>('JWT_SECRET');
+      const payload = this.jwtService.verify(token, { secret });
+      
+      // Return user ID from token payload
+      const userId = payload.sub || payload.userId;
+      
+      if (!userId) {
+        this.logger.warn('No user ID in token payload');
+        return null;
+      }
+      
+      // Store in client data for later use
+      client.data.userId = userId;
+      
+      return typeof userId === 'number' ? userId : parseInt(userId as string, 10);
+    } catch (error) {
+      this.logger.error('Failed to extract user ID from token:', error.message);
+      return null;
+    }
   }
 }

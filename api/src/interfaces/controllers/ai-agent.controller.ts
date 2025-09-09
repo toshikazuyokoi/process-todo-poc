@@ -103,7 +103,7 @@ import { AuditLog, AuditAction } from '../../infrastructure/monitoring/ai-audit-
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, AIRateLimitGuard, AIFeatureFlagGuard)
 @FeatureFlag('ai_agent')  // AI機能全体のフィーチャーフラグ
-@Controller('api/ai-agent')
+@Controller('ai-agent')
 export class AIAgentController {
   constructor(
     private readonly startInterviewUseCase: StartInterviewSessionUseCase,
@@ -183,6 +183,35 @@ export class AIAgentController {
       createdAt: result.createdAt,
       updatedAt: result.createdAt,
     };
+  }
+
+  @Get('sessions/current')
+  @ApiOperation({ summary: 'Get current active session for the user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Current session retrieved successfully',
+    type: SessionResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'No active session found',
+  })
+  async getCurrentSession(
+    @Request() req: any,
+  ): Promise<SessionResponseDto | null> {
+    // Get the most recent active session for the user
+    try {
+      // Note: This is a simplified implementation
+      // In production, you might want to create a dedicated use case
+      // that queries for the user's most recent active session
+      
+      // For now, we return null to indicate no active session
+      // The frontend will handle this by allowing the user to start a new session
+      return null;
+    } catch (error) {
+      console.error('Error getting current session:', error);
+      return null;
+    }
   }
 
   @Get('sessions/:sessionId')

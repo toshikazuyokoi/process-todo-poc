@@ -38,7 +38,7 @@ export class OpenAIService implements AIClientInterface {
     this.temperature = this.configService.get<number>('OPENAI_TEMPERATURE', 0.7);
   }
 
-  async generateResponse(prompt: string, context: AIContext): Promise<AIResponse> {
+  async generateResponse(prompt: string, context: AIContext, overrideSystemPrompt?: string): Promise<AIResponse> {
     if (!this.openai) {
       throw new Error('OpenAI client not initialized. Please configure OPENAI_API_KEY.');
     }
@@ -47,7 +47,7 @@ export class OpenAIService implements AIClientInterface {
       const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: this.buildSystemPrompt(context),
+          content: overrideSystemPrompt ?? this.buildSystemPrompt(context),
         },
       ];
 

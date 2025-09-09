@@ -6,6 +6,7 @@ import { SocketAuthGuard } from './socket-auth.guard';
 import { GetInterviewSessionUseCase } from '../../application/usecases/ai-agent/get-interview-session.usecase';
 import { AICacheModule } from '../cache/cache.module';
 import { DomainModule } from '../../domain/domain.module';
+import { InfrastructureModule } from '../infrastructure.module';
 
 @Module({
   imports: [
@@ -21,10 +22,11 @@ import { DomainModule } from '../../domain/domain.module';
       }),
     }),
     AICacheModule, // Required for GetInterviewSessionUseCase
-    DomainModule,  // Required for repositories
+    DomainModule,  // Required for domain services
+    InfrastructureModule, // Required for InterviewSessionRepository
   ],
   providers: [
-    SocketGateway, 
+    SocketGateway,
     SocketAuthGuard,
     GetInterviewSessionUseCase, // Added for session status requests
   ],

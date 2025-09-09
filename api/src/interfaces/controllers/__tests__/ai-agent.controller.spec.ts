@@ -15,6 +15,19 @@ import { SearchProcessBenchmarksUseCase } from '../../../application/usecases/ai
 import { AIRateLimitGuard } from '../../guards/ai-rate-limit.guard';
 import { AIFeatureFlagGuard } from '../../../infrastructure/security/ai-feature-flag.guard';
 import { APP_GUARD } from '@nestjs/core';
+// Knowledge Base use cases needed by the controller constructor
+import { GetIndustryTemplatesUseCase } from '../../../application/usecases/knowledge-base/get-industry-templates.usecase';
+import { CreateIndustryTemplateUseCase } from '../../../application/usecases/knowledge-base/create-industry-template.usecase';
+import { UpdateIndustryTemplateUseCase } from '../../../application/usecases/knowledge-base/update-industry-template.usecase';
+import { DeleteIndustryTemplateUseCase } from '../../../application/usecases/knowledge-base/delete-industry-template.usecase';
+import { GetProcessTypesUseCase } from '../../../application/usecases/knowledge-base/get-process-types.usecase';
+import { CreateProcessTypeUseCase } from '../../../application/usecases/knowledge-base/create-process-type.usecase';
+import { UpdateProcessTypeUseCase } from '../../../application/usecases/knowledge-base/update-process-type.usecase';
+import { DeleteProcessTypeUseCase } from '../../../application/usecases/knowledge-base/delete-process-type.usecase';
+import { GetBestPracticesUseCase } from '../../../application/usecases/knowledge-base/get-best-practices.usecase';
+import { CreateBestPracticeUseCase } from '../../../application/usecases/knowledge-base/create-best-practice.usecase';
+import { UpdateBestPracticeUseCase } from '../../../application/usecases/knowledge-base/update-best-practice.usecase';
+import { BulkUpdateBestPracticesUseCase } from '../../../application/usecases/knowledge-base/bulk-update-best-practices.usecase';
 
 // Mock Guards
 const mockAIRateLimitGuard = {
@@ -112,19 +125,24 @@ describe('AIAgentController', () => {
         },
         {
           provide: SearchProcessBenchmarksUseCase,
-          useValue: {
-            execute: jest.fn(),
-          },
+          useValue: { execute: jest.fn() },
         },
+        // Knowledge Base use cases required by controller constructor
+        { provide: GetIndustryTemplatesUseCase, useValue: { execute: jest.fn() } },
+        { provide: CreateIndustryTemplateUseCase, useValue: { execute: jest.fn() } },
+        { provide: UpdateIndustryTemplateUseCase, useValue: { execute: jest.fn() } },
+        { provide: DeleteIndustryTemplateUseCase, useValue: { execute: jest.fn() } },
+        { provide: GetProcessTypesUseCase, useValue: { execute: jest.fn() } },
+        { provide: CreateProcessTypeUseCase, useValue: { execute: jest.fn() } },
+        { provide: UpdateProcessTypeUseCase, useValue: { execute: jest.fn() } },
+        { provide: DeleteProcessTypeUseCase, useValue: { execute: jest.fn() } },
+        { provide: GetBestPracticesUseCase, useValue: { execute: jest.fn() } },
+        { provide: CreateBestPracticeUseCase, useValue: { execute: jest.fn() } },
+        { provide: UpdateBestPracticeUseCase, useValue: { execute: jest.fn() } },
+        { provide: BulkUpdateBestPracticesUseCase, useValue: { execute: jest.fn() } },
         // Guards
-        {
-          provide: AIRateLimitGuard,
-          useValue: mockAIRateLimitGuard,
-        },
-        {
-          provide: AIFeatureFlagGuard,
-          useValue: mockAIFeatureFlagGuard,
-        },
+        { provide: AIRateLimitGuard, useValue: mockAIRateLimitGuard },
+        { provide: AIFeatureFlagGuard, useValue: mockAIFeatureFlagGuard },
       ],
     })
       .overrideGuard(AIRateLimitGuard)

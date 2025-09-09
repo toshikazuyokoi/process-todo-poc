@@ -101,8 +101,10 @@ export class AICacheService {
    */
   async deleteByPattern(pattern: string): Promise<number> {
     try {
-      const keys = await (this.cacheManager.stores[0] as any)?.keys?.() || [];
-      const matchingKeys = keys.filter((key: string) => 
+      const cacheAny: any = this.cacheManager as any;
+      const store: any = cacheAny.store || cacheAny.stores?.[0];
+      const keys: string[] = (await store?.keys?.()) || [];
+      const matchingKeys = keys.filter((key: string) =>
         this.keyGenerator.matchesPattern(key, pattern)
       );
 
@@ -149,7 +151,17 @@ export class AICacheService {
    */
   async clear(): Promise<void> {
     try {
-      await this.cacheManager.clear();
+      const cacheAny: any = this.cacheManager as any;
+      // Prefer reset() if available (cache-manager v5)
+      if (typeof cacheAny.reset === 'function') {
+        await cacheAny.reset();
+      } else if (typeof cacheAny.clear === 'function') {
+        await cacheAny.clear();
+      } else if (cacheAny.store && typeof cacheAny.store.reset === 'function') {
+        await cacheAny.store.reset();
+      } else if (cacheAny.store && typeof cacheAny.store.clear === 'function') {
+        await cacheAny.store.clear();
+      }
       this.resetStatistics();
       this.logger.debug('Cache cleared');
     } catch (error) {

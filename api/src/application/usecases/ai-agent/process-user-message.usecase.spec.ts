@@ -13,6 +13,9 @@ import { DomainException } from '../../../domain/exceptions/domain.exception';
 import { TestDataFactory } from '../../../../test/utils/test-data.factory';
 import { SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
 import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
+import { TemplateDraftMapper } from '../../services/ai-agent/template-draft-mapper.service';
+import { FeatureFlagService } from '../../../infrastructure/security/ai-feature-flag.guard';
+
 
 describe('ProcessUserMessageUseCase', () => {
   let useCase: ProcessUserMessageUseCase;
@@ -114,6 +117,14 @@ describe('ProcessUserMessageUseCase', () => {
             computeConversationHash: jest.fn().mockReturnValue('hash'),
           },
         },
+        {
+          provide: TemplateDraftMapper,
+          useValue: { toSessionDraft: jest.fn() },
+        },
+        {
+          provide: FeatureFlagService,
+          useValue: { isEnabled: jest.fn().mockReturnValue(false) },
+        },
         LLMOutputParser,
       ],
     }).compile();
@@ -134,8 +145,8 @@ describe('ProcessUserMessageUseCase', () => {
       it('should process user message successfully', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput();
-        const mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        const mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: input.userId,
         });
         const mockAIResponse = TestDataFactory.createMockAIResponse();
@@ -194,8 +205,8 @@ describe('ProcessUserMessageUseCase', () => {
       it('should extract requirements asynchronously', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput();
-        const mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        const mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: input.userId,
         });
         const mockAIResponse = TestDataFactory.createMockAIResponse();
@@ -232,8 +243,8 @@ describe('ProcessUserMessageUseCase', () => {
       it('should calculate conversation progress', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput();
-        const mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        const mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: input.userId,
           conversation: [
             TestDataFactory.createMockConversationMessageEntity('assistant', 'Welcome'),
@@ -271,7 +282,7 @@ describe('ProcessUserMessageUseCase', () => {
       it('should throw error when session not found', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput();
-        
+
         rateLimitService.checkRateLimit.mockResolvedValue(true);
         sessionRepository.findById.mockResolvedValue(null);
 
@@ -284,8 +295,8 @@ describe('ProcessUserMessageUseCase', () => {
       it('should throw error when user does not own session', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput({ userId: 1 });
-        const mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        const mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: 999,
         });
 
@@ -332,7 +343,7 @@ describe('ProcessUserMessageUseCase', () => {
       it('should throw error when message is empty', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput({ message: '' });
-        
+
         // Setup session mock so we get to validation
         const mockSession = TestDataFactory.createMockSession({
           sessionId: input.sessionId,
@@ -351,7 +362,7 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const longMessage = 'a'.repeat(2001);
         const input = TestDataFactory.createMockProcessMessageInput({ message: longMessage });
-        
+
         // Setup session mock so we get to validation
         const mockSession = TestDataFactory.createMockSession({
           sessionId: input.sessionId,
@@ -369,7 +380,7 @@ describe('ProcessUserMessageUseCase', () => {
       it('should throw error when rate limit exceeded', async () => {
         // Arrange
         const input = TestDataFactory.createMockProcessMessageInput();
-        
+
         rateLimitService.checkRateLimit.mockResolvedValue(false);
 
         // Act & Assert
@@ -388,8 +399,8 @@ describe('ProcessUserMessageUseCase', () => {
 
       beforeEach(() => {
         input = TestDataFactory.createMockProcessMessageInput();
-        mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: input.userId,
         });
 
@@ -405,9 +416,9 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const rateLimitError = new Error('Rate limit exceeded') as any;
         rateLimitError.response = { status: 429 };
-        
+
         const mockAIResponse = TestDataFactory.createMockAIResponse();
-        
+
         conversationService.processMessage
           .mockRejectedValueOnce(rateLimitError)
           .mockResolvedValueOnce({
@@ -428,9 +439,9 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const serviceError = new Error('Service unavailable') as any;
         serviceError.response = { status: 503 };
-        
+
         const mockAIResponse = TestDataFactory.createMockAIResponse();
-        
+
         conversationService.processMessage
           .mockRejectedValueOnce(serviceError)
           .mockResolvedValueOnce({
@@ -451,9 +462,9 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const timeoutError = new Error('Timeout') as any;
         timeoutError.code = 'ETIMEDOUT';
-        
+
         const mockAIResponse = TestDataFactory.createMockAIResponse();
-        
+
         conversationService.processMessage
           .mockRejectedValueOnce(timeoutError)
           .mockResolvedValueOnce({
@@ -474,7 +485,7 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const authError = new Error('Unauthorized') as any;
         authError.response = { status: 401 };
-        
+
         conversationService.processMessage.mockRejectedValue(authError);
 
         // Act
@@ -491,7 +502,7 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const rateLimitError = new Error('Rate limit exceeded') as any;
         rateLimitError.response = { status: 429 };
-        
+
         conversationService.processMessage.mockRejectedValue(rateLimitError);
 
         // Act
@@ -506,7 +517,7 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const badRequestError = new Error('Bad request') as any;
         badRequestError.response = { status: 400 };
-        
+
         conversationService.processMessage.mockRejectedValue(badRequestError);
 
         // Act
@@ -521,7 +532,7 @@ describe('ProcessUserMessageUseCase', () => {
         // Arrange
         const paymentError = new Error('Payment required') as any;
         paymentError.response = { status: 402 };
-        
+
         conversationService.processMessage.mockRejectedValue(paymentError);
 
         // Act
@@ -540,8 +551,8 @@ describe('ProcessUserMessageUseCase', () => {
 
       beforeEach(() => {
         input = TestDataFactory.createMockProcessMessageInput();
-        mockSession = TestDataFactory.createMockSession({ 
-          sessionId: input.sessionId, 
+        mockSession = TestDataFactory.createMockSession({
+          sessionId: input.sessionId,
           userId: input.userId,
         });
         mockAIResponse = TestDataFactory.createMockAIResponse();
@@ -566,10 +577,10 @@ describe('ProcessUserMessageUseCase', () => {
         // Assert
         expect(sessionRepository.updateConversation).toHaveBeenCalled();
         const [sessionId, conversation] = sessionRepository.updateConversation.mock.calls[0];
-        
+
         expect(sessionId).toBe(input.sessionId);
         expect(conversation).toHaveLength(2);
-        
+
         // ConversationMessageエンティティのメソッドを使用して検証
         expect(conversation[0].getRole()).toBe('user');
         expect(conversation[0].getContentText()).toBe('Test user message');

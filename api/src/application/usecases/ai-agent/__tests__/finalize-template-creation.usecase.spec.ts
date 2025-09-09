@@ -6,6 +6,9 @@ import { TemplateRecommendationService } from '../../../../domain/ai-agent/servi
 import { DomainException } from '../../../../domain/exceptions/domain.exception';
 import { ComplexityLevel } from '../../../../domain/ai-agent/entities/process-analysis.entity';
 
+import { TemplateDraftMapper } from '../../../services/ai-agent/template-draft-mapper.service';
+import { CreateProcessTemplateUseCase } from '../../process-template/create-process-template.usecase';
+
 describe('FinalizeTemplateCreationUseCase', () => {
   let useCase: FinalizeTemplateCreationUseCase;
   let sessionRepository: jest.Mocked<InterviewSessionRepository>;
@@ -61,6 +64,14 @@ describe('FinalizeTemplateCreationUseCase', () => {
             optimizeStepSequence: jest.fn(),
           },
         },
+        {
+          provide: TemplateDraftMapper,
+          useValue: { toCreateDtoFromDraft: jest.fn().mockReturnValue({ name: 'Test Template', stepTemplates: [] }) }
+        },
+        {
+          provide: CreateProcessTemplateUseCase,
+          useValue: { execute: jest.fn().mockResolvedValue({ id: 123, name: 'Test Template', stepTemplates: [] }) }
+        }
       ],
     }).compile();
 
@@ -248,7 +259,7 @@ describe('FinalizeTemplateCreationUseCase', () => {
       historyRepository.save.mockRejectedValue(new Error('Database error'));
 
       await expect(useCase.execute(validInput)).rejects.toThrow('Database error');
-      
+
       // Should not mark session as completed if history save fails
       expect(sessionRepository.markAsCompleted).not.toHaveBeenCalled();
     });

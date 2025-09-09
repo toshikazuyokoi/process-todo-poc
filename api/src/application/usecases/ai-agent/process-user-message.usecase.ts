@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { InterviewSessionRepository } from '../../../domain/ai-agent/repositories/interview-session.repository.interface';
 import { AI_CONVERSATION_RESPONDER, AIConversationResponder } from '../../interfaces/ai-agent/ai-conversation-responder.interface';
 import { ProcessAnalysisService } from '../../../domain/ai-agent/services/process-analysis.service';
@@ -10,6 +10,8 @@ import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { AIAuditService } from '../../../infrastructure/monitoring/ai-audit.service';
 import { ProcessMessageInput, ProcessMessageOutput } from '../../dto/ai-agent/send-message.dto';
 import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
+import { TemplateDraftMapper } from '../../services/ai-agent/template-draft-mapper.service';
+import { FeatureFlagService } from '../../../infrastructure/security/ai-feature-flag.guard';
 import { InterviewSession, SessionStatus } from '../../../domain/ai-agent/entities/interview-session.entity';
 import { ConversationMessageDto, AIResponse, ProcessRequirement } from '../../../domain/ai-agent/types';
 import { ConversationMessageMapper } from '../../../domain/ai-agent/mappers/conversation-message.mapper';
@@ -33,6 +35,8 @@ export class ProcessUserMessageUseCase {
     private readonly cacheService: AICacheService,
     private readonly auditService: AIAuditService,
     private readonly parser: LLMOutputParser,
+    private readonly draftMapper: TemplateDraftMapper,
+    private readonly featureFlags: FeatureFlagService,
   ) {}
 
   async execute(input: ProcessMessageInput): Promise<ProcessMessageOutput> {
@@ -66,6 +70,18 @@ export class ProcessUserMessageUseCase {
       this.monitoringService.logAIError(input.userId, 'parse_structured_json', new Error((parsed.errors||[]).join(',')));
     } else {
       this.monitoringService.logAIRequest(input.userId, 'structured_json_ok', aiResponse.tokenCount || 0, aiResponse.estimatedCost || 0);
+      // PR2: Optionally persist Draft when feature is enabled
+      try {
+        if (this.featureFlags.isEnabled('template_draft_save', input.userId)) {
+          const draft = this.draftMapper.toSessionDraft(parsed.data!);
+          await this.sessionRepository.updateGeneratedTemplate(input.sessionId, draft);
+          // Notify clients that a draft/template preview is available
+          this.socketGateway.notifyTemplateGenerated(input.sessionId, draft);
+        }
+      } catch (e) {
+        // Do not disrupt primary flow on draft persistence errors; log via monitoring
+        this.monitoringService.logAIError(input.userId, 'draft_save_error', e as Error);
+      }
     }
 
     // Audit hash (no prompt/content persistence)

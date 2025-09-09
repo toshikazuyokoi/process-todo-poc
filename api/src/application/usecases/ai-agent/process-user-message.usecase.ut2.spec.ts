@@ -10,6 +10,9 @@ import { SocketGateway } from '../../../infrastructure/websocket/socket.gateway'
 import { AICacheService } from '../../../infrastructure/cache/ai-cache.service';
 import { AIAuditService } from '../../../infrastructure/monitoring/ai-audit.service';
 import { LLMOutputParser } from '../../services/ai-agent/llm-output-parser.service';
+import { TemplateDraftMapper } from '../../services/ai-agent/template-draft-mapper.service';
+import { FeatureFlagService } from '../../../infrastructure/security/ai-feature-flag.guard';
+
 import { DomainException } from '../../../domain/exceptions/domain.exception';
 
 class FakeMsg {
@@ -57,6 +60,8 @@ describe('ProcessUserMessageUseCase (Phase1 behavior)', () => {
         { provide: AIMonitoringService, useValue: { logUsage: jest.fn(), logAIRequest: jest.fn(), logAIError: jest.fn() } },
         { provide: 'BackgroundJobQueue', useValue: { addJob: jest.fn().mockResolvedValue(undefined) } },
         { provide: SocketGateway, useValue: { broadcastConversationUpdate: jest.fn() } },
+        { provide: TemplateDraftMapper, useValue: { toSessionDraft: jest.fn() } },
+        { provide: FeatureFlagService, useValue: { isEnabled: jest.fn().mockReturnValue(false) } },
         { provide: AICacheService, useValue: { cacheConversation: jest.fn().mockResolvedValue(undefined) } },
         { provide: AIAuditService, useValue: { computeConversationHash: jest.fn().mockReturnValue('hash') } },
         { provide: LLMOutputParser, useValue: { extractTemplateJson: jest.fn().mockReturnValue({ ok: true }) } },

@@ -15,5 +15,8 @@ import { UsersModule } from '@infrastructure/users/users.module';
       useClass: ProcessTemplateRepository,
     },
   ],
+  exports: [
+    CreateProcessTemplateUseCase,
+  ],
 })
 export class ProcessTemplateModule {}

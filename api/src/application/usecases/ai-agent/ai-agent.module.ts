@@ -20,6 +20,7 @@ import { AIConversationService } from '../../../domain/ai-agent/services/ai-conv
 import { OpenAIResponder } from '../../services/ai-agent/openai-responder.service';
 import { AIConfigService } from '../../../infrastructure/ai/ai-config.service';
 import { InfrastructureModule } from '../../../infrastructure/infrastructure.module';
+import { ProcessTemplateModule } from '../../../interfaces/controllers/process-template/process-template.module';
 import { WebSocketModule } from '../../../infrastructure/websocket/websocket.module';
 import { AICacheModule } from '../../../infrastructure/cache/cache.module';
 import { MonitoringModule } from '../../../infrastructure/monitoring/monitoring.module';
@@ -36,6 +37,7 @@ import { FeatureFlagService, AIFeatureFlagGuard } from '../../../infrastructure/
     MonitoringModule,
     QueueModule,
     KnowledgeBaseModule,
+    ProcessTemplateModule,
   ],
   controllers: [AIAgentController],
   providers: [

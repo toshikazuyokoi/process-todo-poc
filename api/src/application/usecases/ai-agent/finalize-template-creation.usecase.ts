@@ -3,6 +3,8 @@ import { InterviewSessionRepository } from '../../../domain/ai-agent/repositorie
 import { TemplateGenerationHistoryRepository, TemplateGenerationHistory } from '../../../domain/ai-agent/repositories/template-generation-history.repository.interface';
 import { TemplateRecommendationService } from '../../../domain/ai-agent/services/template-recommendation.service';
 import { DomainException } from '../../../domain/exceptions/domain.exception';
+import { TemplateDraftMapper } from '../../services/ai-agent/template-draft-mapper.service';
+import { CreateProcessTemplateUseCase } from '../../usecases/process-template/create-process-template.usecase';
 import { v4 as uuidv4 } from 'uuid';
 
 // Input/Output types as per design
@@ -39,6 +41,8 @@ export class FinalizeTemplateCreationUseCase {
     @Inject('TemplateGenerationHistoryRepository')
     private readonly historyRepository: TemplateGenerationHistoryRepository,
     private readonly templateService: TemplateRecommendationService,
+    private readonly draftMapper: TemplateDraftMapper,
+    private readonly createTemplateUseCase: CreateProcessTemplateUseCase,
   ) {}
 
   /**
@@ -66,47 +70,70 @@ export class FinalizeTemplateCreationUseCase {
         throw new DomainException('No template has been generated for this session');
       }
 
-      // Step 5: Apply modifications if provided
-      let finalTemplate = { ...generatedTemplate };
+      // Step 5: Apply modifications (limited: name/description only for PR3)
+      let draftToUse = { ...generatedTemplate };
       if (input.modifications) {
-        finalTemplate = await this.applyModifications(finalTemplate, input.modifications);
+        if (input.modifications.name) draftToUse.name = input.modifications.name;
+        if (input.modifications.description) draftToUse.description = input.modifications.description;
+        if (Array.isArray(input.modifications.steps)) {
+          const byId = new Map<string, any>();
+          const baseSteps = Array.isArray(draftToUse.steps) ? draftToUse.steps.slice() : [];
+          for (const s of baseSteps) {
+            if (s && typeof s.id === 'string') byId.set(s.id, { ...s });
+          }
+          for (const m of input.modifications.steps) {
+            if (m && typeof m.id === 'string' && byId.has(m.id)) {
+              const current = byId.get(m.id);
+              byId.set(m.id, {
+                ...current,
+                ...m,
+              });
+            } else if (m) {
+              // new step
+              byId.set(m.id || `new-${byId.size + 1}`, { ...m });
+            }
+          }
+          draftToUse.steps = Array.from(byId.values());
+        }
       }
 
-      // Step 6: Validate final template
-      const validationResult = await this.templateService.validateRecommendations([finalTemplate]);
+      // Step 6: Validate and optimize before creating the actual template
+      const validationResult = await this.templateService.validateRecommendations([draftToUse]);
       if (!validationResult.valid) {
         this.logger.warn('Template validation failed', validationResult.errors);
         throw new DomainException(`Template validation failed: ${validationResult.errors.join(', ')}`);
       }
+      draftToUse.steps = await this.templateService.optimizeStepSequence(draftToUse.steps);
 
-      // Step 7: Optimize step sequence
-      finalTemplate.steps = await this.templateService.optimizeStepSequence(finalTemplate.steps);
+      // Step 7: Map Draft -> Create DTO and create actual process template
+      const createDto = this.draftMapper.toCreateDtoFromDraft(draftToUse);
+      const created = await this.createTemplateUseCase.execute(createDto);
 
-      // Step 8: Create template history entry
+      // Step 8: Save history and mark as used
       const historyEntry: TemplateGenerationHistory = {
         sessionId: input.sessionId,
         userId: input.userId,
-        generatedTemplate: finalTemplate,
-        requirementsUsed: [], // Would come from session
-        confidenceScore: finalTemplate.confidence || 0.7,
+        generatedTemplate: draftToUse,
+        requirementsUsed: [],
+        confidenceScore: draftToUse.confidence || 0.7,
         wasUsed: true,
         modifications: input.modifications ? [input.modifications] : [],
         createdAt: new Date(),
         finalizedAt: new Date(),
+        processTemplateId: created.id,
       };
-
       await this.historyRepository.save(historyEntry);
 
-      // Step 9: Update session status
+      // Step 8: Update session status
       await this.sessionRepository.markAsCompleted(input.sessionId);
 
-      // Return finalized template
+      // Return finalized template (align with FinalizeTemplateResponseDto shape)
       return {
-        templateId: finalTemplate.id,
+        templateId: input.templateId,
         sessionId: input.sessionId,
-        name: finalTemplate.name,
-        description: finalTemplate.description,
-        steps: finalTemplate.steps,
+        name: draftToUse.name,
+        description: draftToUse.description || draftToUse.name,
+        steps: draftToUse.steps,
         metadata: {
           version: '1.0',
           createdBy: 'AI Agent',

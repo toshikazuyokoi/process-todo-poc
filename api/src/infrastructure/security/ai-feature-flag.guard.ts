@@ -48,6 +48,8 @@ export class FeatureFlagService {
     // Default flags
     const defaultFlags = {
       'ai_agent': true,
+      // Keep both keys for compatibility. Controller uses 'ai_template_generation'.
+      'ai_template_generation': true,
       'template_generation': true,
       'entity_extraction': true,
       'web_search': true,

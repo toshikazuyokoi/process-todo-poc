@@ -6,8 +6,8 @@ export class LLMOutputParser {
   extractTemplateJson(content: string): TemplateDraftParseResult {
     if (!content) return { ok: false, errors: ['EmptyContent'] };
 
-    // Find last fenced code block
-    const fenceRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    // Find last fenced code block (support both LF and CRLF)
+    const fenceRegex = /```(\w+)?\r?\n([\s\S]*?)```/g;
     let lastMatch: RegExpExecArray | null = null;
     let match: RegExpExecArray | null;
     while ((match = fenceRegex.exec(content)) !== null) {
@@ -20,8 +20,8 @@ export class LLMOutputParser {
 
     // Prefer json-labeled fence; otherwise accept if looks like JSON object
     if (lang && lang !== 'json') {
-      // Try to find a json fence specifically
-      const jsonFenceRegex = /```json\n([\s\S]*?)```/g;
+      // Try to find a json fence specifically (support CRLF)
+      const jsonFenceRegex = /```json\r?\n([\s\S]*?)```/g;
       let jsonMatch: RegExpExecArray | null = null;
       let m: RegExpExecArray | null;
       while ((m = jsonFenceRegex.exec(content)) !== null) {

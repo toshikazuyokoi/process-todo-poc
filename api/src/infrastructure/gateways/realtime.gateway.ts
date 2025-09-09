@@ -10,8 +10,10 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger } from '@nestjs/common';
+import { Logger, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 interface JoinRoomPayload {
   caseId: number;
@@ -46,6 +48,7 @@ interface CommentPayload {
   },
   namespace: '/realtime',
 })
+@Injectable()
 export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -55,26 +58,48 @@ export class RealtimeGateway
   private readonly logger = new Logger('RealtimeGateway');
   private readonly rooms = new Map<string, Set<string>>();
 
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
+
   afterInit(server: Server) {
     this.logger.log('WebSocket Gateway initialized');
   }
 
   async handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
-    
-    // 認証チェック（簡易版 - 本番環境ではJWT等を使用）
-    const token = client.handshake.auth?.token;
-    if (!token) {
-      this.logger.warn(`Client ${client.id} disconnected - no auth token`);
-      client.disconnect();
-      return;
-    }
+    try {
+      // Extract and validate token manually
+      const token = this.extractToken(client);
+      if (!token) {
+        this.logger.warn(`Client ${client.id} disconnected - no auth token`);
+        client.disconnect();
+        return;
+      }
 
-    // クライアントに接続成功を通知
-    client.emit('connected', { 
-      message: 'Connected to realtime server',
-      clientId: client.id 
-    });
+      // Validate token and get user ID
+      const userId = await this.validateTokenAndGetUserId(token);
+      if (!userId) {
+        this.logger.warn(`Client ${client.id} disconnected - invalid token`);
+        client.disconnect();
+        return;
+      }
+
+      // Store user info in client data
+      client.data.userId = userId;
+
+      this.logger.log(`Client connected: ${client.id} (User: ${userId})`);
+
+      // クライアントに接続成功を通知
+      client.emit('connected', { 
+        message: 'Connected to realtime server',
+        clientId: client.id,
+        userId,
+      });
+    } catch (error) {
+      this.logger.error('Connection error', error);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -363,6 +388,54 @@ export class RealtimeGateway
         caseId,
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  // Helper methods for authentication
+  private extractToken(client: Socket): string | null {
+    // Try multiple sources for token
+    let token = null;
+
+    // 1. From auth object in handshake
+    if (client.handshake.auth?.token) {
+      token = client.handshake.auth.token;
+    }
+    // 2. From query parameters
+    else if (client.handshake.query?.token) {
+      token = client.handshake.query.token as string;
+    }
+    // 3. From headers (Bearer token)
+    else if (client.handshake.headers?.authorization) {
+      const authHeader = client.handshake.headers.authorization;
+      const parts = authHeader.split(' ');
+      
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        token = parts[1];
+      }
+    }
+
+    return token;
+  }
+
+  private async validateTokenAndGetUserId(token: string): Promise<number | null> {
+    try {
+      const secret = this.configService.get<string>('JWT_SECRET');
+      
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret,
+      });
+
+      // Check token expiration
+      if (payload.exp && Date.now() >= payload.exp * 1000) {
+        this.logger.warn('Token expired');
+        return null;
+      }
+
+      // Return user ID from token payload
+      return payload.sub || null;
+    } catch (error) {
+      this.logger.error('Token validation failed', error);
+      return null;
     }
   }
 }

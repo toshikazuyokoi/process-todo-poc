@@ -63,7 +63,7 @@ export interface Intent {
 }
 
 export interface AIClientInterface {
-  generateResponse(prompt: string, context: AIContext): Promise<AIResponse>;
+  generateResponse(prompt: string, context: AIContext, overrideSystemPrompt?: string): Promise<AIResponse>;
   generateTemplate(requirements: any[], context: TemplateContext): Promise<TemplateRecommendation>;
   extractEntities(text: string): Promise<Entity[]>;
   classifyIntent(message: string): Promise<Intent>;
